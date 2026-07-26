@@ -13,6 +13,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { guard } from '@/lib/rate-limit';
 import { getProvider } from '@/lib/ai';
 import { getScriptureClient } from '@/lib/scripture/youversion';
 import { matchFixtures } from '@/lib/scripture/fixtures';
@@ -28,6 +29,9 @@ interface ResolveBody {
 }
 
 export async function POST(request: Request) {
+  const limited = guard(request, 'resolve', 30);
+  if (limited) return limited;
+
   let body: ResolveBody;
   try {
     body = (await request.json()) as ResolveBody;

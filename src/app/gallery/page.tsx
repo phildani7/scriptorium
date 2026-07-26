@@ -5,12 +5,23 @@
  *
  * Every entry is a pre-rendered MP4 committed to /public/gallery by the render
  * pipeline — a judge on hotel wifi clicks play on a static file; nothing here
- * depends on a warm API. Exports queued from the studio land in this same
- * manifest via the render workflow.
+ * depends on a warm API.
+ *
+ * Two sources, tried in order:
+ *   1. the repository itself (raw.githubusercontent) — exports committed by
+ *      the render workflow appear here the moment the job pushes, with no
+ *      redeploy in between
+ *   2. the copy bundled into this deployment, as the offline fallback
  */
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+
+const GALLERY_REPO = process.env.NEXT_PUBLIC_GALLERY_REPO; // "owner/name"
+
+function rawUrl(path: string): string {
+  return `https://raw.githubusercontent.com/${GALLERY_REPO}/master/public${path}`;
+}
 
 interface GalleryEntry {
   id: string;
@@ -28,12 +39,40 @@ interface GalleryEntry {
 
 export default function GalleryPage() {
   const [entries, setEntries] = useState<GalleryEntry[] | null>(null);
+  const [live, setLive] = useState(false);
 
   useEffect(() => {
-    fetch('/gallery/manifest.json')
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setEntries)
-      .catch(() => setEntries([]));
+    async function load() {
+      // Freshest first: the repo the render workflow commits into.
+      if (GALLERY_REPO) {
+        try {
+          const response = await fetch(rawUrl('/gallery/manifest.json'), {
+            cache: 'no-store',
+          });
+          if (response.ok) {
+            const data = (await response.json()) as GalleryEntry[];
+            setEntries(
+              data.map((e) => ({
+                ...e,
+                video: rawUrl(e.video),
+                poster: e.poster ? rawUrl(e.poster) : null,
+              })),
+            );
+            setLive(true);
+            return;
+          }
+        } catch {
+          // fall through to the bundled copy
+        }
+      }
+      try {
+        const response = await fetch('/gallery/manifest.json');
+        setEntries(response.ok ? await response.json() : []);
+      } catch {
+        setEntries([]);
+      }
+    }
+    void load();
   }, []);
 
   return (
@@ -44,6 +83,7 @@ export default function GalleryPage() {
           <p className="mt-1 text-sm text-inksoft">
             Pre-rendered shorts. Every verse passed the integrity gate against
             a live YouVersion response before a single frame was captured.
+            {live && ' Showing the live gallery — new exports appear as their render jobs finish.'}
           </p>
         </div>
         <Link

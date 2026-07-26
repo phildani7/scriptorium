@@ -10,6 +10,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { NextResponse } from 'next/server';
+import { guard } from '@/lib/rate-limit';
 import { bakeComposition } from '@/lib/render/bake';
 import type { StyleId } from '@/lib/types';
 
@@ -24,6 +25,9 @@ const STYLES: readonly StyleId[] = [
 ];
 
 export async function POST(request: Request) {
+  const limited = guard(request, 'preview', 60);
+  if (limited) return limited;
+
   let body: { spec?: Record<string, unknown> };
   try {
     body = (await request.json()) as { spec?: Record<string, unknown> };

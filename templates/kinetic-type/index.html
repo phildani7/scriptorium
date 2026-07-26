@@ -91,12 +91,18 @@
       #short[data-dir='rtl'] #wall, #short[data-dir='rtl'] #verse-block { direction: rtl; }
 
       /* ---- the verse ---- */
+      /* Fills the wall's vacated space: centered in the full stage, not
+         parked at the bottom with two-thirds of the frame empty. */
       #verse-block {
         position: absolute;
         left: 90px;
         right: 90px;
-        bottom: 250px;
-        top: auto;
+        top: 210px;
+        bottom: 230px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
         opacity: 0;
       }
       #verse-kicker {

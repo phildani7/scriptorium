@@ -20,10 +20,14 @@
  */
 
 import { NextResponse } from 'next/server';
+import { guard } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  const limited = guard(request, 'export', 10);
+  if (limited) return limited;
+
   let body: { spec?: Record<string, unknown> };
   try {
     body = (await request.json()) as { spec?: Record<string, unknown> };

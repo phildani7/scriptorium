@@ -40,8 +40,32 @@ input ──▶ /api/resolve   YouVersion    reference or topic ──▶ passag
       ──▶ /api/generate  Gloo AI       passage ──▶ 3-7 teaching devices
       ──▶ review gate    human         verse locked; or Auto mode skips review
       ──▶ /api/compose   Speechmatics  narration + word timings ──▶ ShortSpec
-      ──▶ /api/preview   HyperFrames   ShortSpec ──▶ composition HTML
+      ──▶ /api/preview   HyperFrames   ShortSpec + theme ──▶ composition HTML
+      ──▶ /api/export    GitHub Actions render ──▶ MP4 ──▶ /gallery
 ```
+
+## Styles, themes, customization
+
+Three frozen HyperFrames styles — **Warm Minimal** (editorial, zoom-through
+seam), **Kinetic Type** (poster type landing word-by-word on the measured
+voice timings), **Neon Night** (glow, seeded particles, a flare at the turn) —
+crossed with one-click **8 palettes × 4 font pairs × 3 sizes × 5 CSS-generated
+backgrounds**. Theme choices bake in as CSS custom properties, so the browser
+preview and the MP4 export consume byte-identical HTML.
+
+Every animation obeys the HyperFrames determinism contract: one paused GSAP
+timeline built synchronously, seeded randomness only, transform/opacity/filter
+tweens, seek-safe at any frame — which is exactly what lets the renderer
+capture frames by seeking.
+
+## Export and gallery
+
+"Export MP4" fires a `repository_dispatch`; a GitHub Actions job re-synthesizes
+narration from its own secrets, re-fetches the passage from YouVersion (the
+integrity gate refuses to render if the spec was tampered with), renders
+1080×1920 H.264, and commits the MP4 + poster into `/public/gallery` — which
+redeploys the gallery. When cloud rendering is not configured the studio hands
+back the spec for a local `npm run render`.
 
 **Gloo** is used for what only Gloo does: `tradition` values-alignment (a Catholic
 parish and a Pentecostal youth group need different emphases from the same verse) and

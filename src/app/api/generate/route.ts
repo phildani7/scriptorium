@@ -9,6 +9,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { guard } from '@/lib/rate-limit';
 import { getProvider, providerStatus } from '@/lib/ai';
 import type { Tradition } from '@/lib/ai';
 import type { AgeGroup, DeviceType, Passage } from '@/lib/types';
@@ -25,6 +26,9 @@ interface GenerateBody {
 }
 
 export async function POST(request: Request) {
+  const limited = guard(request, 'generate', 15);
+  if (limited) return limited;
+
   let body: GenerateBody;
   try {
     body = (await request.json()) as GenerateBody;

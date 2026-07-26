@@ -11,6 +11,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { guard } from '@/lib/rate-limit';
 import { buildNarrationScript } from '@/lib/script/build';
 import { synthesizeAndAlign } from '@/lib/voice';
 import { alignScriptToAudio } from '@/lib/voice/align';
@@ -34,6 +35,9 @@ interface ComposeBody {
 }
 
 export async function POST(request: Request) {
+  const limited = guard(request, 'compose', 15);
+  if (limited) return limited;
+
   let body: ComposeBody;
   try {
     body = (await request.json()) as ComposeBody;
