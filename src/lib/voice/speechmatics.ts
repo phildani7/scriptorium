@@ -17,6 +17,8 @@
  * verse would be indistinguishable, to a viewer, from altered Scripture.
  */
 
+import { cleanEnv } from '@/lib/env';
+
 const TTS_BASE = 'https://preview.tts.speechmatics.com';
 const ASR_BASE = 'https://asr.api.speechmatics.com/v2';
 
@@ -52,7 +54,7 @@ export class SpeechmaticsClient {
   private readonly apiKey: string;
 
   constructor(apiKey?: string) {
-    const key = apiKey ?? process.env.SPEECHMATICS_API_KEY;
+    const key = apiKey ?? cleanEnv('SPEECHMATICS_API_KEY');
     if (!key) {
       throw new SpeechmaticsError(
         'Missing SPEECHMATICS_API_KEY. Add it to .env.local.',

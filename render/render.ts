@@ -32,6 +32,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { chromium } from 'playwright-core';
 
 import { bakeComposition } from '@/lib/render/bake';
+import { cleanEnv } from '@/lib/env';
 import { verifyVerbatim } from '@/lib/verify/verbatim';
 
 const ROOT = process.cwd();
@@ -76,7 +77,7 @@ async function refetchPassage(
   versionId: number,
   usfm: string,
 ): Promise<string | null> {
-  const appKey = process.env.YVP_APP_KEY;
+  const appKey = cleanEnv('YVP_APP_KEY');
   if (!appKey) return null;
 
   const url = `https://api.youversion.com/v1/bibles/${versionId}/passages/${encodeURIComponent(

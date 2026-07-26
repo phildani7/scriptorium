@@ -9,6 +9,7 @@
  */
 
 import type { AIProvider, ProviderId } from './provider';
+import { cleanEnv } from '@/lib/env';
 import { GlooProvider } from './gloo';
 import { ClaudeProvider } from './claude';
 
@@ -28,10 +29,10 @@ export interface ProviderStatus {
 
 export function providerStatus(): ProviderStatus {
   const glooConfigured = Boolean(
-    process.env.GLOO_CLIENT_ID && process.env.GLOO_CLIENT_SECRET,
+    cleanEnv('GLOO_CLIENT_ID') && cleanEnv('GLOO_CLIENT_SECRET'),
   );
-  const claudeConfigured = Boolean(process.env.ANTHROPIC_API_KEY);
-  const requested = process.env.AI_PROVIDER as ProviderId | undefined;
+  const claudeConfigured = Boolean(cleanEnv('ANTHROPIC_API_KEY'));
+  const requested = cleanEnv('AI_PROVIDER') as ProviderId | undefined;
 
   const active: ProviderId =
     requested === 'gloo' || (!requested && glooConfigured) ? 'gloo' : 'claude';
@@ -58,7 +59,7 @@ export function getProvider(): AIProvider {
     cached = new GlooProvider({
       clientId: requireEnv('GLOO_CLIENT_ID'),
       clientSecret: requireEnv('GLOO_CLIENT_SECRET'),
-      model: process.env.GLOO_MODEL || undefined,
+      model: cleanEnv('GLOO_MODEL'),
     });
     return cached;
   }
@@ -72,7 +73,7 @@ export function getProvider(): AIProvider {
 
   cached = new ClaudeProvider({
     apiKey: requireEnv('ANTHROPIC_API_KEY'),
-    model: process.env.ANTHROPIC_MODEL || undefined,
+    model: cleanEnv('ANTHROPIC_MODEL'),
   });
   return cached;
 }
@@ -83,7 +84,7 @@ export function resetProvider(): void {
 }
 
 function requireEnv(name: string): string {
-  const value = process.env[name];
+  const value = cleanEnv(name);
   if (!value) throw new Error(`Missing required environment variable ${name}.`);
   return value;
 }

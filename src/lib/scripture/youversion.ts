@@ -16,6 +16,7 @@
  */
 
 import type { Passage } from '@/lib/types';
+import { cleanEnv } from '@/lib/env';
 import { parseReference } from './usfm';
 
 const BASE_URL = 'https://api.youversion.com/v1';
@@ -70,7 +71,7 @@ export class YouVersionClient {
   private readonly bibleCache = new Map<number, BibleVersion>();
 
   constructor(appKey?: string) {
-    const key = appKey ?? process.env.YVP_APP_KEY;
+    const key = appKey ?? cleanEnv('YVP_APP_KEY');
     if (!key) {
       throw new YouVersionError(
         'Missing YVP_APP_KEY. Register an app at https://platform.youversion.com ' +
@@ -256,14 +257,18 @@ export class YouVersionClient {
 
     let response: Response;
     try {
+      // Plain fetch, no Next data-cache options: this client also runs under
+      // tsx (renders, audits) where the patched fetch does not exist, and the
+      // `next.revalidate` option proved able to make the Vercel runtime's
+      // fetch throw inside POST handlers. Version metadata is already memoised
+      // in-process, and passage text is small; correctness beats cache here.
       response = await fetch(url, {
         headers: { 'X-YVP-App-Key': this.appKey, Accept: 'application/json' },
-        // Scripture text for a given version never changes; let Next cache it.
-        next: { revalidate: 86_400 },
       });
     } catch (cause) {
+      const detail = cause instanceof Error ? ` ${cause.message}` : '';
       throw new YouVersionError(
-        `Could not reach the YouVersion Platform API (${path}).`,
+        `Could not reach the YouVersion Platform API (${path}).${detail}`,
         { cause },
       );
     }

@@ -20,6 +20,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { cleanEnv } from '@/lib/env';
 import { guard } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
@@ -40,8 +41,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'A composed spec is required.' }, { status: 400 });
   }
 
-  const token = process.env.GITHUB_DISPATCH_TOKEN;
-  const repo = process.env.GITHUB_REPO; // "owner/name"
+  const token = cleanEnv('GITHUB_DISPATCH_TOKEN');
+  const repo = cleanEnv('GITHUB_REPO'); // "owner/name"
 
   if (!token || !repo) {
     return NextResponse.json({
