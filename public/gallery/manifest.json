@@ -1,5 +1,19 @@
 [
   {
+    "id": "hi-psalm23-piper-ci",
+    "video": "/gallery/hi-psalm23-piper-ci.mp4",
+    "poster": "/gallery/hi-psalm23-piper-ci.jpg",
+    "reference": "भजन संहिता 23:1",
+    "version": "HHBD",
+    "attribution": "Hindi Holy Bible (HHBD)",
+    "language": "hi",
+    "style": "warm-minimal",
+    "lens": "hook",
+    "durationSec": 20,
+    "timingSource": "estimated",
+    "createdAt": "2026-07-26"
+  },
+  {
     "id": "short-HEB.12.2-warm-minimal-ms1zv20c",
     "video": "/gallery/short-HEB.12.2-warm-minimal-ms1zv20c.mp4",
     "poster": "/gallery/short-HEB.12.2-warm-minimal-ms1zv20c.jpg",
