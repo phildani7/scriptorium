@@ -43,24 +43,35 @@ function synthesizeWithPiper(script: string, model: string, workdir: string): Ui
   const modelsDir = '.piper-models';
   mkdirSync(modelsDir, { recursive: true });
 
+  const python = process.platform === 'win32' ? 'python' : 'python3';
+  const opts = { timeout: 300_000, encoding: 'utf8' as const };
+
+  // piper >= 1.3 (piper1-gpl) split downloading out of synthesis. Idempotent:
+  // an already-cached voice is a no-op.
+  const download = spawnSync(
+    python,
+    ['-m', 'piper.download_voices', model, '--data-dir', modelsDir],
+    opts,
+  );
+  if (download.error || download.status !== 0) {
+    console.warn(
+      `piper voice download failed (${download.status ?? download.error}): ` +
+        `${(download.stderr ?? '').toString().trim().slice(-500)}\n` +
+        'falling back to estimated timings without narration.',
+    );
+    return null;
+  }
+
   const result = spawnSync(
-    'piper',
-    [
-      '--model', model,
-      '--download-dir', modelsDir,
-      '--data-dir', modelsDir,
-      '--output_file', wavPath,
-    ],
-    {
-      input: script,
-      shell: process.platform === 'win32',
-      timeout: 300_000,
-    },
+    python,
+    ['-m', 'piper', '-m', model, '--data-dir', modelsDir, '-f', wavPath, '--', script],
+    opts,
   );
 
   if (result.error || result.status !== 0 || !existsSync(wavPath)) {
     console.warn(
-      `piper unavailable or failed (${result.status ?? result.error}); ` +
+      `piper synthesis failed (${result.status ?? result.error}): ` +
+        `${(result.stderr ?? '').toString().trim().slice(-500)}\n` +
         'falling back to estimated timings without narration.',
     );
     return null;
