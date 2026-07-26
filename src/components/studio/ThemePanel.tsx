@@ -12,6 +12,7 @@
 import {
   BACKGROUNDS,
   FONTS,
+  MUSIC,
   PALETTES,
   SIZES,
   type ShortTheme,
@@ -159,6 +160,59 @@ export function ThemePanel({ style, theme, busy, onStyle, onTheme }: ThemePanelP
             );
           })}
         </div>
+        <p className="mt-2 text-xs text-inkfaint">
+          ✶ NASA imagery, public domain.
+        </p>
+      </Group>
+
+      <Group label="Music">
+        <div className="flex flex-wrap gap-2">
+          {MUSIC.map((m) => {
+            const active = (theme.musicId ?? 'none') === m.id;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                aria-pressed={active}
+                title={m.credit || 'Silence'}
+                onClick={() => set({ musicId: m.id })}
+                className={`rounded-lg border px-3 py-2 text-sm transition ${
+                  active ? 'border-accent bg-accentsoft font-semibold text-accent' : 'border-rule bg-white text-inksoft hover:border-inkfaint'
+                }`}
+              >
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-inkfaint">
+          Kevin MacLeod (incompetech.com), CC BY 4.0 — credited automatically.
+        </p>
+      </Group>
+
+      <Group label="Captions">
+        <div className="flex gap-2">
+          {(['on', 'off'] as const).map((v) => {
+            const active = (theme.captions ?? 'on') === v;
+            return (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={active}
+                onClick={() => set({ captions: v })}
+                className={`flex-1 rounded-lg border px-2 py-2 text-sm transition ${
+                  active ? 'border-accent bg-accentsoft font-semibold text-accent' : 'border-rule bg-white text-inksoft hover:border-inkfaint'
+                }`}
+              >
+                {v === 'on' ? 'Captions on' : 'Captions off'}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-inkfaint">
+          The verse and reference always render; this controls only the
+          word-synced caption rail.
+        </p>
       </Group>
     </div>
   );

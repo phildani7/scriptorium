@@ -21,6 +21,8 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
+import { resolveMusic } from '../src/lib/theme/options';
+
 const GALLERY = join('public', 'gallery');
 
 function run(command: string, args: string[]): number {
@@ -89,6 +91,7 @@ async function main() {
       reference: spec.passage.reference,
       version: spec.passage.versionAbbreviation,
       attribution: spec.passage.attribution,
+      musicCredit: resolveMusic(spec.theme).credit || undefined,
       language: spec.languageCode,
       style: spec.style,
       lens: spec.device.type,

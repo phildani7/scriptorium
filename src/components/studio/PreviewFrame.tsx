@@ -17,14 +17,22 @@ interface PreviewFrameProps {
   durationSec: number;
   /** Data URI of the narration, when a server voice produced one. */
   audioUrl?: string;
+  /** Music bed URL; pre-attenuated files, so played at full element volume. */
+  musicUrl?: string;
 }
 
 const FRAME_W = 1080;
 const FRAME_H = 1920;
 
-export function PreviewFrame({ html, durationSec, audioUrl }: PreviewFrameProps) {
+export function PreviewFrame({
+  html,
+  durationSec,
+  audioUrl,
+  musicUrl,
+}: PreviewFrameProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const musicRef = useRef<HTMLAudioElement>(null);
   const rafRef = useRef<number | null>(null);
   const startedAt = useRef<number>(0);
 
@@ -83,13 +91,15 @@ export function PreviewFrame({ html, durationSec, audioUrl }: PreviewFrameProps)
   const toggle = () => {
     const next = !playing;
     setPlaying(next);
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (next) {
-      audio.currentTime = time;
-      void audio.play().catch(() => undefined);
-    } else {
-      audio.pause();
+    for (const ref of [audioRef, musicRef]) {
+      const audio = ref.current;
+      if (!audio) continue;
+      if (next) {
+        audio.currentTime = time;
+        void audio.play().catch(() => undefined);
+      } else {
+        audio.pause();
+      }
     }
   };
 
@@ -97,7 +107,12 @@ export function PreviewFrame({ html, durationSec, audioUrl }: PreviewFrameProps)
     setPlaying(false);
     setTime(value);
     seek(value);
-    if (audioRef.current) audioRef.current.currentTime = value;
+    for (const ref of [audioRef, musicRef]) {
+      if (ref.current) {
+        ref.current.pause();
+        ref.current.currentTime = value;
+      }
+    }
   };
 
   return (
@@ -123,6 +138,7 @@ export function PreviewFrame({ html, durationSec, audioUrl }: PreviewFrameProps)
       </div>
 
       {audioUrl && <audio ref={audioRef} src={audioUrl} preload="auto" />}
+      {musicUrl && <audio ref={musicRef} src={musicUrl} preload="auto" />}
 
       <div className="flex w-full max-w-80 flex-col gap-2">
         <div className="flex items-center gap-3">

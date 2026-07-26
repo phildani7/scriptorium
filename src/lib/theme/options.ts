@@ -80,10 +80,22 @@ export interface BackgroundOption {
   id: string;
   label: string;
   /**
-   * Which treatment the template applies. All are CSS-generated — no image
-   * files to ship, nothing to fetch offline.
+   * Which treatment the template applies. Most are CSS-generated; `photo`
+   * layers a shipped public-domain image with a slow Ken Burns drift and a
+   * palette-tinted scrim so text stays legible on any theme.
    */
-  kind: 'plain' | 'grain' | 'mesh' | 'rays' | 'particles';
+  kind:
+    | 'plain'
+    | 'grain'
+    | 'mesh'
+    | 'rays'
+    | 'particles'
+    | 'paper'
+    | 'halftone'
+    | 'linen'
+    | 'photo';
+  /** Only for kind 'photo': root-relative image path. */
+  src?: string;
 }
 
 export const BACKGROUNDS: readonly BackgroundOption[] = [
@@ -92,6 +104,35 @@ export const BACKGROUNDS: readonly BackgroundOption[] = [
   { id: 'mesh', label: 'Gradient mesh', kind: 'mesh' },
   { id: 'rays', label: 'Light rays', kind: 'rays' },
   { id: 'particles', label: 'Particles', kind: 'particles' },
+  { id: 'paper', label: 'Paper texture', kind: 'paper' },
+  { id: 'halftone', label: 'Halftone dots', kind: 'halftone' },
+  { id: 'linen', label: 'Linen weave', kind: 'linen' },
+  // NASA imagery — public domain. Normalized to 1080x1920 at import.
+  { id: 'photo-starfield', label: 'Deep field ✶', kind: 'photo', src: '/backgrounds/starfield.jpg' },
+  { id: 'photo-pillars', label: 'Pillars ✶', kind: 'photo', src: '/backgrounds/pillars.jpg' },
+  { id: 'photo-earth', label: 'Earth ✶', kind: 'photo', src: '/backgrounds/earth.jpg' },
+] as const;
+
+export interface MusicOption {
+  id: string;
+  label: string;
+  /** Empty for silence. */
+  file: string;
+  credit: string;
+}
+
+/**
+ * Music beds, pre-attenuated and faded at import time with ffmpeg, so the
+ * mix is right no matter what a player does with volume attributes.
+ * Kevin MacLeod tracks are CC-BY 4.0 — credited here, in CREDITS.md, and in
+ * the gallery manifest.
+ */
+export const MUSIC: readonly MusicOption[] = [
+  { id: 'none', label: 'No music', file: '', credit: '' },
+  { id: 'meditation', label: 'Meditation', file: '/music/meditation.mp3', credit: '"Meditation Impromptu 01" Kevin MacLeod (incompetech.com), CC BY 4.0' },
+  { id: 'at-rest', label: 'At Rest', file: '/music/at-rest.mp3', credit: '"At Rest" Kevin MacLeod (incompetech.com), CC BY 4.0' },
+  { id: 'heartbreaking', label: 'Tender', file: '/music/heartbreaking.mp3', credit: '"Heartbreaking" Kevin MacLeod (incompetech.com), CC BY 4.0' },
+  { id: 'wounded', label: 'Reflective', file: '/music/wounded.mp3', credit: '"Wounded" Kevin MacLeod (incompetech.com), CC BY 4.0' },
 ] as const;
 
 /** The theme a spec carries. Every field optional; templates have defaults. */
@@ -100,6 +141,13 @@ export interface ShortTheme {
   fontId?: string;
   sizeId?: string;
   backgroundId?: string;
+  /** 'off' hides the caption rail; the verse and reference always render. */
+  captions?: 'on' | 'off';
+  musicId?: string;
+}
+
+export function resolveMusic(theme: ShortTheme | undefined): MusicOption {
+  return MUSIC.find((m) => m.id === theme?.musicId) ?? MUSIC[0];
 }
 
 export interface ResolvedTheme {
@@ -141,7 +189,15 @@ export function themeStyle(theme: ShortTheme | undefined): string {
 export function themeAttributes(theme: ShortTheme | undefined): {
   bg: string;
   dark: '1' | '0';
+  /** Root-relative photo path, when the background is a photo. */
+  photoSrc?: string;
+  captionsOff: boolean;
 } {
   const { palette, background } = resolveTheme(theme);
-  return { bg: background.kind, dark: palette.dark ? '1' : '0' };
+  return {
+    bg: background.kind,
+    dark: palette.dark ? '1' : '0',
+    photoSrc: background.kind === 'photo' ? background.src : undefined,
+    captionsOff: theme?.captions === 'off',
+  };
 }

@@ -146,6 +146,10 @@ async function main() {
   // linter flags traversal as a real hazard — self-contained is also simply
   // the right shape for a render bundle.
   cpSync(join(ROOT, 'public', 'fonts'), join(workdir, 'fonts'), { recursive: true });
+  for (const dir of ['music', 'backgrounds']) {
+    const src = join(ROOT, 'public', dir);
+    if (existsSync(src)) cpSync(src, join(workdir, dir), { recursive: true });
+  }
 
   // public/vendor is generated, not committed: on a fresh checkout (CI) it
   // does not exist, so the runtime comes straight from node_modules.

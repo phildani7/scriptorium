@@ -85,11 +85,23 @@ export async function POST(request: Request) {
     );
   }
 
-  const voice: VoiceId = body.voice ?? {
-    engine: 'browser',
-    model: languageCode,
-    label: 'Device voice',
-  };
+  // Default voice, chosen by capability rather than left silent:
+  //   en        Speechmatics — narrated here, word timing measured from audio
+  //   non-en    Piper — synthesized inside the export job (serverless cannot
+  //             run the model); the preview uses estimated timings meanwhile
+  // A studio export was arriving as a silent MP4 because this defaulted to the
+  // browser engine, which only exists client-side.
+  const voice: VoiceId =
+    body.voice ??
+    (languageCode === 'en'
+      ? { engine: 'speechmatics', model: 'theo', label: 'Theo (British)' }
+      : getLanguage(languageCode)?.piperVoice
+        ? {
+            engine: 'piper',
+            model: getLanguage(languageCode)!.piperVoice!,
+            label: 'Neural voice (rendered at export)',
+          }
+        : { engine: 'browser', model: languageCode, label: 'Device voice' });
 
   // --- narration -----------------------------------------------------------
   let audioUrl = '';

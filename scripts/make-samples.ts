@@ -33,7 +33,14 @@ interface SampleDef {
   lens: DeviceType;
   ageGroup: AgeGroup;
   style: StyleId;
-  theme?: { paletteId?: string; fontId?: string; sizeId?: string; backgroundId?: string };
+  theme?: {
+    paletteId?: string;
+    fontId?: string;
+    sizeId?: string;
+    backgroundId?: string;
+    musicId?: string;
+    captions?: 'on' | 'off';
+  };
   voice?: VoiceId;
 }
 
@@ -104,7 +111,12 @@ const SAMPLES: SampleDef[] = [
     lens: 'illustration',
     ageGroup: 'adult',
     style: 'neon-night',
-    theme: { paletteId: 'ocean-glow', fontId: 'grotesk', backgroundId: 'mesh' },
+    theme: {
+      paletteId: 'ocean-glow',
+      fontId: 'grotesk',
+      backgroundId: 'photo-starfield',
+      musicId: 'meditation',
+    },
   },
   {
     id: 'en-james1-hook-kinetic',

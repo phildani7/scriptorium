@@ -16,7 +16,12 @@
  * default length, with no audio, and nothing errors.
  */
 
-import { themeAttributes, themeStyle, type ShortTheme } from '@/lib/theme/options';
+import {
+  resolveMusic,
+  themeAttributes,
+  themeStyle,
+  type ShortTheme,
+} from '@/lib/theme/options';
 
 export interface BakeOptions {
   /** Raw template HTML. */
@@ -47,6 +52,16 @@ export function bakeComposition(options: BakeOptions): string {
     /(<div\s+id="short"[^>]*?)data-duration="[^"]*"/,
     `$1data-duration="${duration.toFixed(3)}"`,
   );
+
+  // The clip window must match too. The framework owns clip visibility and
+  // hides content outside [data-start, data-start + data-duration] — with the
+  // template's static 30s the composition kept rendering but every element
+  // vanished at 0:30, which is precisely how a 33-second short goes blank for
+  // its last three seconds while nothing errors.
+  html = html.replace(
+    /(class="clip"\s+data-start="0"\s+)data-duration="[^"]*"/,
+    `$1data-duration="${duration.toFixed(3)}"`,
+  );
   html = html.replace(
     /(<div\s+id="short"[^>]*?)data-script="[^"]*"/,
     `$1data-script="${escapeAttr(String(spec.script ?? 'latin'))}"`,
@@ -60,10 +75,29 @@ export function bakeComposition(options: BakeOptions): string {
   // attribute. Written statically so the very first captured frame is themed —
   // applying these from script would leave frame 0 in default colours.
   const attrs = themeAttributes(theme);
+  const rebase = (path: string) =>
+    assetPrefix !== undefined ? assetPrefix + path.replace(/^\//, '') : path;
+
+  let style = themeStyle(theme);
+  if (attrs.photoSrc) {
+    style += `; --t-photo: url('${rebase(attrs.photoSrc)}')`;
+  }
+
   html = html.replace(
     /(<div\s+id="short")/,
-    `$1 style="${escapeAttr(themeStyle(theme))}" data-bg="${attrs.bg}" data-dark="${attrs.dark}"`,
+    `$1 style="${escapeAttr(style)}" data-bg="${attrs.bg}" data-dark="${attrs.dark}"` +
+      (attrs.captionsOff ? ' data-captions="off"' : ''),
   );
+
+  // Music bed: point the static element at the chosen track, or remove it —
+  // an <audio> with an empty src makes the renderer wait on a failed request.
+  const music = resolveMusic(theme);
+  html = music.file
+    ? html.replace(
+        /(<audio\s+id="music"[^>]*?\s)src="[^"]*"/,
+        `$1src="${escapeAttr(rebase(music.file))}"`,
+      )
+    : html.replace(/<audio\s+id="music"[\s\S]*?<\/audio>/, '');
 
   // Narration element: point it at the audio, or remove it. An <audio> with an
   // empty src makes Chrome emit a failed media request, which the renderer
@@ -78,7 +112,10 @@ export function bakeComposition(options: BakeOptions): string {
   // Empty string is meaningful: it turns "/fonts/…" into the plain relative
   // "fonts/…" for self-contained render bundles. Only undefined skips.
   if (assetPrefix !== undefined) {
-    html = html.replace(/(href|src)="\/(fonts|vendor)\//g, `$1="${assetPrefix}$2/`);
+    html = html.replace(
+      /(href|src)="\/(fonts|vendor|music|backgrounds)\//g,
+      `$1="${assetPrefix}$2/`,
+    );
   }
 
   // Escaping `</` stops a passage or device string from closing the script tag.

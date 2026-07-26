@@ -41,7 +41,10 @@ export function buildNarrationScript(options: BuildScriptOptions): BuiltScript {
   ];
 
   if (speakReference) {
-    parts.push({ kind: 'reference', text: `${passage.reference}.` });
+    parts.push({
+      kind: 'reference',
+      text: `${spokenReference(passage.reference, passage.languageCode)}.`,
+    });
   }
 
   const segments: ScriptSegment[] = [];
@@ -87,6 +90,34 @@ export function normalizeSpoken(text: string): string {
 
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/**
+ * The spoken form of a reference. Only the NARRATED segment uses this — the
+ * on-screen reference stays canonical ("Psalm 46:1").
+ *
+ * TTS engines read "46:1" as a time, a ratio, or "forty-six one" depending on
+ * mood; none of them is how a person cites Scripture aloud. English gets the
+ * full "chapter, verse" phrasing; other languages get the punctuation replaced
+ * with pauses, which every engine at least reads in order.
+ */
+export function spokenReference(reference: string, languageCode?: string): string {
+  const match = reference.match(/^(.*?)\s*(\d{1,3}):(\d{1,3})(?:-(\d{1,3}))?$/);
+
+  if (!match) return reference.replace(/[:–-]/g, ', ');
+
+  const [, book, chapter, verseStart, verseEnd] = match;
+
+  if ((languageCode ?? 'en') === 'en') {
+    return verseEnd
+      ? `${book} ${chapter}, verses ${verseStart} to ${verseEnd}`
+      : `${book} ${chapter}, verse ${verseStart}`;
+  }
+
+  // No reliable "verse" word per language; commas buy pauses in any engine.
+  return verseEnd
+    ? `${book} ${chapter}, ${verseStart}, ${verseEnd}`
+    : `${book} ${chapter}, ${verseStart}`;
 }
 
 /** The segment carrying Scripture, which the integrity gate checks. */

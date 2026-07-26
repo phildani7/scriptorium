@@ -1,5 +1,19 @@
 [
   {
+    "id": "short-HEB.12.2-warm-minimal-ms1zv20c",
+    "video": "/gallery/short-HEB.12.2-warm-minimal-ms1zv20c.mp4",
+    "poster": "/gallery/short-HEB.12.2-warm-minimal-ms1zv20c.jpg",
+    "reference": "Hebrews 12:2",
+    "version": "ASV",
+    "attribution": "American Standard Version (ASV)",
+    "language": "en",
+    "style": "kinetic-type",
+    "lens": "analogy",
+    "durationSec": 25,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-26"
+  },
+  {
     "id": "short-PSA.46.1-neon-night-ms1zi0ug",
     "video": "/gallery/short-PSA.46.1-neon-night-ms1zi0ug.mp4",
     "poster": "/gallery/short-PSA.46.1-neon-night-ms1zi0ug.jpg",
@@ -76,6 +90,7 @@
     "reference": "Filipenses 4:6-7",
     "version": "LBLA",
     "attribution": "La Biblia de las Américas (LBLA) · 1986, 1995, 1997 by The Lockman Foundation",
+    "musicCredit": "\"Meditation Impromptu 01\" Kevin MacLeod (incompetech.com), CC BY 4.0",
     "language": "es",
     "style": "neon-night",
     "lens": "illustration",

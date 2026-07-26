@@ -30,6 +30,7 @@ interface GalleryEntry {
   reference: string;
   version: string;
   attribution?: string;
+  musicCredit?: string;
   language: string;
   style: string;
   lens: string;
@@ -137,6 +138,11 @@ export default function GalleryPage() {
                 {entry.attribution && (
                   <div className="text-[11px] leading-snug text-inkfaint">
                     {entry.attribution}
+                  </div>
+                )}
+                {entry.musicCredit && (
+                  <div className="text-[11px] leading-snug text-inkfaint">
+                    ♪ {entry.musicCredit}
                   </div>
                 )}
               </figcaption>

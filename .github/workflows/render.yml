@@ -57,6 +57,20 @@ jobs:
         # the gallery poster frame.
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
+      - uses: actions/setup-python@v5
+        with:
+          # piper-tts publishes wheels for <= 3.11.
+          python-version: '3.11'
+
+      - name: Install Piper (multilingual narration)
+        run: pip install --quiet piper-tts
+
+      - name: Cache Piper voice models
+        uses: actions/cache@v4
+        with:
+          path: .piper-models
+          key: piper-models-v1
+
       - name: Write render request
         env:
           DISPATCH_REQUEST: ${{ toJSON(github.event.client_payload.request) }}

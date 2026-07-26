@@ -18,10 +18,55 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 import { join, resolve } from 'node:path';
 
 import { buildNarrationScript } from '@/lib/script/build';
+import { getLanguage } from '@/lib/languages/registry';
+import { resolveMusic } from '@/lib/theme/options';
 import { verifyVerbatim } from '@/lib/verify/verbatim';
-import { alignScriptToAudio } from '@/lib/voice/align';
+import { alignScriptToAudio, wavDurationSeconds } from '@/lib/voice/align';
+import { getSpeechmatics } from '@/lib/voice/speechmatics';
 import { synthesizeAndAlign } from '@/lib/voice';
 import type { DeviceItem, Passage, VoiceId } from '@/lib/types';
+
+/**
+ * Synthesize narration with Piper — the multilingual half of the voice story.
+ *
+ * Piper runs only where a real machine exists (this render job, or a laptop),
+ * never on serverless: the models are ~60 MB ONNX files the CLI pulls from
+ * Hugging Face on first use. MIT-licensed voices in ~50 languages, which is
+ * what turns "captions-only" languages into narrated shorts.
+ *
+ * Returns null when the CLI is missing so the caller can fall back to
+ * estimated timings instead of failing the render.
+ */
+function synthesizeWithPiper(script: string, model: string, workdir: string): Uint8Array | null {
+  const wavPath = join(workdir, 'piper-narration.wav');
+  // Matches the CI cache path so voice models persist across runs.
+  const modelsDir = '.piper-models';
+  mkdirSync(modelsDir, { recursive: true });
+
+  const result = spawnSync(
+    'piper',
+    [
+      '--model', model,
+      '--download-dir', modelsDir,
+      '--data-dir', modelsDir,
+      '--output_file', wavPath,
+    ],
+    {
+      input: script,
+      shell: process.platform === 'win32',
+      timeout: 300_000,
+    },
+  );
+
+  if (result.error || result.status !== 0 || !existsSync(wavPath)) {
+    console.warn(
+      `piper unavailable or failed (${result.status ?? result.error}); ` +
+        'falling back to estimated timings without narration.',
+    );
+    return null;
+  }
+  return new Uint8Array(readFileSync(wavPath));
+}
 
 interface RenderRequest {
   id: string;
@@ -58,9 +103,11 @@ async function main() {
   if (!gate.ok) throw new Error(gate.message);
 
   let audioUrl = '';
-  let durationSec: number;
+  let durationSec = 0;
   let timings;
-  let timingSource: 'speechmatics' | 'estimated';
+  let timingSource: 'speechmatics' | 'estimated' = 'estimated';
+
+  mkdirSync('.render-tmp', { recursive: true });
 
   if (request.voice?.engine === 'speechmatics' && process.env.SPEECHMATICS_API_KEY) {
     const result = await synthesizeAndAlign({
@@ -72,7 +119,27 @@ async function main() {
     durationSec = result.durationSec;
     timings = result.timings;
     timingSource = result.timingSource;
-  } else {
+  } else if (request.voice?.engine === 'piper') {
+    // Piper speaks the language; Speechmatics still supplies the clock where
+    // it can. The words on screen come from the script either way.
+    const audio = synthesizeWithPiper(script, request.voice.model, '.render-tmp');
+    if (audio) {
+      audioUrl = `data:audio/wav;base64,${Buffer.from(audio).toString('base64')}`;
+      durationSec = wavDurationSeconds(audio);
+
+      const asrCode = getLanguage(request.languageCode)?.asrCode;
+      if (asrCode && process.env.SPEECHMATICS_API_KEY) {
+        const words = await getSpeechmatics().transcribe(audio, asrCode);
+        const aligned = alignScriptToAudio(script, words, durationSec);
+        timings = aligned.timings;
+        timingSource = aligned.matchRate >= 0.5 ? 'speechmatics' : 'estimated';
+      } else {
+        timings = alignScriptToAudio(script, [], durationSec).timings;
+      }
+    }
+  }
+
+  if (!timings) {
     const words = script.trim().split(/\s+/).length;
     durationSec = Math.max(15, Math.min(45, words / 2.6));
     timings = alignScriptToAudio(script, [], durationSec).timings;
@@ -136,6 +203,7 @@ async function main() {
     version: passage.versionAbbreviation,
     // Provenance lives here now that the frame carries no attribution block.
     attribution: passage.attribution,
+    musicCredit: resolveMusic(request.theme as never).credit || undefined,
     language: request.languageCode,
     style: request.style,
     lens: device.type,

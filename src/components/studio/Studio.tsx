@@ -17,7 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AgeGroup, DeviceItem, DeviceType, Passage, StyleId } from '@/lib/types';
-import type { ShortTheme } from '@/lib/theme/options';
+import { resolveMusic, type ShortTheme } from '@/lib/theme/options';
 import { ReviewGate } from './ReviewGate';
 import { PreviewFrame } from './PreviewFrame';
 import { ThemePanel } from './ThemePanel';
@@ -564,6 +564,7 @@ export function Studio() {
                 html={previewHtml}
                 durationSec={duration}
                 audioUrl={audioUrl}
+                musicUrl={resolveMusic(theme).file || undefined}
               />
               {rebaking && (
                 <div className="absolute top-2 left-1/2 -translate-x-1/2 rounded-full bg-ink/80 px-3 py-1 text-xs font-medium text-white">

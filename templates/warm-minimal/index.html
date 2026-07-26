@@ -72,6 +72,46 @@
         );
       }
 
+      /* ---- texture + photo backgrounds (shared vocabulary) ---- */
+      [data-bg='paper'] #bg-fx {
+        opacity: 0.3;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+        background-size: 320px 320px;
+        mix-blend-mode: soft-light;
+      }
+      [data-bg='halftone'] #bg-fx {
+        opacity: 0.5;
+        background-image: radial-gradient(color-mix(in srgb, var(--t-ink, #222) 16%, transparent) 1.6px, transparent 1.9px);
+        background-size: 28px 28px;
+      }
+      [data-bg='linen'] #bg-fx {
+        opacity: 0.5;
+        background-image:
+          repeating-linear-gradient(0deg, color-mix(in srgb, var(--t-ink, #222) 5%, transparent) 0 1px, transparent 1px 7px),
+          repeating-linear-gradient(90deg, color-mix(in srgb, var(--t-ink, #222) 5%, transparent) 0 1px, transparent 1px 7px);
+      }
+      /* Photo: shipped public-domain image, Ken Burns drift, palette scrim. */
+      #bg-photo {
+        position: absolute;
+        inset: -70px;
+        background-image: var(--t-photo);
+        background-size: cover;
+        background-position: center;
+        display: none;
+      }
+      [data-bg='photo'] #bg-photo { display: block; }
+      [data-bg='photo'] #bg-fx { display: none; }
+      #bg-photo::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--t-bg, #111) 66%, transparent),
+          color-mix(in srgb, var(--t-bg, #111) 34%, transparent) 40%,
+          color-mix(in srgb, var(--t-bg, #111) 76%, transparent)
+        );
+      }
       #particles { position: absolute; inset: 0; }
       [data-bg='particles'] ~ * .particle { }
       .particle {
@@ -217,12 +257,14 @@
       data-dir="ltr"
     >
       <div id="ground"></div>
+      <div id="bg-photo"></div>
       <div id="bg-fx"></div>
       <div id="particles"></div>
 
       <!-- The framework owns media playback; this must exist in static markup.
            The bake step rewrites src, or removes the element entirely. -->
       <audio id="narration" data-narration data-start="0" preload="auto" src=""></audio>
+      <audio id="music" data-start="0" preload="auto" src=""></audio>
 
       <div class="clip" data-start="0" data-duration="30" data-track-index="0">
         <div id="reference-bar">
@@ -331,10 +373,12 @@
         }
 
         /* ---- caption rail ---------------------------------------------- */
+        var captionsOff = root.getAttribute('data-captions') === 'off';
+        var captionWords = captionsOff ? [] : timings;
         var MAX_CHARS = 34, MAX_WORDS = 7;
         var lines = [], current = null;
-        for (var i = 0; i < timings.length; i += 1) {
-          var t = timings[i];
+        for (var i = 0; i < captionWords.length; i += 1) {
+          var t = captionWords[i];
           var wouldBe = current ? current.chars + 1 + t.word.length : t.word.length;
           if (!current || wouldBe > MAX_CHARS || current.words.length >= MAX_WORDS) {
             current = { words: [], chars: 0, start: t.start, end: t.end };
@@ -378,6 +422,13 @@
 
         /* ---- the single paused timeline --------------------------------- */
         var tl = gsap.timeline({ paused: true });
+
+        // Photo backgrounds get a slow Ken Burns push - the film's current.
+        if (root.getAttribute('data-bg') === 'photo') {
+          tl.fromTo('#bg-photo',
+            { scale: 1.12, xPercent: 1.4 },
+            { scale: 1.02, xPercent: -1.4, duration: duration, ease: 'none' }, 0);
+        }
 
         // The film's current: the ground effects drift for the whole piece.
         tl.fromTo('#bg-fx',

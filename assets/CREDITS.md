@@ -31,8 +31,33 @@ strings, and publisher attributions travel with every gallery entry in
 `public/gallery/manifest.json`. The English samples use the Berean Standard
 Bible, which is dedicated to the public domain.
 
-## Backgrounds, doodles, music
+## Music (CC BY 4.0, /public/music, pre-attenuated + faded at import)
 
-All background treatments (grain, mesh, rays, particles) are CSS-generated at
-render time — there are no image or texture files. No music beds ship in this
-build; narration is synthesized per short via Speechmatics.
+All by **Kevin MacLeod (incompetech.com)**, Creative Commons: By Attribution
+4.0 — https://creativecommons.org/licenses/by/4.0/. The credit travels with
+every gallery entry that uses a track.
+
+| File | Track |
+| --- | --- |
+| `meditation.mp3` | Meditation Impromptu 01 |
+| `at-rest.mp3` | At Rest |
+| `heartbreaking.mp3` | Heartbreaking |
+| `wounded.mp3` | Wounded |
+
+## Photo backgrounds (public domain, /public/backgrounds)
+
+NASA imagery is not subject to copyright. Normalized to 1080×1920 at import.
+
+| File | Source |
+| --- | --- |
+| `starfield.jpg` | Hubble Ultra Deep Field (NASA/ESA), via Wikimedia Commons |
+| `pillars.jpg` | Pillars of Creation, HST WFC3 (NASA/ESA), via Wikimedia Commons |
+| `earth.jpg` | The Blue Marble, Apollo 17 (NASA), via Wikimedia Commons |
+
+## Other backgrounds
+
+Grain, mesh, rays, particles, paper, halftone and linen are CSS/SVG-generated
+at render time — no image files.
+
+Narration is synthesized per short: Speechmatics (English) and Piper
+(MIT-licensed voices, ~50 languages) in the export job.
