@@ -75,7 +75,9 @@ export function bakeComposition(options: BakeOptions): string {
       )
     : html.replace(/<audio\s+id="narration"[\s\S]*?<\/audio>/, '');
 
-  if (assetPrefix) {
+  // Empty string is meaningful: it turns "/fonts/…" into the plain relative
+  // "fonts/…" for self-contained render bundles. Only undefined skips.
+  if (assetPrefix !== undefined) {
     html = html.replace(/(href|src)="\/(fonts|vendor)\//g, `$1="${assetPrefix}$2/`);
   }
 

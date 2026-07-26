@@ -204,6 +204,9 @@
     <div
       id="short"
       data-composition-id="scripture-short"
+      data-width="1080"
+      data-height="1920"
+      data-start="0"
       data-duration="30"
       data-script="latin"
       data-dir="ltr"
@@ -214,7 +217,7 @@
 
       <!-- The framework owns media playback; this must exist in static markup.
            The bake step rewrites src, or removes the element entirely. -->
-      <audio id="narration" data-narration preload="auto" src=""></audio>
+      <audio id="narration" data-narration data-start="0" preload="auto" src=""></audio>
 
       <div class="clip" data-start="0" data-duration="30" data-track-index="0">
         <div id="reference-bar">

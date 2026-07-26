@@ -51,6 +51,12 @@ jobs:
       - name: Install render browser
         run: npx playwright install chromium --only-shell --with-deps
 
+      - name: Install FFmpeg
+        # Not preinstalled on current ubuntu-latest images; hyperframes needs
+        # both ffmpeg (encode) and ffprobe (validate), and we use ffmpeg for
+        # the gallery poster frame.
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Write render request
         env:
           DISPATCH_REQUEST: ${{ toJSON(github.event.client_payload.request) }}

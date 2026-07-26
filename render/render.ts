@@ -27,7 +27,13 @@
  */
 
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { chromium } from 'playwright-core';
 
@@ -134,12 +140,19 @@ async function main() {
     spec.narration = { ...narration, audioUrl: audioSrc };
   }
 
+  // Assets are copied INTO the workdir and referenced with plain relative
+  // paths. "../../public/" traversal renders locally but the HyperFrames
+  // producer rewrites asset paths against each composition root, and its
+  // linter flags traversal as a real hazard — self-contained is also simply
+  // the right shape for a render bundle.
+  cpSync(join(ROOT, 'public', 'fonts'), join(workdir, 'fonts'), { recursive: true });
+  cpSync(join(ROOT, 'public', 'vendor'), join(workdir, 'vendor'), { recursive: true });
+
   const html = bakeComposition({
     template: readFileSync(templatePath, 'utf8'),
     spec,
     audioSrc,
-    // The workdir sits at <root>/.render/<id>, so public/ is two levels up.
-    assetPrefix: '../../public/',
+    assetPrefix: '',
   });
 
   const indexPath = join(workdir, 'index.html');
