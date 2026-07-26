@@ -146,7 +146,17 @@ async function main() {
   // linter flags traversal as a real hazard — self-contained is also simply
   // the right shape for a render bundle.
   cpSync(join(ROOT, 'public', 'fonts'), join(workdir, 'fonts'), { recursive: true });
-  cpSync(join(ROOT, 'public', 'vendor'), join(workdir, 'vendor'), { recursive: true });
+
+  // public/vendor is generated, not committed: on a fresh checkout (CI) it
+  // does not exist, so the runtime comes straight from node_modules.
+  mkdirSync(join(workdir, 'vendor'), { recursive: true });
+  const vendoredGsap = join(ROOT, 'public', 'vendor', 'gsap.min.js');
+  cpSync(
+    existsSync(vendoredGsap)
+      ? vendoredGsap
+      : join(ROOT, 'node_modules', 'gsap', 'dist', 'gsap.min.js'),
+    join(workdir, 'vendor', 'gsap.min.js'),
+  );
 
   const html = bakeComposition({
     template: readFileSync(templatePath, 'utf8'),
