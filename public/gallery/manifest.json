@@ -9,8 +9,8 @@
     "language": "hi",
     "style": "warm-minimal",
     "lens": "hook",
-    "durationSec": 20,
-    "timingSource": "estimated",
+    "durationSec": 22,
+    "timingSource": "speechmatics",
     "createdAt": "2026-07-26"
   },
   {
