@@ -1,5 +1,19 @@
 [
   {
+    "id": "short-PSA.46.1-neon-night-ms1zi0ug",
+    "video": "/gallery/short-PSA.46.1-neon-night-ms1zi0ug.mp4",
+    "poster": "/gallery/short-PSA.46.1-neon-night-ms1zi0ug.jpg",
+    "reference": "Psalms 46:1",
+    "version": "ASV",
+    "attribution": "American Standard Version (ASV)",
+    "language": "en",
+    "style": "neon-night",
+    "lens": "hook",
+    "durationSec": 11,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-26"
+  },
+  {
     "id": "en-james1-hook-kinetic",
     "video": "/gallery/en-james1-hook-kinetic.mp4",
     "poster": "/gallery/en-james1-hook-kinetic.jpg",
