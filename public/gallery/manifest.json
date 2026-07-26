@@ -1,5 +1,20 @@
 [
   {
+    "id": "short-TIT.3.4-7-warm-minimal-ms244ezl",
+    "video": "/gallery/short-TIT.3.4-7-warm-minimal-ms244ezl.mp4",
+    "poster": "/gallery/short-TIT.3.4-7-warm-minimal-ms244ezl.jpg",
+    "reference": "Titus 3:4-7",
+    "version": "ASV",
+    "attribution": "American Standard Version (ASV)",
+    "musicCredit": "\"Wounded\" Kevin MacLeod (incompetech.com), CC BY 4.0",
+    "language": "en",
+    "style": "kinetic-type",
+    "lens": "object-lesson",
+    "durationSec": 45,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-26"
+  },
+  {
     "id": "short-HEB.12.1-warm-minimal-ms220fon",
     "video": "/gallery/short-HEB.12.1-warm-minimal-ms220fon.mp4",
     "poster": "/gallery/short-HEB.12.1-warm-minimal-ms220fon.jpg",
