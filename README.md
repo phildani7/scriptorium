@@ -15,7 +15,8 @@ editor that a volunteer church does not have.
 
 Scriptorium removes all three. Type a reference or a feeling, pick a lens and a
 language, and about a minute later you have a publishable 1080×1920 short: narrated,
-word-synced captions, motion design, attribution on screen.
+word-synced captions, real motion design, your colors and type — with the verse's
+provenance carried in the gallery manifest.
 
 ## The architectural claim
 
@@ -84,21 +85,37 @@ offline MP4 render, so the preview cannot flatter the export.
 
 ## Languages
 
-50 in the registry, with tiers **derived from verified capability**, never asserted:
-38 have a neural voice *and* measured word timing; the rest are labelled honestly in
-the UI as voiced-only or captions-only.
+50 in the registry, with tiers **derived from verified capability**, never asserted.
+`npm run audit:languages` sweeps the live YouVersion API and writes the numbers the
+UI shows: against this app key, **40 languages licensed, 33 complete (Bible + voice
++ measured word timing), 116 Bible versions reachable**.
+
+## Live
+
+- **App**: https://scriptorium-gamma-wheat.vercel.app
+- **Gallery**: https://scriptorium-gamma-wheat.vercel.app/gallery — reads the repo's
+  manifest live, so exported shorts appear as their render jobs push
+- **Repo / render jobs**: https://github.com/phildani7/scriptorium
 
 ## Run it
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in the keys
+cp .env.example .env.local    # then fill in the keys
 npm run dev
 ```
 
-`npm test` runs the integrity-gate suite. `npm run smoke:voice` exercises the live
-Speechmatics loop. Without a YouVersion key the app serves clearly-labelled offline
-sample passages — it never asks a model for verse text.
+| Command | Does |
+| --- | --- |
+| `npm test` | Integrity-gate, USFM, and alignment suites (36 tests) |
+| `npm run prove:gate` | End-to-end proof: tampers with a verse, asserts the render refuses |
+| `npm run smoke:voice` | Live Speechmatics TTS → ASR → alignment round trip |
+| `npm run audit:languages` | Re-audit language coverage against the live API |
+| `npm run samples` / `npm run gallery` | Generate specs through the real pipeline, render them into `/public/gallery` |
+| `npm run render -- --spec <file>` | Render one spec to MP4 through the verse re-fetch gate |
+
+Without a YouVersion key the app serves clearly-labelled offline sample passages —
+it never asks a model for verse text.
 
 ## Licence
 

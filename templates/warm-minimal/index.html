@@ -145,6 +145,11 @@
         line-height: 1.3;
         letter-spacing: -0.01em;
       }
+      /* Long passages step down instead of overflowing into the reference
+         bar. Applied by script at load from character count — deterministic,
+         same class in preview and render. */
+      #verse-text.longer { font-size: calc(52px * var(--t-scale, 1)); }
+      #verse-text.longest { font-size: calc(42px * var(--t-scale, 1)); }
 
       /* Complex scripts stack marks above and below the baseline; at these
          sizes the default leading collides. There is no Devanagari poster
@@ -285,7 +290,14 @@
         );
 
         /* ---- content -------------------------------------------------- */
-        document.getElementById('verse-text').textContent = spec.passage.text;
+        var verseEl = document.getElementById('verse-text');
+        verseEl.textContent = spec.passage.text;
+        // Size steps for long passages, decided once at load from character
+        // count so preview and render agree; overflow into the reference bar
+        // is the failure this prevents (Psalm 23:1-4 showed it).
+        var verseLen = String(spec.passage.text).length;
+        if (verseLen > 300) verseEl.classList.add('longest');
+        else if (verseLen > 180) verseEl.classList.add('longer');
         document.getElementById('reference-label').textContent =
           spec.passage.reference;
 
