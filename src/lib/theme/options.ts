@@ -11,6 +11,8 @@
  * illegible, which is the same reasoning as the frozen templates themselves.
  */
 
+import { DOODLE_DATA } from './doodles.generated';
+
 export interface PaletteOption {
   id: string;
   label: string;
@@ -93,8 +95,9 @@ export interface BackgroundOption {
     | 'paper'
     | 'halftone'
     | 'linen'
-    | 'photo';
-  /** Only for kind 'photo': root-relative image path. */
+    | 'photo'
+    | 'doodle';
+  /** For kind 'photo' or 'doodle': root-relative asset path. */
   src?: string;
 }
 
@@ -111,6 +114,18 @@ export const BACKGROUNDS: readonly BackgroundOption[] = [
   { id: 'photo-starfield', label: 'Deep field ✶', kind: 'photo', src: '/backgrounds/starfield.jpg' },
   { id: 'photo-pillars', label: 'Pillars ✶', kind: 'photo', src: '/backgrounds/pillars.jpg' },
   { id: 'photo-earth', label: 'Earth ✶', kind: 'photo', src: '/backgrounds/earth.jpg' },
+  // Hand-drawn doodle frames, authored in scripts/make-doodles.ts. Applied as
+  // an alpha mask over a palette-ink layer, so they recolor with the theme.
+  { id: 'doodle-faith', label: 'Faith margins ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-faith.svg' },
+  { id: 'doodle-garden', label: 'Garden frame ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-garden.svg' },
+  { id: 'doodle-shore', label: 'Sea of Galilee ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-shore.svg' },
+  { id: 'doodle-dove', label: 'Doves & olive ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-dove.svg' },
+  { id: 'doodle-dawn', label: 'Morning mercies ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-dawn.svg' },
+  { id: 'doodle-journey', label: 'Arrows & banners ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-journey.svg' },
+  { id: 'doodle-lamp', label: 'Lamps & scrolls ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-lamp.svg' },
+  { id: 'doodle-heights', label: 'Mountains ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-heights.svg' },
+  { id: 'doodle-table', label: 'Bread & cup ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-table.svg' },
+  { id: 'doodle-praise', label: 'Praise notes ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-praise.svg' },
 ] as const;
 
 export interface MusicOption {
@@ -191,6 +206,13 @@ export function themeAttributes(theme: ShortTheme | undefined): {
   dark: '1' | '0';
   /** Root-relative photo path, when the background is a photo. */
   photoSrc?: string;
+  /**
+   * Doodle SVG as a data URI, when the background is a doodle frame. A data
+   * URI, not a path: mask-image loads are CORS-checked, and the offline
+   * renderer serves compositions from file:// where external masks are
+   * blocked. Data URIs are scheme-exempt, so preview and render agree.
+   */
+  doodleData?: string;
   captionsOff: boolean;
 } {
   const { palette, background } = resolveTheme(theme);
@@ -198,6 +220,8 @@ export function themeAttributes(theme: ShortTheme | undefined): {
     bg: background.kind,
     dark: palette.dark ? '1' : '0',
     photoSrc: background.kind === 'photo' ? background.src : undefined,
+    doodleData:
+      background.kind === 'doodle' ? DOODLE_DATA[background.id] : undefined,
     captionsOff: theme?.captions === 'off',
   };
 }

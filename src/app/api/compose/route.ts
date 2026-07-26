@@ -70,19 +70,26 @@ export async function POST(request: Request) {
   });
 
   // --- the gate ------------------------------------------------------------
-  // Assert that the verse inside the assembled script is still exactly the
-  // verse the API returned. This catches any mutation introduced by script
-  // assembly before a single frame is rendered.
-  const verseText = segments.find((s) => s.kind === 'verse')?.text ?? '';
-  const verification = verifyVerbatim(verseText, passage.text);
-  if (!verification.ok) {
-    return NextResponse.json(
-      {
-        error: 'Scripture integrity check failed during script assembly.',
-        detail: verification.message,
-      },
-      { status: 500 },
-    );
+  // When the script carries a verse segment (legacy verse-display shape),
+  // assert it is still exactly the verse the API returned. Teaching-format
+  // scripts never speak or display the verse, so there is nothing verbatim to
+  // check here — provenance is enforced at render, where the cited passage is
+  // re-fetched and diffed against the spec.
+  const verseSeg = segments.find((s) => s.kind === 'verse');
+  let verificationMessage =
+    'Teaching format: verse cited, not displayed; provenance enforced at render.';
+  if (verseSeg) {
+    const verification = verifyVerbatim(verseSeg.text, passage.text);
+    if (!verification.ok) {
+      return NextResponse.json(
+        {
+          error: 'Scripture integrity check failed during script assembly.',
+          detail: verification.message,
+        },
+        { status: 500 },
+      );
+    }
+    verificationMessage = verification.message;
   }
 
   // Default voice, chosen by capability rather than left silent:
@@ -144,5 +151,5 @@ export async function POST(request: Request) {
     dir: directionFor(languageCode),
   };
 
-  return NextResponse.json({ spec, verification: verification.message });
+  return NextResponse.json({ spec, verification: verificationMessage });
 }

@@ -46,7 +46,7 @@ export function buildIllustrateSystemPrompt(context: PromptContext, filterType?:
     : `Include a MIX across the lenses. Aim for at least one of each where the passage supports it; if a lens doesn't fit this passage, substitute another rather than forcing it.\n\nLENSES:\n- ${Object.values(typeDescriptions).join('\n- ')}`;
 
   const languageReminder = lang !== 'en'
-    ? `\nCRITICAL LANGUAGE RULE: ALL string values in your JSON response — "content", "point", "reference" — MUST be written in ${langName} (code "${lang}"). Do NOT use English for any field values. Only JSON keys and the "type" enum values (analogy/illustration/punch-line/hook/object-lesson) remain in English.`
+    ? `\nCRITICAL LANGUAGE RULE: ALL string values in your JSON response — "content", "point", "explanation", "reference" — MUST be written in ${langName} (code "${lang}"). Do NOT use English for any field values. Only JSON keys and the "type" enum values (analogy/illustration/punch-line/hook/object-lesson) remain in English.`
     : '';
 
   return `${universal}
@@ -71,12 +71,21 @@ GUARDRAILS:
 REGISTER FOR THIS READER:
 ${tierConfig.register}
 
+EXPLANATION FIELD: each item also carries "explanation" — the 2-4 sentences a
+narrator speaks right after the device to unpack the teaching (roughly 40-70
+words). It expands the device's point into plain spoken prose: what the passage
+teaches, why it matters to the listener, and it should echo the device's image
+so the short feels like one thought. Written to be HEARD — short sentences, no
+lists, no headings. It may paraphrase the passage's idea but must NEVER quote
+the verse text verbatim; the verse itself is cited by reference only.
+
 Return a JSON array of ${count} items:
 [
   {
     "type": "${filterType || 'analogy" | "illustration" | "punch-line" | "hook" | "object-lesson'}",
     "content": "The device itself (for object-lesson: the object/demo + how to use it)",
     "point": "The passage truth it illuminates (for analogy: also where it holds / its limit; for hook: how it pays off; for object-lesson: how it maps to the text)",
+    "explanation": "2-4 spoken sentences unpacking the device (40-70 words); never quotes the verse verbatim",
     "reference": "The verse(s) it is anchored to, e.g. \\"John 1:3\\"",
     "emoji": "A single relevant emoji"
   }

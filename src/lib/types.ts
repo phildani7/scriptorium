@@ -59,6 +59,13 @@ export interface DeviceItem {
   type: DeviceType;
   content: string;
   point: string;
+  /**
+   * 2-4 spoken sentences unpacking the device — the body of the short since
+   * the format moved from "show the verse" to "teach the verse, cite it".
+   * Optional because specs generated before that change don't carry it;
+   * templates fall back to displaying the verse for those.
+   */
+  explanation?: string;
   reference: string;
   emoji: string;
 }
@@ -81,7 +88,7 @@ export type TimingSource = 'speechmatics' | 'estimated';
  * also marks exactly which words are Scripture, which is what the on-screen
  * verse element is built from and what the integrity gate checks.
  */
-export type ScriptSegmentKind = 'device' | 'verse' | 'reference';
+export type ScriptSegmentKind = 'device' | 'teaching' | 'verse' | 'reference';
 
 export interface ScriptSegment {
   kind: ScriptSegmentKind;

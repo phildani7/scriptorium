@@ -125,10 +125,11 @@ export const DEVICE_ARRAY_SCHEMA = {
           type: { type: 'string', enum: DEVICE_TYPES },
           content: { type: 'string' },
           point: { type: 'string' },
+          explanation: { type: 'string' },
           reference: { type: 'string' },
           emoji: { type: 'string' },
         },
-        required: ['type', 'content', 'point', 'reference', 'emoji'],
+        required: ['type', 'content', 'point', 'explanation', 'reference', 'emoji'],
         additionalProperties: false,
       },
     },
@@ -239,6 +240,8 @@ function isDeviceItem(value: unknown): value is DeviceItem {
     typeof value.content === 'string' &&
     value.content.trim().length > 0 &&
     typeof value.point === 'string' &&
+    typeof value.explanation === 'string' &&
+    value.explanation.trim().length > 0 &&
     typeof value.reference === 'string' &&
     typeof value.emoji === 'string'
   );

@@ -70,6 +70,21 @@
           repeating-linear-gradient(0deg, color-mix(in srgb, var(--t-ink, #222) 5%, transparent) 0 1px, transparent 1px 7px),
           repeating-linear-gradient(90deg, color-mix(in srgb, var(--t-ink, #222) 5%, transparent) 0 1px, transparent 1px 7px);
       }
+      /* Doodle frame: the SVG is an alpha mask over a palette-ink fill, so the
+         hand-drawn marks recolor with any theme. Fixed mask size keeps the
+         authored 1080x1920 layout; #bg-fx already rides the film's drift. */
+      [data-bg='doodle'] #bg-fx {
+        opacity: 0.32;
+        background: var(--t-ink, #221e19);
+        -webkit-mask-image: var(--t-doodle);
+        mask-image: var(--t-doodle);
+        -webkit-mask-size: 1080px 1920px;
+        mask-size: 1080px 1920px;
+        -webkit-mask-position: center;
+        mask-position: center;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+      }
       /* Photo: shipped public-domain image, Ken Burns drift, palette scrim. */
       #bg-photo {
         position: absolute;
@@ -130,6 +145,33 @@
       }
       #short[data-dir='rtl'] #wall, #short[data-dir='rtl'] #verse-block { direction: rtl; }
 
+      /* ---- the teaching block (teaching-format specs) ----
+         Same signature move as the wall — words land on the voice — but at
+         body scale and mixed case: it is spoken prose, not a poster line. */
+      #teach {
+        position: absolute;
+        left: 90px; right: 90px; top: 210px; bottom: 300px;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: center;
+        column-gap: 0.3em;
+        row-gap: 0.14em;
+        font-family: var(--t-font-display, 'Archivo Black', 'Inter', sans-serif);
+        font-size: calc(48px * var(--t-scale, 1));
+        line-height: 1.32;
+        color: var(--t-ink, #f5f0e4);
+      }
+      #teach.longer { font-size: calc(40px * var(--t-scale, 1)); }
+      #teach .tw { display: inline-block; opacity: 0; will-change: transform; }
+      #teach .tw.hot { color: var(--t-accent, #e8b04b); }
+      #short[data-script='devanagari'] #teach,
+      #short[data-script='bengali'] #teach {
+        font-family: 'Noto Serif Devanagari', serif;
+        line-height: 1.6;
+        font-size: calc(44px * var(--t-scale, 1));
+      }
+      #short[data-dir='rtl'] #teach { direction: rtl; }
+
       /* ---- the verse ---- */
       /* Fills the wall's vacated space: centered in the full stage, not
          parked at the bottom with two-thirds of the frame empty. */
@@ -181,6 +223,22 @@
       #short[data-script='bengali'] #verse-text.longer {
         font-size: calc(42px * var(--t-scale, 1));
       }
+
+      /* Teaching format: the block closes on the citation in poster type —
+         the verse itself is never displayed. Empty it takes no space. */
+      #citation-text {
+        font-family: var(--t-font-display, 'Archivo Black', 'Inter', sans-serif);
+        font-size: calc(92px * var(--t-scale, 1));
+        line-height: 1.08;
+        color: var(--t-ink, #f5f0e4);
+      }
+      #citation-text:empty { display: none; }
+      #short[data-script='devanagari'] #citation-text,
+      #short[data-script='bengali'] #citation-text {
+        font-family: 'Noto Serif Devanagari', serif;
+        line-height: 1.4;
+        font-size: calc(76px * var(--t-scale, 1));
+      }
     </style>
   </head>
 
@@ -199,6 +257,7 @@
 
       <div class="clip" data-start="0" data-duration="30" data-track-index="0">
         <div id="wall"></div>
+        <div id="teach"></div>
         <div id="verse-block">
           <div id="verse-kicker">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -208,6 +267,7 @@
             <span id="reference-label"></span>
           </div>
           <div id="verse-text" data-verse-text></div>
+          <div id="citation-text"></div>
         </div>
       </div>
     </div>
@@ -255,6 +315,12 @@
         }
         var deviceSeg = segmentOf('device');
         var verseSeg = segmentOf('verse');
+        var teachSeg = segmentOf('teaching');
+        var refSeg = segmentOf('reference');
+        // Teaching-format specs never display the verse: the wall says the
+        // device, the teaching lands word by word in its place, and the
+        // block closes on the citation.
+        var teachingMode = !!teachSeg;
 
         /* ---- the word wall: one span per device word, with its own
                measured timing so it lands exactly on the voice ------------- */
@@ -276,20 +342,46 @@
         if (deviceText.length > 150) wall.classList.add('longer');
 
         /* ---- the verse: split into spans; textContent is preserved for the
-               integrity gate, which collapses whitespace before diffing ----- */
+               integrity gate, which collapses whitespace before diffing.
+               Teaching mode leaves the gate-marked node empty — nothing on
+               screen claims to be Scripture — and shows the citation in
+               poster type instead. ----------------------------------------- */
         var verseEl = document.getElementById('verse-text');
-        var verseChunks = String(spec.passage.text).split(/\s+/).filter(Boolean);
-        verseChunks.forEach(function (word, wi) {
-          var span = document.createElement('span');
-          span.className = 'vw';
-          span.id = 'vw-' + wi;
-          span.textContent = word;
-          verseEl.appendChild(span);
-          if (wi < verseChunks.length - 1) verseEl.appendChild(document.createTextNode(' '));
-        });
-        if (spec.passage.text.length > 220) verseEl.classList.add('longer');
+        if (!teachingMode) {
+          var verseChunks = String(spec.passage.text).split(/\s+/).filter(Boolean);
+          verseChunks.forEach(function (word, wi) {
+            var span = document.createElement('span');
+            span.className = 'vw';
+            span.id = 'vw-' + wi;
+            span.textContent = word;
+            verseEl.appendChild(span);
+            if (wi < verseChunks.length - 1) verseEl.appendChild(document.createTextNode(' '));
+          });
+          if (spec.passage.text.length > 220) verseEl.classList.add('longer');
+        } else {
+          document.getElementById('citation-text').textContent = spec.passage.reference;
+        }
 
         document.getElementById('reference-label').textContent = spec.passage.reference;
+
+        /* ---- the teaching block: prose landing on the voice ------------- */
+        var teachEl = document.getElementById('teach');
+        var teachWords = [];
+        if (teachSeg) {
+          var teachChars = 0;
+          for (var ti = teachSeg.wordStart; ti < teachSeg.wordEnd; ti += 1) {
+            var tt = timings[ti];
+            if (!tt) continue;
+            var tspan = document.createElement('span');
+            tspan.className = 'tw' + (rand() < 0.12 ? ' hot' : '');
+            tspan.id = 'tw-' + ti;
+            tspan.textContent = tt.word;
+            teachEl.appendChild(tspan);
+            teachWords.push({ el: tspan, start: tt.start });
+            teachChars += tt.word.length + 1;
+          }
+          if (teachChars > 300) teachEl.classList.add('longer');
+        }
 
         /* ---- particles ------------------------------------------------- */
         var particles = [];
@@ -311,7 +403,19 @@
         var verseStart = verseSeg && timings[verseSeg.wordStart]
           ? timings[verseSeg.wordStart].start
           : duration * 0.45;
-        var seam = Math.max(0.9, verseStart - 0.5);
+        // seam: the wall gives way — to the verse (verse mode) or to the
+        // teaching block. seam2: the teaching gives way to the citation;
+        // in verse mode it collapses onto seam so nothing downstream moves.
+        var teachStart = teachSeg && timings[teachSeg.wordStart]
+          ? timings[teachSeg.wordStart].start
+          : duration * 0.35;
+        var refStart = refSeg && timings[refSeg.wordStart]
+          ? timings[refSeg.wordStart].start
+          : duration * 0.88;
+        var seam = teachingMode
+          ? Math.max(0.9, teachStart - 0.5)
+          : Math.max(0.9, verseStart - 0.5);
+        var seam2 = teachingMode ? Math.max(seam + 0.8, refStart - 0.5) : seam;
 
         /* ---- timeline ---------------------------------------------------- */
         var tl = gsap.timeline({ paused: true });
@@ -347,18 +451,31 @@
         });
 
         // Seam: the wall has said its piece — it recedes AWAY from camera
-        // (scale down, blur) while the verse block rises to meet the voice.
+        // (scale down, blur) while what follows rises to meet the voice.
         // Opposite scale signs, mirrored eases: one camera move.
         tl.to('#wall', { opacity: 0, scale: 0.9, filter: 'blur(9px)', duration: 0.5, ease: 'power4.in' }, seam - 0.42);
+
+        // Teaching words land on the voice like the wall did, at body scale —
+        // then the whole block recedes ahead of the citation.
+        teachWords.forEach(function (w) {
+          tl.fromTo(w.el,
+            { opacity: 0, y: 26 },
+            { opacity: 1, y: 0, duration: 0.3, ease: 'power3.out', immediateRender: false },
+            Math.max(0, w.start - 0.05));
+        });
+        if (teachingMode) {
+          tl.to('#teach', { opacity: 0, scale: 0.94, filter: 'blur(8px)', duration: 0.5, ease: 'power4.in' }, seam2 - 0.42);
+        }
+
         tl.fromTo('#verse-block',
           { opacity: 0, y: 60, scale: 1.06, filter: 'blur(8px)' },
           { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)', duration: 0.65, ease: 'power4.out', immediateRender: false },
-          seam + 0.12);
+          seam2 + 0.12);
         // The kicker stamps in just after the block settles.
         tl.fromTo('#verse-kicker',
           { opacity: 0, scale: 1.4 },
           { opacity: 1, scale: 1, duration: 0.32, ease: 'power4.out', immediateRender: false },
-          seam + 0.5);
+          seam2 + 0.5);
 
         // Verse words light as they are spoken. The words came from the
         // script, the clock from the transcription; ASR text never renders.
@@ -374,8 +491,12 @@
         window.__timelines = window.__timelines || {};
         window.__timelines['scripture-short'] = tl;
 
+        /* Teaching mode displays no verse text, so the check is that the
+           gate-marked node stayed empty; provenance is enforced by the
+           render-time refetch. */
         window.__verifyVerse = function () {
           var rendered = document.getElementById('verse-text').textContent || '';
+          if (teachingMode) return rendered === '';
           var norm = function (s) {
             return s.normalize('NFC').replace(/[﻿­‎‏‪-‮⁦-⁩]/g, '').replace(/\s+/g, ' ').trim();
           };

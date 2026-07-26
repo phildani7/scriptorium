@@ -34,16 +34,29 @@ export interface BuildScriptOptions {
 export function buildNarrationScript(options: BuildScriptOptions): BuiltScript {
   const { device, passage, speakReference = true } = options;
 
-  const parts: Array<{ kind: ScriptSegment['kind']; text: string }> = [
-    { kind: 'device', text: normalizeSpoken(device.content) },
-    // Verbatim. This is the only part of the script that is not ours to shape.
-    { kind: 'verse', text: passage.text },
-  ];
+  // The current format: device line → the teaching unpacked → citation. The
+  // verse is the SOURCE, verified upstream and cited at the end, but its text
+  // is never spoken or displayed. Specs from before this change carry no
+  // explanation, so they keep the original device → verse → reference shape.
+  const explanation = normalizeSpoken(device.explanation ?? '');
+
+  const parts: Array<{ kind: ScriptSegment['kind']; text: string }> = explanation
+    ? [
+        { kind: 'device', text: normalizeSpoken(device.content) },
+        { kind: 'teaching', text: explanation },
+      ]
+    : [
+        { kind: 'device', text: normalizeSpoken(device.content) },
+        // Verbatim. The one part of the script that is not ours to shape.
+        { kind: 'verse', text: passage.text },
+      ];
 
   if (speakReference) {
     parts.push({
       kind: 'reference',
-      text: `${spokenReference(passage.reference, passage.languageCode)}.`,
+      text: explanation
+        ? spokenCitation(passage.reference, passage.languageCode)
+        : `${spokenReference(passage.reference, passage.languageCode)}.`,
     });
   }
 
@@ -118,6 +131,18 @@ export function spokenReference(reference: string, languageCode?: string): strin
   return verseEnd
     ? `${book} ${chapter}, ${verseStart}, ${verseEnd}`
     : `${book} ${chapter}, ${verseStart}`;
+}
+
+/**
+ * The spoken citation that closes a teaching-format short. English gets the
+ * full phrase; other languages get the bare reference — a hand-translated
+ * "based on" for forty languages is a liability, a plain citation is not.
+ */
+export function spokenCitation(reference: string, languageCode?: string): string {
+  const spoken = spokenReference(reference, languageCode);
+  return (languageCode ?? 'en') === 'en'
+    ? `This is based on ${spoken}.`
+    : `${spoken}.`;
 }
 
 /** The segment carrying Scripture, which the integrity gate checks. */

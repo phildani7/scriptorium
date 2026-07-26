@@ -224,18 +224,41 @@ async function main() {
       );
     }
 
-    // Compare against the API response where we have one; only fixture renders
-    // fall back to the spec, and those are already flagged unverified above.
-    const result = verifyVerbatim(rendered, authoritative ?? passage.text);
-    if (!result.ok) {
-      console.error('\nSCRIPTURE INTEGRITY CHECK FAILED\n');
-      console.error(result.message);
-      fail('Refusing to render altered Scripture.');
+    // Teaching-format specs never display the verse — the narration teaches
+    // and the short cites the source. There the DOM check inverts: the
+    // gate-marked node must be EMPTY, so nothing on screen masquerades as
+    // Scripture. Provenance is the spec-vs-API diff above, which already ran.
+    const narrSegments = (spec.narration as { segments?: Array<{ kind?: string }> } | undefined)
+      ?.segments ?? [];
+    const displaysVerse = narrSegments.some((s) => s.kind === 'verse');
+
+    if (!displaysVerse) {
+      if (rendered.trim() !== '') {
+        console.error('\nSCRIPTURE INTEGRITY CHECK FAILED\n');
+        fail(
+          'This teaching-format spec displays no verse, but the gate-marked ' +
+            'node is not empty. Refusing to render unverified verse text.',
+        );
+      }
+      console.log(
+        'verified    teaching format: no verse displayed; spec passage ' +
+          (authoritative ? 'matched the live API response' : 'is fixture content (UNVERIFIED)'),
+      );
+    } else {
+      // Compare against the API response where we have one; only fixture
+      // renders fall back to the spec, and those are already flagged
+      // unverified above.
+      const result = verifyVerbatim(rendered, authoritative ?? passage.text);
+      if (!result.ok) {
+        console.error('\nSCRIPTURE INTEGRITY CHECK FAILED\n');
+        console.error(result.message);
+        fail('Refusing to render altered Scripture.');
+      }
+      console.log(
+        `verified    ${result.message}` +
+          (authoritative ? ' (against a live API response)' : ' (fixture, UNVERIFIED)'),
+      );
     }
-    console.log(
-      `verified    ${result.message}` +
-        (authoritative ? ' (against a live API response)' : ' (fixture, UNVERIFIED)'),
-    );
 
     // On-screen attribution was dropped by product decision (the shorts carry
     // the reference, not a copyright block); the version and copyright still

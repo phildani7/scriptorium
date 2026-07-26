@@ -75,6 +75,21 @@
           repeating-linear-gradient(0deg, color-mix(in srgb, var(--t-ink, #222) 5%, transparent) 0 1px, transparent 1px 7px),
           repeating-linear-gradient(90deg, color-mix(in srgb, var(--t-ink, #222) 5%, transparent) 0 1px, transparent 1px 7px);
       }
+      /* Doodle frame: the SVG is an alpha mask over a palette-ink fill, so the
+         hand-drawn marks recolor with any theme. Fixed mask size keeps the
+         authored 1080x1920 layout; #bg-fx already rides the film's drift. */
+      [data-bg='doodle'] #bg-fx {
+        opacity: 0.38;
+        background: var(--t-accent, #ff4d9d);
+        -webkit-mask-image: var(--t-doodle);
+        mask-image: var(--t-doodle);
+        -webkit-mask-size: 1080px 1920px;
+        mask-size: 1080px 1920px;
+        -webkit-mask-position: center;
+        mask-position: center;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+      }
       /* Photo: shipped public-domain image, Ken Burns drift, palette scrim. */
       #bg-photo {
         position: absolute;
@@ -162,8 +177,21 @@
       }
       #verse-text.longer { font-size: calc(46px * var(--t-scale, 1)); }
 
+      /* Teaching format: the slab closes on the citation, not a quote — the
+         verse itself is never displayed. Empty it takes no space. */
+      #citation-text {
+        font-family: var(--t-font-display, 'Space Grotesk', sans-serif);
+        font-weight: 700;
+        font-size: calc(84px * var(--t-scale, 1));
+        line-height: 1.12;
+        text-shadow: 0 0 34px color-mix(in srgb, var(--t-accent, #ff4d9d) 40%, transparent);
+      }
+      #citation-text:empty { display: none; }
+
       #short[data-script='devanagari'] #verse-text,
-      #short[data-script='bengali'] #verse-text {
+      #short[data-script='bengali'] #verse-text,
+      #short[data-script='devanagari'] #citation-text,
+      #short[data-script='bengali'] #citation-text {
         font-family: 'Noto Serif Devanagari', serif;
         line-height: 1.62;
         font-size: calc(52px * var(--t-scale, 1));
@@ -242,6 +270,7 @@
             <div id="verse-card">
               <div id="verse-spine"></div>
               <div id="verse-text" data-verse-text></div>
+              <div id="citation-text"></div>
             </div>
           </div>
         </div>
@@ -286,9 +315,18 @@
         }, 29));
 
         /* ---- content ---------------------------------------------------- */
+        // Teaching-format specs never display the verse: the narration
+        // teaches, the captions carry it, and the slab closes on the
+        // citation. Verse-display specs keep the quoted-verse climax.
+        var teachingMode = segments.some(function (s) { return s.kind === 'teaching'; });
+
         var verseEl = document.getElementById('verse-text');
-        verseEl.textContent = spec.passage.text;
-        if (spec.passage.text.length > 220) verseEl.classList.add('longer');
+        if (teachingMode) {
+          document.getElementById('citation-text').textContent = spec.passage.reference;
+        } else {
+          verseEl.textContent = spec.passage.text;
+          if (spec.passage.text.length > 220) verseEl.classList.add('longer');
+        }
         document.getElementById('reference-label').textContent = spec.passage.reference;
 
         var deviceEl = document.getElementById('device');
@@ -363,7 +401,12 @@
         }
         var deviceRange = rangeOf('device') || { start: 0, end: duration * 0.4 };
         var verseRange = rangeOf('verse') || { start: duration * 0.45, end: duration };
-        var seam = Math.max(0.9, verseRange.start - 0.55);
+        // In teaching mode the device holds the stage while the narration
+        // teaches; the flare seam moves to the closing citation.
+        var climaxStart = teachingMode
+          ? (rangeOf('reference') || { start: duration * 0.86, end: duration }).start
+          : verseRange.start;
+        var seam = Math.max(0.9, climaxStart - 0.55);
 
         /* ---- timeline ----------------------------------------------------- */
         var tl = gsap.timeline({ paused: true });
@@ -430,8 +473,12 @@
         window.__timelines = window.__timelines || {};
         window.__timelines['scripture-short'] = tl;
 
+        /* Teaching mode displays no verse text, so the check is that the
+           gate-marked node stayed empty; provenance is enforced by the
+           render-time refetch. */
         window.__verifyVerse = function () {
           var rendered = document.getElementById('verse-text').textContent || '';
+          if (teachingMode) return rendered === '';
           var norm = function (s) {
             return s.normalize('NFC').replace(/[﻿­‎‏‪-‮⁦-⁩]/g, '').replace(/\s+/g, ' ').trim();
           };

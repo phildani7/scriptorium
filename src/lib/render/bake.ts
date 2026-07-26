@@ -82,6 +82,11 @@ export function bakeComposition(options: BakeOptions): string {
   if (attrs.photoSrc) {
     style += `; --t-photo: url('${rebase(attrs.photoSrc)}')`;
   }
+  // A data URI, deliberately: mask-image is CORS-checked and the renderer
+  // loads compositions from file://, where an external mask can never load.
+  if (attrs.doodleData) {
+    style += `; --t-doodle: url('${attrs.doodleData}')`;
+  }
 
   html = html.replace(
     /(<div\s+id="short")/,

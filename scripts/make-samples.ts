@@ -165,12 +165,13 @@ async function build(def: SampleDef) {
 
   const { script, segments } = buildNarrationScript({ device, passage });
 
-  // The gate, before anything expensive happens.
-  const verification = verifyVerbatim(
-    segments.find((s) => s.kind === 'verse')?.text ?? '',
-    passage.text,
-  );
-  if (!verification.ok) throw new Error(verification.message);
+  // The gate, before anything expensive happens. Teaching-format scripts have
+  // no verse segment; the render-time refetch covers provenance for those.
+  const verseSeg = segments.find((s) => s.kind === 'verse');
+  if (verseSeg) {
+    const verification = verifyVerbatim(verseSeg.text, passage.text);
+    if (!verification.ok) throw new Error(verification.message);
+  }
 
   let audioUrl = '';
   let durationSec: number;

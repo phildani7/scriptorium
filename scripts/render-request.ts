@@ -107,11 +107,14 @@ async function main() {
   // ---- rebuild narration ---------------------------------------------------
   const { script, segments } = buildNarrationScript({ device, passage });
 
-  const gate = verifyVerbatim(
-    segments.find((s) => s.kind === 'verse')?.text ?? '',
-    passage.text,
-  );
-  if (!gate.ok) throw new Error(gate.message);
+  // Teaching-format scripts carry no verse segment (the verse is cited, not
+  // displayed); render.ts still re-fetches the cited passage and diffs it
+  // against the spec, so provenance holds either way.
+  const verseSeg = segments.find((s) => s.kind === 'verse');
+  if (verseSeg) {
+    const gate = verifyVerbatim(verseSeg.text, passage.text);
+    if (!gate.ok) throw new Error(gate.message);
+  }
 
   let audioUrl = '';
   let durationSec = 0;
