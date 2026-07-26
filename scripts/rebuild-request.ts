@@ -39,6 +39,9 @@ async function main() {
   const languageCode = arg('language') ?? 'en';
   const ageGroup = (arg('age') ?? 'adult') as AgeGroup;
   const voiceModel = arg('voice');
+  // --dispatch sends the request through the GitHub Actions render job (the
+  // exact path a studio export takes) instead of rendering on this machine.
+  const dispatch = process.argv.includes('--dispatch');
 
   const scripture = getScriptureClient();
   const versions = await scripture.listBibles(languageCode);
@@ -65,14 +68,20 @@ async function main() {
   if (!device) throw new Error('Provider returned no devices.');
 
   const entry = getLanguage(languageCode);
+  let voice;
+  if (voiceModel === 'piper') {
+    if (!entry?.piperVoice) throw new Error(`No Piper voice for "${languageCode}".`);
+    voice = { engine: 'piper', model: entry.piperVoice, label: 'Neural voice' };
+  } else if (voiceModel) {
+    voice = { engine: 'speechmatics', model: voiceModel, label: voiceModel };
+  }
+
   const request = {
     id,
     style,
     theme: JSON.parse(arg('theme') ?? '{}'),
     languageCode,
-    voice: voiceModel
-      ? { engine: 'speechmatics', model: voiceModel, label: voiceModel }
-      : undefined,
+    voice,
     passage,
     device,
     script: entry?.script ?? 'latin',
@@ -83,6 +92,24 @@ async function main() {
   const requestPath = join('.render-tmp', `${id}.request.json`);
   writeFileSync(requestPath, `${JSON.stringify(request, null, 2)}\n`, 'utf8');
   console.log(`request     ${requestPath} (${passage.reference}, ${version.abbreviation})`);
+
+  if (dispatch) {
+    const repo = process.env.GITHUB_REPO ?? 'phildani7/scriptorium';
+    const payload = JSON.stringify({
+      event_type: 'render-short',
+      client_payload: { request },
+    });
+    const payloadPath = join('.render-tmp', `${id}.dispatch.json`);
+    writeFileSync(payloadPath, payload, 'utf8');
+    const gh = spawnSync(
+      'gh',
+      ['api', `repos/${repo}/dispatches`, '--method', 'POST', '--input', payloadPath],
+      { stdio: 'inherit', shell: process.platform === 'win32' },
+    );
+    if (gh.status !== 0) throw new Error(`gh dispatch exited ${gh.status}`);
+    console.log(`dispatched  render-short -> ${repo}`);
+    return;
+  }
 
   const result = spawnSync(
     'npx',
