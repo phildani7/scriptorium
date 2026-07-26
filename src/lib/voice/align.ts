@@ -327,31 +327,47 @@ function round(n: number): number {
 }
 
 /**
- * WAV duration from the header. The render pipeline needs this before it can
- * lay out a timeline, and reading 44 bytes beats decoding the file.
+ * WAV duration from the header.
+ *
+ * The declared `data` chunk size cannot be trusted. A WAV produced by a
+ * streaming encoder — Speechmatics' TTS among them — is written before its
+ * own length is known, so it carries the "unknown length" placeholder
+ * 0xFFFFFFFF. Taking that at face value yields ~268,435 seconds, which is
+ * three days of composition for four seconds of speech.
+ *
+ * So: read the declared size, but bound it by how many bytes actually follow.
  */
 export function wavDurationSeconds(wav: Uint8Array): number {
-  const view = new DataView(wav.buffer, wav.byteOffset, wav.byteLength);
-
   if (wav.byteLength < 44) return 0;
-  // "RIFF" .... "WAVE"
-  if (view.getUint32(0, false) !== 0x52494646) return 0;
+
+  const view = new DataView(wav.buffer, wav.byteOffset, wav.byteLength);
+  if (view.getUint32(0, false) !== 0x52494646 /* "RIFF" */) return 0;
 
   let offset = 12;
   let byteRate = 0;
 
   while (offset + 8 <= wav.byteLength) {
     const id = view.getUint32(offset, false);
-    const size = view.getUint32(offset + 4, true);
+    const declared = view.getUint32(offset + 4, true);
 
     if (id === 0x666d7420 /* "fmt " */) {
-      byteRate = view.getUint32(offset + 12, true);
+      // Layout from the chunk start: +0 id, +4 size, +8 format, +10 channels,
+      // +12 sample rate, +16 BYTE RATE. Reading +12 yields the sample rate,
+      // which for 16-bit mono is exactly half the byte rate — so every
+      // duration comes out twice as long, quietly.
+      byteRate = view.getUint32(offset + 16, true);
     } else if (id === 0x64617461 /* "data" */) {
-      return byteRate > 0 ? round(size / byteRate) : 0;
+      if (byteRate <= 0) return 0;
+      const remaining = wav.byteLength - (offset + 8);
+      // Whichever is smaller: what the header claims, or what is really there.
+      const actual = Math.min(declared, Math.max(0, remaining));
+      return round(actual / byteRate);
     }
 
-    // Chunks are word-aligned.
-    offset += 8 + size + (size % 2);
+    // A placeholder size would also send the chunk walk past the end of the
+    // buffer, so stop rather than loop on a bogus offset.
+    if (declared > wav.byteLength) break;
+    offset += 8 + declared + (declared % 2); // chunks are word-aligned
   }
 
   return 0;

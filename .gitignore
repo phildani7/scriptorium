@@ -54,3 +54,8 @@ scratchpad/
 /public/preview/
 /public/vendor/
 /scripts/.out-*
+
+# render artefacts
+/.render/
+/renders/
+/samples/*.json

@@ -264,6 +264,15 @@
       <div id="ground"></div>
       <div id="grain"></div>
 
+      <!--
+        Narration. The framework owns playback and seeking, so this must be a
+        real element in the static markup — the renderer reads it while parsing
+        the page, before any of our script has run. The builder rewrites `src`
+        (and drops the element entirely when there is no server-rendered voice,
+        as in browser-voice preview).
+      -->
+      <audio id="narration" data-narration preload="auto" src=""></audio>
+
       <div class="clip" data-start="0" data-duration="30" data-track-index="0">
         <div id="reference-bar"></div>
 

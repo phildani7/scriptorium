@@ -10,6 +10,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { NextResponse } from 'next/server';
+import { bakeComposition } from '@/lib/render/bake';
 import type { StyleId } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -52,14 +53,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // Escaping `</` prevents a passage or device string from closing the script
-  // tag and injecting markup into the composition.
-  const json = JSON.stringify(spec, null, 2).replace(/<\//g, '<\\/');
-
-  const html = template.replace(
-    /(<script id="short-spec" type="application\/json">)[\s\S]*?(<\/script>)/,
-    `$1\n${json}\n$2`,
-  );
+  // The preview drives its own <audio> element in PreviewFrame, so the
+  // composition's narration element is dropped here; everything else is baked
+  // exactly as the renderer bakes it.
+  const html = bakeComposition({ template, spec, audioSrc: '' });
 
   return new NextResponse(html, {
     headers: { 'Content-Type': 'text/html; charset=utf-8' },
