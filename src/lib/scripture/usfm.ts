@@ -87,9 +87,42 @@ const BOOK_LOOKUP: ReadonlyMap<string, string> = (() => {
   return map;
 })();
 
+/**
+ * Books whose conventional display name is not just the title-cased first
+ * alias. A single psalm is cited "Psalm 23", never "Psalms 23" — and that is
+ * also how the Platform API renders it back to us, so matching avoids the
+ * reference visibly changing between our screen and the API's.
+ */
+const DISPLAY_OVERRIDES: Readonly<Record<string, string>> = {
+  PSA: 'Psalm',
+  SNG: 'Song of Songs',
+  PHP: 'Philippians',
+  REV: 'Revelation',
+  '1CO': '1 Corinthians',
+  '2CO': '2 Corinthians',
+  '1TH': '1 Thessalonians',
+  '2TH': '2 Thessalonians',
+  '1TI': '1 Timothy',
+  '2TI': '2 Timothy',
+  '1SA': '1 Samuel',
+  '2SA': '2 Samuel',
+  '1KI': '1 Kings',
+  '2KI': '2 Kings',
+  '1CH': '1 Chronicles',
+  '2CH': '2 Chronicles',
+  '1PE': '1 Peter',
+  '2PE': '2 Peter',
+  '1JN': '1 John',
+  '2JN': '2 John',
+  '3JN': '3 John',
+};
+
 /** English display names, used to render a canonical reference string. */
 export const BOOK_DISPLAY_NAMES: ReadonlyMap<string, string> = new Map(
-  BOOKS.map(({ code, names }) => [code, titleCase(names[0])]),
+  BOOKS.map(({ code, names }) => [
+    code,
+    DISPLAY_OVERRIDES[code] ?? titleCase(names[0]),
+  ]),
 );
 
 export interface ParsedReference {
@@ -122,7 +155,9 @@ export function parseReference(input: string): ParsedReference | null {
 
   if (cleaned.length === 0) return null;
 
-  // Already USFM: JHN.3.16 or PSA.23.1-PSA.23.4
+  // Already USFM: JHN.3.16, PSA.23.1-4, or the fully-qualified
+  // PSA.23.1-PSA.23.4 that other tooling emits (accepted on input, normalised
+  // to the short form the Platform API requires on output).
   const usfmDirect = cleaned.match(
     /^([1-3]?[A-Za-z]{2,3})\.(\d{1,3})(?:\.(\d{1,3}))?(?:\s*-\s*(?:[1-3]?[A-Za-z]{2,3}\.\d{1,3}\.)?(\d{1,3}))?$/,
   );
@@ -180,7 +215,11 @@ function build(
     usfm = `${book}.${chapter}.${verseStart}`;
     display = `${name} ${chapter}:${verseStart}`;
   } else {
-    usfm = `${book}.${chapter}.${verseStart}-${book}.${chapter}.${verseEnd}`;
+    // Ranges are `BOOK.CH.V1-V2`. The fully-qualified form some USFM tooling
+    // uses — `PSA.27.1-PSA.27.3` — is rejected by the Platform API with a 404,
+    // which reads as "no such passage" rather than "bad syntax". Verified
+    // against the live API; see usfm.test.ts.
+    usfm = `${book}.${chapter}.${verseStart}-${verseEnd}`;
     display = `${name} ${chapter}:${verseStart}-${verseEnd}`;
   }
 

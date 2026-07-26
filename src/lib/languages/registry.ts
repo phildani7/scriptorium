@@ -21,6 +21,7 @@
  */
 
 import type { LanguageTier } from '@/lib/types';
+import AUDIT from './coverage.generated.json';
 
 export type TextDirection = 'ltr' | 'rtl';
 
@@ -186,18 +187,48 @@ export function directionFor(code: string): TextDirection {
   return getLanguage(code)?.dir ?? 'ltr';
 }
 
-/** Counts used in the UI and the writeup. Computed, so they cannot drift. */
+/**
+ * Coverage, as measured rather than claimed.
+ *
+ * `coverage.generated.json` is written by `npm run audit:languages`, which
+ * asks the live YouVersion Platform API which Bible versions THIS app key is
+ * actually licensed for. A language counts as complete only when it has a
+ * licensed Bible AND a voice AND measured word timing.
+ *
+ * The registry's own tier is a capability ceiling; the audit is the floor we
+ * can honestly stand on, and the floor is what the UI reports.
+ */
 export function coverage() {
   const full = LANGUAGES.filter((l) => tierOf(l) === 'full');
   const voiced = LANGUAGES.filter((l) => tierOf(l) === 'voiced');
   const textFirst = LANGUAGES.filter((l) => tierOf(l) === 'text-first');
+
   return {
+    /** Languages in the registry. */
     total: LANGUAGES.length,
+    /** Registry capability, before checking Bible licensing. */
     full: full.length,
     voiced: voiced.length,
     textFirst: textFirst.length,
-    /** Languages with a voice of any kind. */
     withVoice: full.length + voiced.length,
     speakersReachedM: LANGUAGES.reduce((n, l) => n + l.speakersM, 0),
+
+    /** Audited against the live API. This is what the UI shows. */
+    audited: {
+      at: AUDIT.auditedAt,
+      withBible: AUDIT.withBible,
+      complete: AUDIT.complete,
+      voiced: AUDIT.voiced,
+      textOnly: AUDIT.textOnly,
+      totalVersions: AUDIT.totalVersions,
+    },
   };
+}
+
+/** Bible versions this app key can reach for a language, per the last audit. */
+export function versionsAvailable(code: string): number {
+  // The generated JSON types its keys as a literal union, so a runtime lookup
+  // by arbitrary code needs the widened view.
+  const byLanguage: Record<string, number> = AUDIT.versionsByLanguage;
+  return byLanguage[code] ?? 0;
 }

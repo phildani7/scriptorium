@@ -1,5 +1,5 @@
 {
-    "name":  "pentecost-studio",
+    "name":  "scriptorium",
     "version":  "0.1.0",
     "private":  true,
     "scripts":  {
@@ -11,7 +11,8 @@
                     "smoke:ai":  "tsx --env-file=.env.local scripts/smoke-ai.ts",
                     "typecheck":  "tsc --noEmit",
                     "smoke:voice":  "tsx --env-file=.env.local scripts/smoke-voice.ts",
-                    "preview:build":  "tsx scripts/build-preview.ts"
+                    "preview:build":  "tsx scripts/build-preview.ts",
+                    "audit:languages":  "tsx --env-file=.env.local scripts/audit-languages.ts"
                 },
     "dependencies":  {
                          "@anthropic-ai/sdk":  "^0.115.0",

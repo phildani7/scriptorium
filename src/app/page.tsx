@@ -1,7 +1,7 @@
 import { Studio } from '@/components/studio/Studio';
 
 export const metadata = {
-  title: 'Pentecost Studio',
+  title: 'Scriptorium',
   description:
     'Scripture shorts in your own language. Verse text retrieved from YouVersion, never generated.',
 };

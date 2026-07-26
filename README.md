@@ -1,4 +1,4 @@
-# Pentecost Studio
+# Scriptorium
 
 **Scripture shorts, in your own language.**
 
@@ -13,7 +13,7 @@ dominant medium is now **vertical video** — and in most of those languages the
 essentially none of it, because making a good short takes a designer, a voice, and an
 editor that a volunteer church does not have.
 
-Pentecost Studio removes all three. Type a reference or a feeling, pick a lens and a
+Scriptorium removes all three. Type a reference or a feeling, pick a lens and a
 language, and about a minute later you have a publishable 1080×1920 short: narrated,
 word-synced captions, motion design, attribution on screen.
 

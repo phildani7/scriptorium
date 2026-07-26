@@ -26,7 +26,17 @@ interface StatusPayload {
   ai: { active: string; glooConfigured: boolean; degradedReason?: string };
   scripture: { configured: boolean; note?: string };
   voice: { configured: boolean; note?: string };
-  coverage: { total: number; full: number; withVoice: number };
+  coverage: {
+    total: number;
+    full: number;
+    withVoice: number;
+    audited: {
+      at: string;
+      withBible: number;
+      complete: number;
+      totalVersions: number;
+    };
+  };
   languages: Array<{
     code: string;
     name: string;
@@ -507,7 +517,7 @@ function Header({ status }: { status: StatusPayload | null }) {
   return (
     <header className="mb-8">
       <div className="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <h1 className="font-display text-4xl tracking-tight">Pentecost Studio</h1>
+        <h1 className="font-display text-4xl tracking-tight">Scriptorium</h1>
         <p className="text-inksoft">
           Scripture shorts, in your own language.
         </p>
@@ -515,9 +525,13 @@ function Header({ status }: { status: StatusPayload | null }) {
 
       {status && (
         <p className="text-sm text-inksoft">
-          {status.coverage.total} languages · {status.coverage.full} with
-          measured word timing · Scripture retrieved from YouVersion, never
-          generated.
+          <strong className="font-semibold text-ink">
+            {status.coverage.audited.withBible} languages
+          </strong>{' '}
+          licensed to this app key · {status.coverage.audited.complete} with a
+          voice and word timing measured from the audio ·{' '}
+          {status.coverage.audited.totalVersions} Bible versions · Scripture
+          retrieved from YouVersion, never generated.
         </p>
       )}
 

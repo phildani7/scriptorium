@@ -23,6 +23,9 @@ const BASE_URL = 'https://api.youversion.com/v1';
 /** Berean Standard Bible — public domain, so safe to burn into a video. */
 export const DEFAULT_EN_VERSION = 3034;
 
+/** The platform rejects `page_size` above 99 with a 400. */
+const MAX_PAGE_SIZE = 99;
+
 export class YouVersionError extends Error {
   readonly status?: number;
   readonly retryable: boolean;
@@ -149,7 +152,8 @@ export class YouVersionClient {
   async listBibles(languageCode: string): Promise<BibleVersion[]> {
     const raw = await this.get<{ data?: unknown[] }>('/bibles', {
       'language_ranges[]': languageCode,
-      page_size: '100',
+      // The platform rejects anything above 99 with a 400.
+      page_size: String(MAX_PAGE_SIZE),
     });
     if (!Array.isArray(raw.data)) return [];
     return raw.data
@@ -199,23 +203,48 @@ export class YouVersionClient {
 
   /** Languages the platform serves, for cross-checking our registry. */
   async listLanguages(): Promise<Array<Record<string, unknown>>> {
-    const raw = await this.get<{ data?: unknown[] }>('/languages', {
-      page_size: '500',
-    });
-    return Array.isArray(raw.data)
-      ? (raw.data as Array<Record<string, unknown>>)
-      : [];
+    return this.getAllPages('/languages');
   }
 
   /** Licence agreements, and whether this app has accepted them. */
   async listLicenses(allAvailable = false): Promise<Array<Record<string, unknown>>> {
-    const raw = await this.get<{ data?: unknown[] }>('/licenses', {
-      ...(allAvailable ? { all_available: 'true' } : {}),
-      page_size: '100',
-    });
-    return Array.isArray(raw.data)
-      ? (raw.data as Array<Record<string, unknown>>)
-      : [];
+    return this.getAllPages(
+      '/licenses',
+      allAvailable ? { all_available: 'true' } : {},
+    );
+  }
+
+  /**
+   * Follow `next_page_token` to the end of a collection.
+   *
+   * Bounded at 50 pages so a pagination bug on either side cannot turn into an
+   * unbounded loop against a live API.
+   */
+  private async getAllPages(
+    path: string,
+    query: Record<string, string> = {},
+  ): Promise<Array<Record<string, unknown>>> {
+    const out: Array<Record<string, unknown>> = [];
+    let pageToken: string | undefined;
+
+    for (let page = 0; page < 50; page += 1) {
+      const raw = await this.get<{ data?: unknown[]; next_page_token?: string }>(
+        path,
+        {
+          ...query,
+          page_size: String(MAX_PAGE_SIZE),
+          ...(pageToken ? { page_token: pageToken } : {}),
+        },
+      );
+
+      if (Array.isArray(raw.data)) {
+        out.push(...(raw.data as Array<Record<string, unknown>>));
+      }
+      if (!raw.next_page_token) break;
+      pageToken = raw.next_page_token;
+    }
+
+    return out;
   }
 
   private async get<T>(
@@ -247,7 +276,16 @@ export class YouVersionClient {
       );
     }
 
-    return (await response.json()) as T;
+    // Collection endpoints answer 204 with an empty body when nothing matches
+    // — an empty result, not a failure. Parsing that as JSON throws
+    // "Unexpected end of JSON input" and makes "this key has no Norwegian
+    // Bible" look identical to "the API is broken".
+    if (response.status === 204) return { data: [] } as T;
+
+    const body = await response.text();
+    if (body.trim().length === 0) return { data: [] } as T;
+
+    return JSON.parse(body) as T;
   }
 }
 
