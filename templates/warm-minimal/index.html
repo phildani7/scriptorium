@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Scripture Short — Warm Minimal</title>
+
+    <!--
+      Self-hosted OFL fonts. No CDN call: this composition renders inside a
+      GitHub Actions job with no network, and a missing font there would
+      silently fall back to a system face — which for Devanagari means broken
+      conjuncts and misplaced matras rather than an obvious error.
+    -->
+    <link rel="stylesheet" href="/fonts/fonts.css" />
+    <style>
+      /* ---------------------------------------------------------------
+         Warm Minimal — cream ground, one accent, wide whitespace.
+         The style is frozen: it fills a template, it does not invent layout.
+         --------------------------------------------------------------- */
+      :root {
+        --ground: #f6f1e7;
+        --ink: #221e19;
+        --ink-soft: #6b6157;
+        --accent: #b4552e;
+        --rule: #ddd2bf;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        background: var(--ground);
+      }
+
+      /* The root is explicitly sized. A percentage height anywhere in this
+         chain would collapse to zero and pile the content into the corner. */
+      #short {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        font-family: 'Inter', system-ui, sans-serif;
+        color: var(--ink);
+      }
+
+      /* Full-bleed fill lives on a CHILD, never on the composition root:
+         the frame compositor can drop a root background and render black. */
+      #ground {
+        position: absolute;
+        inset: 0;
+        background: var(--ground);
+      }
+
+      /* Paper grain, drawn in CSS so there is no image to ship or to miss. */
+      #grain {
+        position: absolute;
+        inset: -40px;
+        opacity: 0.5;
+        background-image:
+          radial-gradient(circle at 20% 15%, rgba(180, 85, 46, 0.06), transparent 45%),
+          radial-gradient(circle at 82% 78%, rgba(120, 130, 90, 0.05), transparent 40%);
+      }
+
+      .clip {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* ---- top bar: reference, pinned while its verse is on screen ---- */
+      #reference-bar {
+        position: absolute;
+        top: 96px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 34px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        opacity: 0;
+      }
+
+      /* ---- stage: device text, then the verse ---- */
+      /* Device and verse occupy the SAME grid cell, so the one that is hidden
+         contributes no layout. Stacked in flow instead, the invisible verse
+         panel would still take space and shove the device text off centre. */
+      #stage {
+        position: absolute;
+        top: 200px;
+        left: 96px;
+        right: 96px;
+        bottom: 560px;
+        display: grid;
+        align-content: center;
+      }
+
+      #device,
+      #verse-panel {
+        grid-area: 1 / 1;
+        align-self: center;
+      }
+
+      #device {
+        font-family: 'Fraunces', Georgia, serif;
+        font-size: 76px;
+        line-height: 1.22;
+        letter-spacing: -0.015em;
+        opacity: 0;
+      }
+
+      #device .w {
+        display: inline-block;
+        opacity: 0;
+      }
+
+      #verse-panel {
+        opacity: 0;
+      }
+
+      #verse-rule {
+        width: 0;
+        height: 3px;
+        background: var(--accent);
+        margin-bottom: 44px;
+      }
+
+      /* The verse element. `data-verse-text` marks it for the integrity gate,
+         which reads this node's textContent and diffs it against the passage
+         exactly as the API returned it. Nothing may be interpolated in here. */
+      #verse-text {
+        font-family: 'Fraunces', Georgia, serif;
+        font-size: 72px;
+        line-height: 1.3;
+        letter-spacing: -0.01em;
+      }
+
+      /* Indic and other complex scripts stack marks above and below the
+         baseline; at this size the default leading makes them collide. */
+      #short[data-script='devanagari'] #verse-text,
+      #short[data-script='bengali'] #verse-text {
+        font-family: 'Noto Serif Devanagari', serif;
+        font-size: 64px;
+        line-height: 1.62;
+        letter-spacing: 0;
+      }
+
+      #short[data-script='devanagari'] #device,
+      #short[data-script='bengali'] #device {
+        font-family: 'Noto Serif Devanagari', serif;
+        font-size: 64px;
+        line-height: 1.55;
+      }
+
+      #short[data-dir='rtl'] #stage,
+      #short[data-dir='rtl'] #caption-rail {
+        direction: rtl;
+      }
+
+      /* ---- caption rail ---- */
+      #caption-rail {
+        position: absolute;
+        left: 96px;
+        right: 96px;
+        bottom: 300px;
+        min-height: 220px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+      }
+
+      /* Every line occupies the same box, so exactly one may be visible at a
+         time. They are switched with zero-duration boundary sets rather than
+         crossfaded — two lines fading past each other in the same box renders
+         as one illegible overlap, which is why real subtitles hard-cut. */
+      .caption-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        font-size: 46px;
+        line-height: 1.4;
+        font-weight: 600;
+        color: var(--ink-soft);
+        opacity: 0;
+        visibility: hidden;
+        text-align: center;
+      }
+
+      #short[data-script='devanagari'] .caption-line {
+        font-family: 'Noto Serif Devanagari', serif;
+        line-height: 1.7;
+      }
+
+      .caption-line .cw {
+        transition: none;
+      }
+
+      /* ---- footer: attribution + verified badge ---- */
+      #footer {
+        position: absolute;
+        left: 96px;
+        right: 96px;
+        bottom: 92px;
+      }
+
+      #footer-rule {
+        height: 1px;
+        background: var(--rule);
+        margin-bottom: 26px;
+      }
+
+      #footer-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 32px;
+      }
+
+      /* Attribution is never animated out and never conditional. Publishers
+         licence text to YouVersion on the understanding that credit travels
+         with it. */
+      #attribution {
+        flex: 1;
+        font-size: 22px;
+        line-height: 1.45;
+        color: var(--ink-soft);
+      }
+
+      #verified {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 21px;
+        font-weight: 600;
+        color: var(--accent);
+        white-space: nowrap;
+      }
+
+      #verified svg {
+        width: 22px;
+        height: 22px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!--
+      Standalone composition root: sits directly in <body>, not wrapped in a
+      <template>. data-duration is authoritative for render length.
+    -->
+    <div
+      id="short"
+      data-composition-id="scripture-short"
+      data-duration="30"
+      data-script="latin"
+      data-dir="ltr"
+    >
+      <div id="ground"></div>
+      <div id="grain"></div>
+
+      <div class="clip" data-start="0" data-duration="30" data-track-index="0">
+        <div id="reference-bar"></div>
+
+        <div id="stage">
+          <div id="device"></div>
+          <div id="verse-panel">
+            <div id="verse-rule"></div>
+            <div id="verse-text" data-verse-text></div>
+          </div>
+        </div>
+
+        <div id="caption-rail"></div>
+
+        <div id="footer">
+          <div id="footer-rule"></div>
+          <div id="footer-row">
+            <div id="attribution"></div>
+            <div id="verified">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M12 2 3 6v6c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V6l-9-4Z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="m8.5 12 2.5 2.5 4.5-5"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span id="verified-label">verse verified</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- The ShortSpec is written in here by the builder before render.
+         It must be defined before the timeline script runs. -->
+    <script id="short-spec" type="application/json">
+      {}
+    </script>
+    <script src="/vendor/gsap.min.js"></script>
+    <script>
+      /* ==================================================================
+         The template is a pure function of the ShortSpec.
+         Everything below reads the spec and builds one paused timeline,
+         synchronously, at page load. No clocks, no randomness, no network.
+         ================================================================== */
+      (function () {
+        'use strict';
+
+        var spec =
+          window.__SHORT_SPEC__ ||
+          JSON.parse(document.getElementById('short-spec').textContent || '{}');
+        if (!spec || !spec.passage) return;
+
+        window.__SHORT_SPEC__ = spec;
+
+        var root = document.getElementById('short');
+        var narration = spec.narration || {};
+        var timings = narration.timings || [];
+        var segments = narration.segments || [];
+        var duration = Number(spec.durationSec || narration.durationSec || 30);
+
+        root.setAttribute('data-duration', String(duration));
+        root.setAttribute('data-script', spec.script || 'latin');
+        root.setAttribute('data-dir', spec.dir || 'ltr');
+
+        /* ---- content -------------------------------------------------- */
+
+        // The verse is assigned via textContent, never innerHTML, and never
+        // built by concatenation. What the API returned is what renders.
+        document.getElementById('verse-text').textContent = spec.passage.text;
+        document.getElementById('reference-bar').textContent =
+          spec.passage.reference;
+        document.getElementById('attribution').textContent =
+          spec.passage.attribution;
+
+        if (spec.verifiedLabel) {
+          document.getElementById('verified-label').textContent =
+            spec.verifiedLabel;
+        }
+
+        // The device line is ours, so it may be split into animatable words.
+        var deviceEl = document.getElementById('device');
+        var deviceWords = String((spec.device && spec.device.content) || '')
+          .split(/\s+/)
+          .filter(Boolean);
+        deviceWords.forEach(function (word, i) {
+          var span = document.createElement('span');
+          span.className = 'w';
+          span.textContent = word;
+          deviceEl.appendChild(span);
+          if (i < deviceWords.length - 1) {
+            deviceEl.appendChild(document.createTextNode(' '));
+          }
+        });
+        var deviceSpans = deviceEl.querySelectorAll('.w');
+
+        /* ---- caption rail --------------------------------------------
+           Words are grouped into short lines. One line is on screen at a
+           time and the spoken word inside it is emphasised. Caption text
+           comes from the aligned script, so it is exactly what is being
+           said, including the verse.
+           -------------------------------------------------------------- */
+        var MAX_CHARS = 34;
+        var MAX_WORDS = 7;
+        var lines = [];
+        var current = null;
+
+        for (var i = 0; i < timings.length; i++) {
+          var t = timings[i];
+          var wouldBe = current ? current.chars + 1 + t.word.length : t.word.length;
+          if (!current || wouldBe > MAX_CHARS || current.words.length >= MAX_WORDS) {
+            current = { words: [], chars: 0, start: t.start, end: t.end };
+            lines.push(current);
+          }
+          current.words.push({ index: i, word: t.word, start: t.start, end: t.end });
+          current.chars = current.chars === 0 ? t.word.length : current.chars + 1 + t.word.length;
+          current.end = t.end;
+        }
+
+        var rail = document.getElementById('caption-rail');
+        lines.forEach(function (line, li) {
+          var el = document.createElement('div');
+          el.className = 'caption-line';
+          el.id = 'cl-' + li;
+          line.words.forEach(function (w, wi) {
+            var span = document.createElement('span');
+            span.className = 'cw';
+            span.id = 'cw-' + w.index;
+            span.textContent = w.word;
+            el.appendChild(span);
+            if (wi < line.words.length - 1) {
+              el.appendChild(document.createTextNode(' '));
+            }
+          });
+          rail.appendChild(el);
+          line.el = el;
+        });
+
+        /* ---- timing landmarks ----------------------------------------- */
+        function rangeOf(kind) {
+          for (var s = 0; s < segments.length; s++) {
+            if (segments[s].kind !== kind) continue;
+            var first = timings[segments[s].wordStart];
+            var last = timings[segments[s].wordEnd - 1];
+            if (first && last) return { start: first.start, end: last.end };
+          }
+          return null;
+        }
+
+        var deviceRange = rangeOf('device') || { start: 0, end: duration * 0.4 };
+        var verseRange = rangeOf('verse') || {
+          start: duration * 0.45,
+          end: duration,
+        };
+
+        /* ---- the single paused timeline -------------------------------- */
+        var tl = gsap.timeline({ paused: true });
+
+        // Slow ground drift. Finite repeat: `repeat: -1` is banned because an
+        // infinite tween has no deterministic state at an arbitrary seek.
+        tl.fromTo(
+          '#grain',
+          { xPercent: -1.2, yPercent: -0.8, scale: 1.04 },
+          { xPercent: 1.2, yPercent: 0.8, scale: 1.0, duration: duration, ease: 'none' },
+          0,
+        );
+
+        // Device: words arrive in a staggered drop, then the block eases away
+        // as the verse takes the stage.
+        var deviceSpan = Math.max(0.6, deviceRange.end - deviceRange.start);
+        tl.set('#device', { opacity: 1 }, Math.max(0, deviceRange.start - 0.35));
+        tl.fromTo(
+          deviceSpans,
+          { opacity: 0, y: 34 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.5,
+            ease: 'power3.out',
+            stagger: Math.min(0.07, (deviceSpan * 0.55) / Math.max(1, deviceSpans.length)),
+          },
+          Math.max(0, deviceRange.start - 0.35),
+        );
+        tl.to(
+          '#device',
+          { opacity: 0, y: -26, duration: 0.5, ease: 'power2.in' },
+          Math.max(0.5, verseRange.start - 0.55),
+        );
+
+        // Reference bar rises with the verse and stays pinned for its whole
+        // time on screen, which is the rule for verse references.
+        tl.fromTo(
+          '#reference-bar',
+          { opacity: 0, y: -14 },
+          { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' },
+          Math.max(0, verseRange.start - 0.4),
+        );
+
+        // Verse: rule wipes, then the text settles in. Understated on purpose —
+        // the verse should not look like an advertisement.
+        tl.fromTo(
+          '#verse-panel',
+          { opacity: 0, y: 22 },
+          { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' },
+          Math.max(0, verseRange.start - 0.3),
+        );
+        tl.fromTo(
+          '#verse-rule',
+          { width: 0 },
+          { width: 168, duration: 0.7, ease: 'power2.out' },
+          Math.max(0, verseRange.start - 0.15),
+        );
+
+        // Captions: each line fades in for its span; each word lifts to full
+        // ink as it is spoken and settles back after.
+        lines.forEach(function (line, li) {
+          // Hard cut in, hard cut out. The next line's `in` is this line's
+          // `out`, so the rail always holds exactly one line.
+          var lineIn = line.start;
+          var lineOut = li === lines.length - 1 ? duration : lines[li + 1].start;
+
+          tl.set(line.el, { autoAlpha: 1 }, lineIn);
+          // Motion is translate-only: an opacity tween here would reintroduce
+          // the overlap the hard cut exists to prevent.
+          tl.fromTo(
+            line.el,
+            { y: 12 },
+            { y: 0, duration: 0.26, ease: 'power2.out', immediateRender: false },
+            lineIn,
+          );
+          tl.set(line.el, { autoAlpha: 0 }, lineOut);
+
+          line.words.forEach(function (w) {
+            var el = document.getElementById('cw-' + w.index);
+            tl.to(
+              el,
+              { color: '#221e19', duration: 0.06, ease: 'none' },
+              Math.max(0, w.start),
+            );
+            tl.to(
+              el,
+              { color: '#6b6157', duration: 0.18, ease: 'none' },
+              Math.max(0.06, w.end),
+            );
+          });
+        });
+
+        // Footer holds from the first beat to the last. Deliberately never
+        // animated out.
+        tl.fromTo(
+          '#footer',
+          { opacity: 0 },
+          { opacity: 1, duration: 0.6, ease: 'power1.out' },
+          0.2,
+        );
+
+        window.__timelines = window.__timelines || {};
+        window.__timelines['scripture-short'] = tl;
+
+        /* ---- client-side integrity check -------------------------------
+           The authoritative gate runs in the renderer and hard-fails the
+           build. This mirror lets the live preview light its badge from the
+           same comparison rather than from an assumption.
+           ---------------------------------------------------------------- */
+        window.__verifyVerse = function () {
+          var rendered = document.getElementById('verse-text').textContent || '';
+          var norm = function (s) {
+            return s
+              .normalize('NFC')
+              .replace(/[﻿­‎‏‪-‮⁦-⁩]/g, '')
+              .replace(/\s+/g, ' ')
+              .trim();
+          };
+          return norm(rendered) === norm(spec.passage.text);
+        };
+      })();
+    </script>
+  </body>
+</html>

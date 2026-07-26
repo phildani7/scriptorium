@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# secrets
+.env.local
+.env*.local
+env.txt
+*.key
+
+# reference material (not part of the public repo)
+_ref/
+scratchpad/
+
+# generated preview artefacts
+/public/preview/
+/public/vendor/
+/scripts/.out-*
