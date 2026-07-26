@@ -1,0 +1,82 @@
+# Cloud MP4 rendering.
+#
+# Fired by /api/export via repository_dispatch (or by hand via
+# workflow_dispatch with a request JSON). The runner:
+#
+#   1. re-synthesizes narration from the script (its own Speechmatics secret)
+#   2. renders through render/render.ts, whose integrity gate independently
+#      re-fetches the passage from YouVersion and refuses on any mismatch
+#   3. commits the MP4 + poster + manifest update into public/gallery
+#
+# The commit triggers Vercel's git integration, so the gallery on the live
+# site updates itself a deploy later. No server renders anything, ever.
+
+name: render-short
+
+on:
+  repository_dispatch:
+    types: [render-short]
+  workflow_dispatch:
+    inputs:
+      request:
+        description: 'Render request JSON (compact spec)'
+        required: true
+        type: string
+
+concurrency:
+  group: render-gallery
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Pull whatever previous render jobs pushed before this one ran.
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install render browser
+        run: npx playwright install chromium --only-shell --with-deps
+
+      - name: Write render request
+        env:
+          DISPATCH_REQUEST: ${{ toJSON(github.event.client_payload.request) }}
+          MANUAL_REQUEST: ${{ inputs.request }}
+        run: |
+          if [ -n "$MANUAL_REQUEST" ] && [ "$MANUAL_REQUEST" != "null" ]; then
+            printf '%s' "$MANUAL_REQUEST" > request.json
+          else
+            printf '%s' "$DISPATCH_REQUEST" > request.json
+          fi
+          node -e "JSON.parse(require('fs').readFileSync('request.json','utf8'))" \
+            || { echo 'request.json is not valid JSON'; exit 1; }
+
+      - name: Render
+        env:
+          YVP_APP_KEY: ${{ secrets.YVP_APP_KEY }}
+          SPEECHMATICS_API_KEY: ${{ secrets.SPEECHMATICS_API_KEY }}
+        run: npx tsx scripts/render-request.ts --request request.json
+
+      - name: Commit gallery entry
+        run: |
+          git config user.name "scriptorium-render-bot"
+          git config user.email "render@scriptorium.invalid"
+          git add public/gallery
+          git diff --cached --quiet && { echo 'nothing to commit'; exit 0; }
+          git commit -m "gallery: rendered short via export [skip ci]"
+          # Another render job may have pushed while this one worked.
+          git pull --rebase origin "${{ github.ref_name }}"
+          git push origin HEAD:"${{ github.ref_name }}"

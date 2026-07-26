@@ -15,10 +15,12 @@
  * check — the verbatim gate — runs on both paths, always.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AgeGroup, DeviceItem, DeviceType, Passage } from '@/lib/types';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { AgeGroup, DeviceItem, DeviceType, Passage, StyleId } from '@/lib/types';
+import type { ShortTheme } from '@/lib/theme/options';
 import { ReviewGate } from './ReviewGate';
 import { PreviewFrame } from './PreviewFrame';
+import { ThemePanel } from './ThemePanel';
 
 type Step = 'compose' | 'passage' | 'devices' | 'review' | 'preview';
 
@@ -84,6 +86,14 @@ export function Studio() {
   const [duration, setDuration] = useState(24);
   const [audioUrl, setAudioUrl] = useState<string | undefined>();
 
+  /** The composed spec — presentation edits re-bake it without regenerating. */
+  const [spec, setSpec] = useState<Record<string, unknown> | null>(null);
+  const [styleId, setStyleId] = useState<StyleId>('warm-minimal');
+  const [theme, setTheme] = useState<ShortTheme>({});
+  const [rebaking, setRebaking] = useState(false);
+  const [exporting, setExporting] = useState<string | null>(null);
+  const bakeSeq = useRef(0);
+
   useEffect(() => {
     fetch('/api/status')
       .then((r) => r.json())
@@ -112,6 +122,23 @@ export function Studio() {
     [],
   );
 
+  /** Bake a spec into its template and show it. Cheap; no generation. */
+  const bake = useCallback(async (nextSpec: Record<string, unknown>) => {
+    const seq = ++bakeSeq.current;
+    setRebaking(true);
+    try {
+      const html = await fetch('/api/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spec: nextSpec }),
+      }).then((r) => r.text());
+      // A slower earlier bake must not overwrite a newer one.
+      if (seq === bakeSeq.current) setPreviewHtml(html);
+    } finally {
+      if (seq === bakeSeq.current) setRebaking(false);
+    }
+  }, []);
+
   /** Turn a chosen device into a rendered preview. Shared by both paths. */
   const compose = useCallback(
     async (chosen: DeviceItem, deviceOverride?: string, forPassage?: Passage) => {
@@ -120,30 +147,26 @@ export function Studio() {
       setBusy(true);
       setError(null);
       try {
-        const { spec } = await post<{ spec: Record<string, unknown> }>(
+        const { spec: composed } = await post<{ spec: Record<string, unknown> }>(
           '/api/compose',
           {
             passage: target,
             device: chosen,
             deviceOverride,
             languageCode,
-            style: 'warm-minimal',
+            style: styleId,
+            theme,
           },
         );
 
-        const html = await fetch('/api/preview', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ spec }),
-        }).then((r) => r.text());
-
-        const narration = spec.narration as {
+        const narration = composed.narration as {
           durationSec: number;
           audioUrl: string;
         };
+        setSpec(composed);
         setDuration(narration.durationSec);
         setAudioUrl(narration.audioUrl || undefined);
-        setPreviewHtml(html);
+        await bake(composed);
         setStep('preview');
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -151,8 +174,70 @@ export function Studio() {
         setBusy(false);
       }
     },
-    [languageCode, passage, post],
+    [languageCode, passage, post, styleId, theme, bake],
   );
+
+  /** Presentation-only changes: mutate the spec and re-bake. */
+  const applyStyle = useCallback(
+    (next: StyleId) => {
+      setStyleId(next);
+      if (!spec) return;
+      const updated = { ...spec, style: next };
+      setSpec(updated);
+      void bake(updated);
+    },
+    [spec, bake],
+  );
+
+  const applyTheme = useCallback(
+    (next: ShortTheme) => {
+      setTheme(next);
+      if (!spec) return;
+      const updated = { ...spec, theme: next };
+      setSpec(updated);
+      void bake(updated);
+    },
+    [spec, bake],
+  );
+
+  /** Queue an MP4 export; falls back to downloading the spec when offline. */
+  const exportMp4 = useCallback(async () => {
+    if (!spec) return;
+    setExporting('Queuing export…');
+    try {
+      const response = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spec }),
+      });
+      const data = (await response.json()) as {
+        queued?: boolean;
+        message?: string;
+        runUrl?: string;
+        spec?: Record<string, unknown>;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error || 'Export failed.');
+
+      if (data.queued) {
+        setExporting(data.message ?? 'Export queued. The MP4 lands in the gallery when the render finishes.');
+      } else if (data.spec) {
+        // Not configured for cloud rendering: hand the spec over so the MP4
+        // can be produced locally with `npm run render`.
+        const blob = new Blob([JSON.stringify(data.spec, null, 2)], {
+          type: 'application/json',
+        });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${String(spec.id ?? 'short')}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        setExporting(data.message ?? 'Spec downloaded — render locally with `npm run render`.');
+      }
+    } catch (e) {
+      setExporting(`Export failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }, [spec]);
 
   const onResolve = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -431,11 +516,17 @@ export function Studio() {
         />
       )}
 
-      {/* ---------------- step 4: preview ---------------- */}
+      {/* ---------------- step 4: preview + customize ---------------- */}
       {step === 'preview' && previewHtml && (
         <section className="rounded-2xl border border-rule bg-panel p-8 shadow-sm">
           <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
-            <h2 className="font-display text-3xl">Your short</h2>
+            <div>
+              <h2 className="font-display text-3xl">Make it yours</h2>
+              <p className="mt-1 text-sm text-inksoft">
+                Style, colors, fonts, size, background — one click each. The
+                verse and the voice never change.
+              </p>
+            </div>
             <div className="flex gap-3">
               <button
                 type="button"
@@ -447,17 +538,48 @@ export function Studio() {
               <button
                 type="button"
                 onClick={reset}
-                className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white"
+                className="rounded-xl border border-rule px-4 py-2 text-sm font-medium text-inksoft hover:bg-white"
               >
                 Make another
               </button>
+              <button
+                type="button"
+                onClick={exportMp4}
+                className="rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+              >
+                Export MP4
+              </button>
             </div>
           </div>
-          <PreviewFrame
-            html={previewHtml}
-            durationSec={duration}
-            audioUrl={audioUrl}
-          />
+
+          {exporting && (
+            <div className="mb-6 rounded-lg border border-rule bg-white px-4 py-3 text-sm text-inksoft">
+              {exporting}
+            </div>
+          )}
+
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="relative">
+              <PreviewFrame
+                html={previewHtml}
+                durationSec={duration}
+                audioUrl={audioUrl}
+              />
+              {rebaking && (
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 rounded-full bg-ink/80 px-3 py-1 text-xs font-medium text-white">
+                  updating…
+                </div>
+              )}
+            </div>
+
+            <ThemePanel
+              style={styleId}
+              theme={theme}
+              busy={rebaking}
+              onStyle={applyStyle}
+              onTheme={applyTheme}
+            />
+          </div>
         </section>
       )}
     </main>
@@ -521,6 +643,12 @@ function Header({ status }: { status: StatusPayload | null }) {
         <p className="text-inksoft">
           Scripture shorts, in your own language.
         </p>
+        <a
+          href="/gallery"
+          className="ml-auto rounded-xl border border-rule px-4 py-2 text-sm font-medium text-inksoft transition hover:bg-white"
+        >
+          Gallery →
+        </a>
       </div>
 
       {status && (

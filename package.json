@@ -15,7 +15,8 @@
                     "audit:languages":  "tsx --env-file=.env.local scripts/audit-languages.ts",
                     "samples":  "tsx --env-file=.env.local scripts/make-samples.ts",
                     "render":  "tsx --env-file-if-exists=.env.local render/render.ts",
-                    "prove:gate":  "tsx --env-file-if-exists=.env.local scripts/prove-gate.ts"
+                    "prove:gate":  "tsx --env-file-if-exists=.env.local scripts/prove-gate.ts",
+                    "gallery":  "tsx --env-file-if-exists=.env.local scripts/build-gallery.ts"
                 },
     "dependencies":  {
                          "@anthropic-ai/sdk":  "^0.115.0",

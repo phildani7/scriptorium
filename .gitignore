@@ -59,3 +59,5 @@ scratchpad/
 /.render/
 /renders/
 /samples/*.json
+.vercel
+.env*

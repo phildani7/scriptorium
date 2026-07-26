@@ -33,13 +33,14 @@ interface SampleDef {
   lens: DeviceType;
   ageGroup: AgeGroup;
   style: StyleId;
+  theme?: { paletteId?: string; fontId?: string; sizeId?: string; backgroundId?: string };
   voice?: VoiceId;
 }
 
 /**
  * Chosen to span the axes a judge will look at: three languages, three
- * scripts, all five lenses, and both the measured-timing and estimated-timing
- * paths.
+ * scripts, all three styles, several themes, all five lenses, and both the
+ * measured-timing and estimated-timing paths.
  */
 const SAMPLES: SampleDef[] = [
   {
@@ -50,6 +51,7 @@ const SAMPLES: SampleDef[] = [
     lens: 'hook',
     ageGroup: 'adult',
     style: 'warm-minimal',
+    theme: { paletteId: 'parchment', fontId: 'fraunces', backgroundId: 'grain' },
     voice: { engine: 'speechmatics', model: 'theo', label: 'Theo' },
   },
   {
@@ -59,7 +61,8 @@ const SAMPLES: SampleDef[] = [
     reference: 'John 3:16',
     lens: 'punch-line',
     ageGroup: 'youth',
-    style: 'warm-minimal',
+    style: 'kinetic-type',
+    theme: { paletteId: 'midnight', fontId: 'archivo', backgroundId: 'rays' },
     voice: { engine: 'speechmatics', model: 'sarah', label: 'Sarah' },
   },
   {
@@ -70,6 +73,7 @@ const SAMPLES: SampleDef[] = [
     lens: 'analogy',
     ageGroup: 'kids',
     style: 'warm-minimal',
+    theme: { paletteId: 'sage', fontId: 'fraunces', backgroundId: 'mesh' },
     voice: { engine: 'speechmatics', model: 'megan', label: 'Megan' },
   },
   {
@@ -79,7 +83,8 @@ const SAMPLES: SampleDef[] = [
     reference: 'John 3:16',
     lens: 'hook',
     ageGroup: 'adult',
-    style: 'warm-minimal',
+    style: 'neon-night',
+    theme: { paletteId: 'plum-neon', fontId: 'grotesk', backgroundId: 'particles' },
   },
   {
     id: 'hi-isaiah41-object',
@@ -89,6 +94,7 @@ const SAMPLES: SampleDef[] = [
     lens: 'object-lesson',
     ageGroup: 'kids',
     style: 'warm-minimal',
+    theme: { paletteId: 'ivory-navy', fontId: 'fraunces', backgroundId: 'grain' },
   },
   {
     id: 'es-philippians4-illustration',
@@ -97,7 +103,19 @@ const SAMPLES: SampleDef[] = [
     reference: 'Philippians 4:6-7',
     lens: 'illustration',
     ageGroup: 'adult',
-    style: 'warm-minimal',
+    style: 'neon-night',
+    theme: { paletteId: 'ocean-glow', fontId: 'grotesk', backgroundId: 'mesh' },
+  },
+  {
+    id: 'en-james1-hook-kinetic',
+    languageCode: 'en',
+    versionId: 3034,
+    reference: 'James 1:19',
+    lens: 'hook',
+    ageGroup: 'youth',
+    style: 'kinetic-type',
+    theme: { paletteId: 'crimson-gold', fontId: 'archivo', backgroundId: 'particles' },
+    voice: { engine: 'speechmatics', model: 'jack', label: 'Jack' },
   },
 ];
 
@@ -171,6 +189,7 @@ async function build(def: SampleDef) {
     passage,
     device,
     style: def.style,
+    theme: def.theme ?? {},
     languageCode: def.languageCode,
     voice: def.voice ?? {
       engine: 'browser',

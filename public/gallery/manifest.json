@@ -1,0 +1,30 @@
+[
+  {
+    "id": "en-james1-hook-kinetic",
+    "video": "/gallery/en-james1-hook-kinetic.mp4",
+    "poster": "/gallery/en-james1-hook-kinetic.jpg",
+    "reference": "James 1:19",
+    "version": "BSB",
+    "attribution": "Berean Standard Bible (BSB) · Public Domain",
+    "language": "en",
+    "style": "kinetic-type",
+    "lens": "hook",
+    "durationSec": 16,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-26"
+  },
+  {
+    "id": "en-john316-punch",
+    "video": "/gallery/en-john316-punch.mp4",
+    "poster": "/gallery/en-john316-punch.jpg",
+    "reference": "John 3:16",
+    "version": "BSB",
+    "attribution": "Berean Standard Bible (BSB) · Public Domain",
+    "language": "en",
+    "style": "kinetic-type",
+    "lens": "punch-line",
+    "durationSec": 14,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-26"
+  }
+]

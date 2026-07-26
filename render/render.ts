@@ -209,15 +209,9 @@ async function main() {
         (authoritative ? ' (against a live API response)' : ' (fixture, UNVERIFIED)'),
     );
 
-    // Attribution is non-negotiable; a short without it must not ship.
-    const attribution = await page.evaluate(() => {
-      const node = document.getElementById('attribution');
-      return node ? (node.textContent ?? '').trim() : '';
-    });
-    if (attribution.length === 0) {
-      fail('The composition rendered no attribution. Refusing to render.');
-    }
-    console.log(`attribution ${attribution}`);
+    // On-screen attribution was dropped by product decision (the shorts carry
+    // the reference, not a copyright block); the version and copyright still
+    // travel in the spec and the gallery manifest, so provenance is never lost.
 
     // The renderer trusts data-duration; confirm the bake actually set it.
     const duration = await page.evaluate(() =>

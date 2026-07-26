@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Scripture Short — Kinetic Type</title>
+    <link rel="stylesheet" href="/fonts/fonts.css" />
+    <style>
+      /* ---------------------------------------------------------------
+         Kinetic Type — type IS the picture.
+
+         The signature move: the opening line lands word by word ON THE
+         VOICE, driven by the same measured timings that drive captions
+         elsewhere. Nothing decorates the words because the words are the
+         whole frame.
+         --------------------------------------------------------------- */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      html, body { width: 1080px; height: 1920px; background: var(--t-bg, #12100d); }
+
+      #short {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        font-family: var(--t-font-body, 'Inter', system-ui, sans-serif);
+        color: var(--t-ink, #f5f0e4);
+      }
+
+      #ground { position: absolute; inset: 0; background: var(--t-bg, #12100d); }
+
+      #bg-fx { position: absolute; inset: -60px; }
+      [data-bg='plain'] #bg-fx { display: none; }
+      [data-bg='grain'] #bg-fx {
+        opacity: 0.4;
+        background-image:
+          radial-gradient(circle at 22% 18%, color-mix(in srgb, var(--t-accent, #e8b04b) 9%, transparent), transparent 45%),
+          radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--t-ink, #f5f0e4) 5%, transparent), transparent 42%);
+      }
+      [data-bg='mesh'] #bg-fx {
+        opacity: 0.5;
+        background-image:
+          radial-gradient(640px 640px at 15% 20%, color-mix(in srgb, var(--t-accent, #e8b04b) 15%, transparent), transparent 70%),
+          radial-gradient(720px 720px at 88% 34%, color-mix(in srgb, var(--t-soft, #97897b) 13%, transparent), transparent 72%),
+          radial-gradient(780px 780px at 45% 95%, color-mix(in srgb, var(--t-accent, #e8b04b) 9%, transparent), transparent 74%);
+      }
+      [data-bg='rays'] #bg-fx {
+        opacity: 0.12;
+        background: conic-gradient(from 200deg at 50% -10%,
+          transparent 0 13deg, var(--t-accent, #e8b04b) 14deg 16deg,
+          transparent 17deg 31deg, var(--t-accent, #e8b04b) 32deg 33deg,
+          transparent 34deg 50deg, var(--t-accent, #e8b04b) 51deg 53deg,
+          transparent 54deg 74deg, var(--t-accent, #e8b04b) 75deg 76deg,
+          transparent 77deg 360deg);
+      }
+      #particles { position: absolute; inset: 0; }
+      .particle { position: absolute; border-radius: 50%; background: var(--t-accent, #e8b04b); opacity: 0; }
+
+      .clip { position: absolute; inset: 0; }
+
+      /* ---- the word wall ---- */
+      #wall {
+        position: absolute;
+        top: 210px;
+        left: 90px;
+        right: 90px;
+        bottom: 760px;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: center;
+        column-gap: 0.32em;
+        row-gap: 0.08em;
+        font-family: var(--t-font-display, 'Archivo Black', 'Inter', sans-serif);
+        font-size: calc(88px * var(--t-scale, 1));
+        line-height: 1.06;
+        text-transform: uppercase;
+        letter-spacing: 0.005em;
+      }
+      #wall.longer { font-size: calc(70px * var(--t-scale, 1)); }
+      #wall .kw { display: inline-block; opacity: 0; will-change: transform; }
+      /* Every third-ish word takes the accent — set from the seeded PRNG at
+         load, so it is stable across seeks and renders. */
+      #wall .kw.hot { color: var(--t-accent, #e8b04b); }
+
+      #short[data-script='devanagari'] #wall,
+      #short[data-script='bengali'] #wall {
+        font-family: 'Noto Serif Devanagari', serif;
+        text-transform: none;
+        font-size: calc(72px * var(--t-scale, 1));
+        line-height: 1.5;
+      }
+      #short[data-dir='rtl'] #wall, #short[data-dir='rtl'] #verse-block { direction: rtl; }
+
+      /* ---- the verse ---- */
+      #verse-block {
+        position: absolute;
+        left: 90px;
+        right: 90px;
+        bottom: 250px;
+        top: auto;
+        opacity: 0;
+      }
+      #verse-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-size: calc(30px * var(--t-scale, 1));
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--t-accent, #e8b04b);
+        border: 2px solid var(--t-accent, #e8b04b);
+        padding: 12px 22px;
+        margin-bottom: 40px;
+        opacity: 0;
+      }
+      #verse-kicker svg { width: calc(26px * var(--t-scale, 1)); height: calc(26px * var(--t-scale, 1)); }
+
+      #verse-text {
+        font-family: var(--t-font-display, 'Archivo Black', 'Inter', sans-serif);
+        font-size: calc(58px * var(--t-scale, 1));
+        line-height: 1.24;
+        color: var(--t-soft, #97897b);
+      }
+      #verse-text.longer { font-size: calc(44px * var(--t-scale, 1)); }
+      #verse-text .vw { transition: none; }
+      #verse-text .vw.on { color: var(--t-ink, #f5f0e4); }
+
+      #short[data-script='devanagari'] #verse-text,
+      #short[data-script='bengali'] #verse-text {
+        font-family: 'Noto Serif Devanagari', serif;
+        line-height: 1.62;
+        font-size: calc(52px * var(--t-scale, 1));
+      }
+      #short[data-script='devanagari'] #verse-text.longer,
+      #short[data-script='bengali'] #verse-text.longer {
+        font-size: calc(42px * var(--t-scale, 1));
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="short" data-composition-id="scripture-short" data-duration="30" data-script="latin" data-dir="ltr">
+      <div id="ground"></div>
+      <div id="bg-fx"></div>
+      <div id="particles"></div>
+
+      <audio id="narration" data-narration preload="auto" src=""></audio>
+
+      <div class="clip" data-start="0" data-duration="30" data-track-index="0">
+        <div id="wall"></div>
+        <div id="verse-block">
+          <div id="verse-kicker">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 2 3 6v6c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V6l-9-4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+              <path d="m8.5 12 2.5 2.5 4.5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span id="reference-label"></span>
+          </div>
+          <div id="verse-text" data-verse-text></div>
+        </div>
+      </div>
+    </div>
+
+    <script id="short-spec" type="application/json">
+      {}
+    </script>
+    <script src="/vendor/gsap.min.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        var spec = window.__SHORT_SPEC__ ||
+          JSON.parse(document.getElementById('short-spec').textContent || '{}');
+        if (!spec || !spec.passage) return;
+        window.__SHORT_SPEC__ = spec;
+
+        var root = document.getElementById('short');
+        var narration = spec.narration || {};
+        var timings = narration.timings || [];
+        var segments = narration.segments || [];
+        var duration = Number(spec.durationSec || narration.durationSec || 30);
+
+        root.setAttribute('data-duration', String(duration));
+        root.setAttribute('data-script', spec.script || 'latin');
+        root.setAttribute('data-dir', spec.dir || 'ltr');
+
+        function mulberry32(seed) {
+          return function () {
+            seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+            var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+          };
+        }
+        var rand = mulberry32(String(spec.id || 'short').split('').reduce(function (a, c) {
+          return (a * 31 + c.charCodeAt(0)) | 0;
+        }, 13));
+
+        function segmentOf(kind) {
+          for (var s = 0; s < segments.length; s += 1) {
+            if (segments[s].kind === kind) return segments[s];
+          }
+          return null;
+        }
+        var deviceSeg = segmentOf('device');
+        var verseSeg = segmentOf('verse');
+
+        /* ---- the word wall: one span per device word, with its own
+               measured timing so it lands exactly on the voice ------------- */
+        var wall = document.getElementById('wall');
+        var wallWords = [];
+        if (deviceSeg) {
+          for (var i = deviceSeg.wordStart; i < deviceSeg.wordEnd; i += 1) {
+            var t = timings[i];
+            if (!t) continue;
+            var span = document.createElement('span');
+            span.className = 'kw' + (rand() < 0.24 ? ' hot' : '');
+            span.id = 'kw-' + i;
+            span.textContent = t.word;
+            wall.appendChild(span);
+            wallWords.push({ el: span, start: t.start });
+          }
+        }
+        var deviceText = (spec.device && spec.device.content) || '';
+        if (deviceText.length > 150) wall.classList.add('longer');
+
+        /* ---- the verse: split into spans; textContent is preserved for the
+               integrity gate, which collapses whitespace before diffing ----- */
+        var verseEl = document.getElementById('verse-text');
+        var verseChunks = String(spec.passage.text).split(/\s+/).filter(Boolean);
+        verseChunks.forEach(function (word, wi) {
+          var span = document.createElement('span');
+          span.className = 'vw';
+          span.id = 'vw-' + wi;
+          span.textContent = word;
+          verseEl.appendChild(span);
+          if (wi < verseChunks.length - 1) verseEl.appendChild(document.createTextNode(' '));
+        });
+        if (spec.passage.text.length > 220) verseEl.classList.add('longer');
+
+        document.getElementById('reference-label').textContent = spec.passage.reference;
+
+        /* ---- particles ------------------------------------------------- */
+        var particles = [];
+        if (root.getAttribute('data-bg') === 'particles') {
+          var holder = document.getElementById('particles');
+          for (var p = 0; p < 26; p += 1) {
+            var dot = document.createElement('div');
+            dot.className = 'particle';
+            var size = 4 + rand() * 10;
+            dot.style.width = size + 'px';
+            dot.style.height = size + 'px';
+            dot.style.left = (rand() * 1080) + 'px';
+            dot.style.top = (1500 + rand() * 500) + 'px';
+            holder.appendChild(dot);
+            particles.push({ el: dot, drift: 500 + rand() * 900, sway: (rand() - 0.5) * 160, delay: rand() * duration * 0.6, peak: 0.12 + rand() * 0.26 });
+          }
+        }
+
+        var verseStart = verseSeg && timings[verseSeg.wordStart]
+          ? timings[verseSeg.wordStart].start
+          : duration * 0.45;
+        var seam = Math.max(0.9, verseStart - 0.5);
+
+        /* ---- timeline ---------------------------------------------------- */
+        var tl = gsap.timeline({ paused: true });
+
+        tl.fromTo('#bg-fx',
+          { xPercent: -1.6, yPercent: -1.2, scale: 1.06 },
+          { xPercent: 1.6, yPercent: 1.2, scale: 1, duration: duration, ease: 'none' }, 0);
+
+        particles.forEach(function (pt) {
+          var travel = Math.min(duration - pt.delay, duration * 0.9);
+          tl.fromTo(pt.el, { y: 0, x: 0, opacity: 0 },
+            { y: -pt.drift, x: pt.sway, opacity: pt.peak, duration: travel * 0.35, ease: 'power1.out' }, pt.delay);
+          tl.to(pt.el, { y: -pt.drift * 2.2, x: pt.sway * 1.6, opacity: 0, duration: travel * 0.65, ease: 'power1.in' },
+            pt.delay + travel * 0.35);
+        });
+
+        // Words SNAP onto the voice: each one lands at its own measured start,
+        // arriving from 1.55x scale with a hard decelerating ease — the type
+        // equivalent of a drum hit. Alternating micro-rotation keeps a long
+        // line from reading as a mechanical stamp.
+        wallWords.forEach(function (w, wi) {
+          tl.fromTo(w.el,
+            { opacity: 0, scale: 1.55, rotation: (wi % 2 === 0 ? -1 : 1) * 2.4 },
+            { opacity: 1, scale: 1, rotation: 0, duration: 0.34, ease: 'power4.out', immediateRender: false },
+            Math.max(0, w.start - 0.06));
+        });
+
+        // Seam: the wall has said its piece — it recedes AWAY from camera
+        // (scale down, blur) while the verse block rises to meet the voice.
+        // Opposite scale signs, mirrored eases: one camera move.
+        tl.to('#wall', { opacity: 0, scale: 0.9, filter: 'blur(9px)', duration: 0.5, ease: 'power4.in' }, seam - 0.42);
+        tl.fromTo('#verse-block',
+          { opacity: 0, y: 60, scale: 1.06, filter: 'blur(8px)' },
+          { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)', duration: 0.65, ease: 'power4.out', immediateRender: false },
+          seam + 0.12);
+        // The kicker stamps in just after the block settles.
+        tl.fromTo('#verse-kicker',
+          { opacity: 0, scale: 1.4 },
+          { opacity: 1, scale: 1, duration: 0.32, ease: 'power4.out', immediateRender: false },
+          seam + 0.5);
+
+        // Verse words light as they are spoken. The words came from the
+        // script, the clock from the transcription; ASR text never renders.
+        if (verseSeg) {
+          for (var vi = verseSeg.wordStart; vi < verseSeg.wordEnd; vi += 1) {
+            var vt = timings[vi];
+            var el = document.getElementById('vw-' + (vi - verseSeg.wordStart));
+            if (!vt || !el) continue;
+            tl.to(el, { color: 'var(--t-ink, #f5f0e4)', duration: 0.09, ease: 'none' }, Math.max(0, vt.start));
+          }
+        }
+
+        window.__timelines = window.__timelines || {};
+        window.__timelines['scripture-short'] = tl;
+
+        window.__verifyVerse = function () {
+          var rendered = document.getElementById('verse-text').textContent || '';
+          var norm = function (s) {
+            return s.normalize('NFC').replace(/[﻿­‎‏‪-‮⁦-⁩]/g, '').replace(/\s+/g, ' ').trim();
+          };
+          return norm(rendered) === norm(spec.passage.text);
+        };
+      })();
+    </script>
+  </body>
+</html>

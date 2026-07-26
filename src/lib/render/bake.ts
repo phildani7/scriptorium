@@ -16,6 +16,8 @@
  * default length, with no audio, and nothing errors.
  */
 
+import { themeAttributes, themeStyle, type ShortTheme } from '@/lib/theme/options';
+
 export interface BakeOptions {
   /** Raw template HTML. */
   template: string;
@@ -32,6 +34,7 @@ export interface BakeOptions {
 
 export function bakeComposition(options: BakeOptions): string {
   const { template, spec, assetPrefix, audioSrc } = options;
+  const theme = spec.theme as ShortTheme | undefined;
 
   const narration = spec.narration as { durationSec?: number; audioUrl?: string } | undefined;
   const duration = Number(spec.durationSec ?? narration?.durationSec ?? 30);
@@ -51,6 +54,15 @@ export function bakeComposition(options: BakeOptions): string {
   html = html.replace(
     /(<div\s+id="short"[^>]*?)data-dir="[^"]*"/,
     `$1data-dir="${escapeAttr(String(spec.dir ?? 'ltr'))}"`,
+  );
+
+  // Theme: CSS custom properties inline on the root, plus a background-variant
+  // attribute. Written statically so the very first captured frame is themed —
+  // applying these from script would leave frame 0 in default colours.
+  const attrs = themeAttributes(theme);
+  html = html.replace(
+    /(<div\s+id="short")/,
+    `$1 style="${escapeAttr(themeStyle(theme))}" data-bg="${attrs.bg}" data-dark="${attrs.dark}"`,
   );
 
   // Narration element: point it at the audio, or remove it. An <audio> with an

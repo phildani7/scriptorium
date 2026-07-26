@@ -25,6 +25,7 @@ interface ComposeBody {
   passage?: Passage;
   device?: DeviceItem;
   style?: StyleId;
+  theme?: ShortSpec['theme'];
   voice?: VoiceId;
   languageCode?: string;
   /** Creator's edited narration for the DEVICE portion only. */
@@ -115,6 +116,7 @@ export async function POST(request: Request) {
     passage,
     device: effectiveDevice,
     style,
+    theme: body.theme,
     languageCode,
     voice,
     narration: { script, audioUrl, durationSec, timings, timingSource, segments },

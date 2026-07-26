@@ -111,12 +111,22 @@ export interface VoiceId {
   label: string;
 }
 
+/** One-click customization choices. Resolved against lib/theme/options. */
+export interface ShortThemeChoice {
+  paletteId?: string;
+  fontId?: string;
+  sizeId?: string;
+  backgroundId?: string;
+}
+
 /** The single object a template consumes. A template is a pure function of this. */
 export interface ShortSpec {
   id: string;
   passage: Passage;
   device: DeviceItem;
   style: StyleId;
+  /** Creator's palette/font/size/background picks. Absent = style defaults. */
+  theme?: ShortThemeChoice;
   languageCode: string;
   voice: VoiceId;
   narration: Narration;
