@@ -91,6 +91,7 @@ export function bakeComposition(options: BakeOptions): string {
   html = html.replace(
     /(<div\s+id="short")/,
     `$1 style="${escapeAttr(style)}" data-bg="${attrs.bg}" data-dark="${attrs.dark}"` +
+      ` data-anim="${attrs.textStyle}"` +
       (attrs.captionsOff ? ' data-captions="off"' : ''),
   );
 

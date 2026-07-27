@@ -15,6 +15,7 @@ import {
   MUSIC,
   PALETTES,
   SIZES,
+  TEXT_STYLES,
   type ShortTheme,
 } from '@/lib/theme/options';
 import type { StyleId } from '@/lib/types';
@@ -162,6 +163,32 @@ export function ThemePanel({ style, theme, busy, onStyle, onTheme }: ThemePanelP
         </div>
         <p className="mt-2 text-xs text-inkfaint">
           ✶ NASA imagery, public domain.
+        </p>
+      </Group>
+
+      <Group label="Text motion">
+        <div className="flex flex-wrap gap-2">
+          {TEXT_STYLES.map((t) => {
+            const active = (theme.textStyleId ?? 'signature') === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                aria-pressed={active}
+                title={t.blurb}
+                onClick={() => set({ textStyleId: t.id })}
+                className={`rounded-lg border px-3 py-2 text-sm transition ${
+                  active ? 'border-accent bg-accentsoft font-semibold text-accent' : 'border-rule bg-white text-inksoft hover:border-inkfaint'
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-inkfaint">
+          How the headline text arrives. Timing stays locked to the voice;
+          captions are not affected.
         </p>
       </Group>
 

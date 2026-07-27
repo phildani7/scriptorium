@@ -408,6 +408,28 @@
           : verseRange.start;
         var seam = Math.max(0.9, climaxStart - 0.55);
 
+        /* ---- text-motion recipes (data-anim) ---------------------------
+           A recipe changes how stage text ENTERS, never when. null means
+           'signature': the template's designed entry stays in place. */
+        var dirSign = root.getAttribute('data-dir') === 'rtl' ? -1 : 1;
+        var RECIPES = {
+          'floating': { from: { opacity: 0, y: 46, filter: 'blur(6px)' }, dur: 0.6, ease: 'power3.out' },
+          'dropping': { from: { opacity: 0, y: -64 }, dur: 0.55, ease: 'back.out(1.6)' },
+          'sliding': { from: { opacity: 0, x: 90 * dirSign }, dur: 0.5, ease: 'power4.out' },
+          'pop': { from: { opacity: 0, scale: 0.6 }, dur: 0.45, ease: 'back.out(2)' },
+          'typewriter': { from: { opacity: 0 }, dur: 0.03, ease: 'none' },
+          'flip': { from: { opacity: 0, rotationX: -90, transformPerspective: 800 }, dur: 0.6, ease: 'power3.out' },
+          'blur-focus': { from: { opacity: 0, scale: 1.3, filter: 'blur(12px)' }, dur: 0.6, ease: 'power3.out' }
+        };
+        var recipe = RECIPES[root.getAttribute('data-anim')] || null;
+        function enterTo(extra) {
+          var to = { opacity: 1, x: 0, y: 0, scale: 1, rotationX: 0,
+                     duration: recipe.dur, ease: recipe.ease, immediateRender: false };
+          if (recipe.from.filter) to.filter = 'blur(0px)';
+          for (var k in extra) to[k] = extra[k];
+          return to;
+        }
+
         /* ---- timeline ----------------------------------------------------- */
         var tl = gsap.timeline({ paused: true });
 
@@ -433,24 +455,35 @@
             pt.delay + travel * 0.35);
         });
 
-        // Device: waterfall entry, floating up out of the glow.
+        // Device: waterfall entry, floating up out of the glow. A text-motion
+        // recipe swaps the entry vars, never the cascade clock.
         var deviceSpan = Math.max(0.6, deviceRange.end - deviceRange.start);
-        tl.set('#device', { opacity: 1 }, Math.max(0, deviceRange.start - 0.35));
-        tl.fromTo(deviceSpans,
-          { opacity: 0, y: 46, filter: 'blur(6px)' },
-          { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.6, ease: 'power4.out',
-            stagger: Math.min(0.09, (deviceSpan * 0.5) / Math.max(1, deviceSpans.length)) },
-          Math.max(0, deviceRange.start - 0.35));
+        var deviceStagger = Math.min(0.09, (deviceSpan * 0.5) / Math.max(1, deviceSpans.length));
+        var deviceAt = Math.max(0, deviceRange.start - 0.35);
+        tl.set('#device', { opacity: 1 }, deviceAt);
+        if (recipe) {
+          tl.fromTo(deviceSpans, recipe.from, enterTo({ stagger: deviceStagger }), deviceAt);
+        } else {
+          tl.fromTo(deviceSpans,
+            { opacity: 0, y: 46, filter: 'blur(6px)' },
+            { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.6, ease: 'power4.out',
+              stagger: deviceStagger },
+            deviceAt);
+        }
 
         // Seam: the flare fires, the device rides it out toward camera, and
         // the verse slab condenses out of the light.
         tl.fromTo('#flare', { opacity: 0 }, { opacity: 0.85, duration: 0.28, ease: 'power2.in', immediateRender: false }, seam - 0.3);
         tl.to('#flare', { opacity: 0, duration: 0.7, ease: 'power2.out' }, seam);
         tl.to('#device', { opacity: 0, scale: 1.18, filter: 'blur(12px)', duration: 0.45, ease: 'power4.in' }, seam - 0.4);
-        tl.fromTo('#verse-panel',
-          { opacity: 0, scale: 0.92, filter: 'blur(10px)' },
-          { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.7, ease: 'power4.out', immediateRender: false },
-          seam + 0.08);
+        if (recipe) {
+          tl.fromTo('#verse-panel', recipe.from, enterTo({}), seam + 0.08);
+        } else {
+          tl.fromTo('#verse-panel',
+            { opacity: 0, scale: 0.92, filter: 'blur(10px)' },
+            { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.7, ease: 'power4.out', immediateRender: false },
+            seam + 0.08);
+        }
         tl.fromTo('#verse-spine', { scaleY: 0 }, { scaleY: 1, duration: 0.8, ease: 'power3.out', immediateRender: false }, seam + 0.3);
 
         tl.fromTo('#reference-bar', { opacity: 0, y: -14 },

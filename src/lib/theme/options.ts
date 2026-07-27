@@ -128,6 +128,34 @@ export const BACKGROUNDS: readonly BackgroundOption[] = [
   { id: 'doodle-praise', label: 'Praise notes ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-praise.svg' },
 ] as const;
 
+export interface TextStyleOption {
+  id: string;
+  label: string;
+  blurb: string;
+}
+
+/**
+ * How stage text ENTERS — the device line, the teaching words, the
+ * verse/citation panel. A style is a motion recipe, never a clock: each
+ * template keeps its own timing (kinetic words still land on the voice) and
+ * its seam transitions. `signature` is the template's designed move, so
+ * existing specs render unchanged. Captions are deliberately not covered —
+ * their hard cuts are a legibility decision, not a style.
+ *
+ * The id travels as `data-anim` on the composition root; templates hold the
+ * matching GSAP recipe inline (transform/opacity/filter only, seek-safe).
+ */
+export const TEXT_STYLES: readonly TextStyleOption[] = [
+  { id: 'signature', label: 'Signature', blurb: "Each style's designed move" },
+  { id: 'floating', label: 'Floating', blurb: 'Rises softly with a touch of blur' },
+  { id: 'dropping', label: 'Dropping', blurb: 'Falls in and settles with a bounce' },
+  { id: 'sliding', label: 'Sliding', blurb: 'Enters from the side' },
+  { id: 'pop', label: 'Pop', blurb: 'Scales up with a snap' },
+  { id: 'typewriter', label: 'Typewriter', blurb: 'Appears in place, no motion' },
+  { id: 'flip', label: 'Flip', blurb: 'Flap-board rotation' },
+  { id: 'blur-focus', label: 'Blur focus', blurb: 'Racks into focus from a blur' },
+] as const;
+
 export interface MusicOption {
   id: string;
   label: string;
@@ -156,6 +184,8 @@ export interface ShortTheme {
   fontId?: string;
   sizeId?: string;
   backgroundId?: string;
+  /** How stage text enters; 'signature' keeps the template's designed move. */
+  textStyleId?: string;
   /** 'off' hides the caption rail; the verse and reference always render. */
   captions?: 'on' | 'off';
   musicId?: string;
@@ -213,6 +243,8 @@ export function themeAttributes(theme: ShortTheme | undefined): {
    * blocked. Data URIs are scheme-exempt, so preview and render agree.
    */
   doodleData?: string;
+  /** Resolved text-motion id; unknown ids fall back to 'signature'. */
+  textStyle: string;
   captionsOff: boolean;
 } {
   const { palette, background } = resolveTheme(theme);
@@ -222,6 +254,8 @@ export function themeAttributes(theme: ShortTheme | undefined): {
     photoSrc: background.kind === 'photo' ? background.src : undefined,
     doodleData:
       background.kind === 'doodle' ? DOODLE_DATA[background.id] : undefined,
+    textStyle:
+      TEXT_STYLES.find((t) => t.id === theme?.textStyleId)?.id ?? 'signature',
     captionsOff: theme?.captions === 'off',
   };
 }
