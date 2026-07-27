@@ -46,7 +46,7 @@ export function buildIllustrateSystemPrompt(context: PromptContext, filterType?:
     : `Include a MIX across the lenses. Aim for at least one of each where the passage supports it; if a lens doesn't fit this passage, substitute another rather than forcing it.\n\nLENSES:\n- ${Object.values(typeDescriptions).join('\n- ')}`;
 
   const languageReminder = lang !== 'en'
-    ? `\nCRITICAL LANGUAGE RULE: ALL string values in your JSON response — "content", "point", "explanation", "reference" — MUST be written in ${langName} (code "${lang}"). Do NOT use English for any field values. Only JSON keys and the "type" enum values (analogy/illustration/punch-line/hook/object-lesson) remain in English.`
+    ? `\nCRITICAL LANGUAGE RULE: ALL string values in your JSON response — "content", "point", "explanation", "reference" — MUST be written in ${langName} (code "${lang}"). Do NOT use English for those field values. EXCEPTIONS that stay in English: JSON keys, the "type" enum values (analogy/illustration/punch-line/hook/object-lesson), every entry of "visualTerms", and "imagePrompt".`
     : '';
 
   return `${universal}
@@ -79,6 +79,15 @@ so the short feels like one thought. Written to be HEARD — short sentences, no
 lists, no headings. It may paraphrase the passage's idea but must NEVER quote
 the verse text verbatim; the verse itself is cited by reference only.
 
+VISUAL FIELDS: each item also carries two fields for on-screen graphics.
+"visualTerms": 3-5 concrete ENGLISH nouns naming things the device or teaching
+literally mentions or evokes (e.g. "mountain", "storm", "anchor", "seed") —
+always English single words regardless of the response language, because they
+key an icon library. Prefer physical, drawable things over abstractions.
+"imagePrompt": ONE sentence describing a single square photograph-style image
+that would illustrate the device — concrete scene, warm and reverent, no text
+or lettering in the image, no depiction of God or Jesus' face.
+
 Return a JSON array of ${count} items:
 [
   {
@@ -86,6 +95,8 @@ Return a JSON array of ${count} items:
     "content": "The device itself (for object-lesson: the object/demo + how to use it)",
     "point": "The passage truth it illuminates (for analogy: also where it holds / its limit; for hook: how it pays off; for object-lesson: how it maps to the text)",
     "explanation": "2-4 spoken sentences unpacking the device (40-70 words); never quotes the verse verbatim",
+    "visualTerms": ["3-5 concrete English nouns, e.g.", "mountain", "storm"],
+    "imagePrompt": "One sentence describing a single square illustrative image; no text in the image",
     "reference": "The verse(s) it is anchored to, e.g. \\"John 1:3\\"",
     "emoji": "A single relevant emoji"
   }

@@ -55,6 +55,11 @@ export async function POST(request: Request) {
   }
 
   // Compact request: everything the runner needs, nothing it can rebuild.
+  // Icons re-derive deterministically from the device on the runner; only the
+  // hero image (a paid AI generation or a fetched CC0 photo) must travel.
+  const visuals = spec.visuals as
+    | { mode?: string; items?: Array<{ kind?: string; src?: string }> }
+    | undefined;
   const renderRequest = {
     id: spec.id,
     style: spec.style,
@@ -65,6 +70,14 @@ export async function POST(request: Request) {
     device: spec.device,
     script: spec.script,
     dir: spec.dir,
+    visuals: visuals?.mode
+      ? {
+          mode: visuals.mode,
+          items: (visuals.items ?? []).filter(
+            (i) => i.kind !== 'icon' && i.src,
+          ),
+        }
+      : undefined,
   };
 
   const response = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {

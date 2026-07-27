@@ -140,6 +140,42 @@ async function main() {
     spec.narration = { ...narration, audioUrl: audioSrc };
   }
 
+  // V2 visuals: localize remote hero images (CC0 photo / AI image) into the
+  // bundle so the offline render never fetches. Icons already travel inline
+  // as SVG markup. A failed download drops the item — a short must render
+  // even when an image host is gone.
+  const visuals = spec.visuals as
+    | { items?: Array<{ kind?: string; svg?: string; src?: string }> }
+    | undefined;
+  if (visuals?.items?.length) {
+    let visualIndex = 0;
+    for (const item of visuals.items) {
+      if (!item.src || !/^https?:\/\//i.test(item.src)) continue;
+      visualIndex += 1;
+      const ext =
+        item.src.split('?')[0].match(/\.(png|jpe?g|webp|gif)$/i)?.[1] ?? 'jpg';
+      const name = `visual-${visualIndex}.${ext.toLowerCase()}`;
+      try {
+        const response = await fetch(item.src, {
+          signal: AbortSignal.timeout(20000),
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        writeFileSync(
+          join(workdir, name),
+          Buffer.from(await response.arrayBuffer()),
+        );
+        console.log(`visual      ${name} <- ${item.src.slice(0, 80)}`);
+        item.src = name;
+      } catch (error) {
+        console.warn(
+          `visual      dropped (${error instanceof Error ? error.message : error}): ${item.src.slice(0, 80)}`,
+        );
+        item.src = '';
+      }
+    }
+    visuals.items = visuals.items.filter((i) => i.svg || i.src);
+  }
+
   // Assets are copied INTO the workdir and referenced with plain relative
   // paths. "../../public/" traversal renders locally but the HyperFrames
   // producer rewrites asset paths against each composition root, and its

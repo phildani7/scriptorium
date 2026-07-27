@@ -24,7 +24,8 @@ import { verifyVerbatim } from '@/lib/verify/verbatim';
 import { alignScriptToAudio, wavDurationSeconds } from '@/lib/voice/align';
 import { getSpeechmatics } from '@/lib/voice/speechmatics';
 import { synthesizeAndAlign } from '@/lib/voice';
-import type { DeviceItem, Passage, VoiceId } from '@/lib/types';
+import { buildVisuals } from '@/lib/visuals/match';
+import type { DeviceItem, Passage, VisualItem, VisualMode, VoiceId } from '@/lib/types';
 
 /**
  * Synthesize narration with Piper — the multilingual half of the voice story.
@@ -89,6 +90,8 @@ interface RenderRequest {
   device: DeviceItem;
   script?: string;
   dir?: string;
+  /** V2: visual mode + any hero items (icons re-derive from the device). */
+  visuals?: { mode: VisualMode; items?: VisualItem[] };
 }
 
 function arg(name: string): string | undefined {
@@ -160,6 +163,28 @@ async function main() {
     timingSource = 'estimated';
   }
 
+  // V2 visuals: icons re-derive deterministically against THESE timings (the
+  // runner's narration clock, not the preview's); hero items travel by URL
+  // and are re-anchored to the teaching start.
+  let visuals;
+  if (request.visuals && request.visuals.mode !== 'text') {
+    const narration = {
+      script,
+      audioUrl: '',
+      durationSec,
+      timings,
+      timingSource,
+      segments,
+    };
+    const teach = segments.find((s) => s.kind === 'teaching') ?? segments[0];
+    const first = timings[teach?.wordStart ?? 0];
+    const heroTime = first ? first.start + 0.4 : durationSec * 0.35;
+    const heroes = (request.visuals.items ?? [])
+      .filter((i) => i.kind !== 'icon' && i.src)
+      .map((i) => ({ ...i, timeSec: heroTime }));
+    visuals = buildVisuals(request.visuals.mode, device, narration, heroes);
+  }
+
   const spec = {
     id,
     passage,
@@ -170,6 +195,7 @@ async function main() {
     voice: request.voice ?? { engine: 'browser', model: request.languageCode, label: 'estimated' },
     narration: { script, audioUrl, durationSec, timings, timingSource, segments },
     music: null,
+    visuals,
     durationSec,
     verified: true,
     script: request.script ?? 'latin',

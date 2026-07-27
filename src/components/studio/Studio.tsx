@@ -3,31 +3,37 @@
 /**
  * The creator screen.
  *
- * Four steps, and the third one is the product's argument:
- *
  *   1. say what the short is about        -> a passage, retrieved
  *   2. choose an opening                  -> devices, generated
- *   3. review, or skip review (auto mode) -> the gate
- *   4. preview                            -> the real frame, seekable
+ *   3. preview                            -> the real frame, seekable,
+ *                                            narration fully editable
  *
- * Auto mode exists because a volunteer publishing five shorts a week should not
- * have to approve five scripts. It skips the human check only. The machine
- * check — the verbatim gate — runs on both paths, always.
+ * There is no approval step: choosing an opening composes immediately. The
+ * machine check — the verbatim gate — runs on every path, always. On the
+ * preview screen the narration text stays editable, so the human can still
+ * shape every authored word; only the verse is out of reach.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { AgeGroup, DeviceItem, DeviceType, Passage, StyleId } from '@/lib/types';
+import type {
+  AgeGroup,
+  DeviceItem,
+  DeviceType,
+  Passage,
+  StyleId,
+  VisualMode,
+} from '@/lib/types';
 import { resolveMusic, type ShortTheme } from '@/lib/theme/options';
-import { ReviewGate } from './ReviewGate';
 import { PreviewFrame } from './PreviewFrame';
 import { ThemePanel } from './ThemePanel';
 
-type Step = 'compose' | 'passage' | 'devices' | 'review' | 'preview';
+type Step = 'compose' | 'passage' | 'devices' | 'preview';
 
 interface StatusPayload {
   ai: { active: string; glooConfigured: boolean; degradedReason?: string };
   scripture: { configured: boolean; note?: string };
   voice: { configured: boolean; note?: string };
+  visuals?: { free: boolean; kie: boolean };
   coverage: {
     total: number;
     full: number;
@@ -75,7 +81,9 @@ export function Studio() {
   const [languageCode, setLanguageCode] = useState('en');
   const [lens, setLens] = useState<DeviceType>('hook');
   const [ageGroup, setAgeGroup] = useState<AgeGroup>('adult');
-  const [autoMode, setAutoMode] = useState(false);
+  /** V2: text only, or pictures — free graphics / AI images. */
+  const [withPictures, setWithPictures] = useState(false);
+  const [pictureSource, setPictureSource] = useState<'free' | 'ai'>('free');
 
   const [candidates, setCandidates] = useState<Passage[]>([]);
   const [passage, setPassage] = useState<Passage | null>(null);
@@ -139,9 +147,16 @@ export function Studio() {
     }
   }, []);
 
+  const visualMode: VisualMode = withPictures ? pictureSource : 'text';
+
   /** Turn a chosen device into a rendered preview. Shared by both paths. */
   const compose = useCallback(
-    async (chosen: DeviceItem, deviceOverride?: string, forPassage?: Passage) => {
+    async (
+      chosen: DeviceItem,
+      deviceOverride?: string,
+      forPassage?: Passage,
+      explanationOverride?: string,
+    ) => {
       const target = forPassage ?? passage;
       if (!target) return;
       setBusy(true);
@@ -153,6 +168,8 @@ export function Studio() {
             passage: target,
             device: chosen,
             deviceOverride,
+            explanationOverride,
+            visualMode,
             languageCode,
             style: styleId,
             theme,
@@ -174,7 +191,7 @@ export function Studio() {
         setBusy(false);
       }
     },
-    [languageCode, passage, post, styleId, theme, bake],
+    [languageCode, passage, post, styleId, theme, bake, visualMode],
   );
 
   /** Presentation-only changes: mutate the spec and re-bake. */
@@ -275,14 +292,7 @@ export function Studio() {
         languageCode,
       });
       setDevices(data.devices);
-
-      if (autoMode && data.devices.length > 0) {
-        // Auto mode: take the first option and go. The verbatim gate still runs.
-        setDevice(data.devices[0]);
-        await compose(data.devices[0], undefined, chosenPassage);
-      } else {
-        setStep('devices');
-      }
+      setStep('devices');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -379,21 +389,79 @@ export function Studio() {
               </div>
             </Field>
 
-            <Field label="Mode">
-              <button
-                type="button"
-                onClick={() => setAutoMode(!autoMode)}
-                aria-pressed={autoMode}
-                className={`w-full rounded-lg border px-3 py-2 text-sm transition ${
-                  autoMode
-                    ? 'border-accent bg-accentsoft font-semibold text-accent'
-                    : 'border-rule bg-white text-inksoft'
-                }`}
-              >
-                {autoMode ? 'Auto — skip review' : 'Review before generating'}
-              </button>
+            <Field label="Visuals">
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => setWithPictures(false)}
+                  aria-pressed={!withPictures}
+                  className={`flex-1 rounded-lg border px-2 py-2 text-sm transition ${
+                    !withPictures
+                      ? 'border-accent bg-accentsoft font-semibold text-accent'
+                      : 'border-rule bg-white text-inksoft'
+                  }`}
+                >
+                  Text only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWithPictures(true)}
+                  aria-pressed={withPictures}
+                  className={`flex-1 rounded-lg border px-2 py-2 text-sm transition ${
+                    withPictures
+                      ? 'border-accent bg-accentsoft font-semibold text-accent'
+                      : 'border-rule bg-white text-inksoft'
+                  }`}
+                >
+                  With pictures
+                </button>
+              </div>
             </Field>
           </div>
+
+          {withPictures && (
+            <div className="mb-6 -mt-2">
+              <Field label="Picture source">
+                <div className="flex gap-1 sm:max-w-md">
+                  <button
+                    type="button"
+                    onClick={() => setPictureSource('free')}
+                    aria-pressed={pictureSource === 'free'}
+                    className={`flex-1 rounded-lg border px-3 py-2 text-sm transition ${
+                      pictureSource === 'free'
+                        ? 'border-accent bg-accentsoft font-semibold text-accent'
+                        : 'border-rule bg-white text-inksoft'
+                    }`}
+                  >
+                    Free graphics
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => status?.visuals?.kie && setPictureSource('ai')}
+                    disabled={!status?.visuals?.kie}
+                    aria-pressed={pictureSource === 'ai'}
+                    title={
+                      status?.visuals?.kie
+                        ? 'One AI-generated 1:1 image per short'
+                        : 'Needs KIE_API_KEY — not configured on this deployment yet'
+                    }
+                    className={`flex-1 rounded-lg border px-3 py-2 text-sm transition disabled:opacity-40 ${
+                      pictureSource === 'ai'
+                        ? 'border-accent bg-accentsoft font-semibold text-accent'
+                        : 'border-rule bg-white text-inksoft'
+                    }`}
+                  >
+                    AI images{status?.visuals?.kie ? '' : ' (soon)'}
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-inkfaint">
+                  Free graphics: hand-picked icons and CC0 photos — nothing
+                  needs attribution. Each teaching lens brings its own
+                  dramatic style.
+                </p>
+              </Field>
+            </div>
+          )}
 
           <fieldset className="mb-7">
             <legend className="mb-2 text-xs font-semibold tracking-widest text-inksoft uppercase">
@@ -477,11 +545,12 @@ export function Studio() {
               <button
                 key={i}
                 type="button"
+                disabled={busy}
                 onClick={() => {
                   setDevice(d);
-                  setStep('review');
+                  void compose(d);
                 }}
-                className="rounded-xl border border-rule bg-white p-5 text-left transition hover:border-accent"
+                className="rounded-xl border border-rule bg-white p-5 text-left transition hover:border-accent disabled:opacity-50"
               >
                 <div className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-widest text-accent uppercase">
                   <span aria-hidden="true">{d.emoji}</span>
@@ -503,20 +572,7 @@ export function Studio() {
         </section>
       )}
 
-      {/* ---------------- step 3: the gate ---------------- */}
-      {step === 'review' && passage && device && (
-        <ReviewGate
-          passage={passage}
-          device={device}
-          scriptDir={language?.dir ?? 'ltr'}
-          scriptName={language?.script ?? 'latin'}
-          busy={busy}
-          onApprove={(override) => compose(device, override)}
-          onBack={() => setStep('devices')}
-        />
-      )}
-
-      {/* ---------------- step 4: preview + customize ---------------- */}
+      {/* ---------------- step 3: preview + customize ---------------- */}
       {step === 'preview' && previewHtml && (
         <section className="rounded-2xl border border-rule bg-panel p-8 shadow-sm">
           <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
@@ -530,7 +586,7 @@ export function Studio() {
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setStep(autoMode ? 'devices' : 'review')}
+                onClick={() => setStep('devices')}
                 className="rounded-xl border border-rule px-4 py-2 text-sm font-medium text-inksoft hover:bg-white"
               >
                 Back
@@ -581,9 +637,108 @@ export function Studio() {
               onTheme={applyTheme}
             />
           </div>
+
+          {device && (
+            <NarrationEditor
+              device={device}
+              passage={passage}
+              busy={busy}
+              dir={language?.dir ?? 'ltr'}
+              onApply={(content, explanation) =>
+                compose(device, content, undefined, explanation)
+              }
+            />
+          )}
         </section>
       )}
     </main>
+  );
+}
+
+/**
+ * The final word belongs to the human. Every authored sentence of the
+ * narration is editable right up to export; applying edits re-voices the
+ * short. The citation is derived and the verse is retrieved — neither has an
+ * input here, which is the whole point.
+ */
+function NarrationEditor({
+  device,
+  passage,
+  busy,
+  dir,
+  onApply,
+}: {
+  device: DeviceItem;
+  passage: Passage | null;
+  busy: boolean;
+  dir: 'ltr' | 'rtl';
+  onApply: (content: string, explanation?: string) => void;
+}) {
+  const [content, setContent] = useState(device.content);
+  const [explanation, setExplanation] = useState(device.explanation ?? '');
+
+  // A different device (new short, re-generation) resets the drafts.
+  useEffect(() => {
+    setContent(device.content);
+    setExplanation(device.explanation ?? '');
+  }, [device]);
+
+  const dirty =
+    content.trim() !== device.content.trim() ||
+    explanation.trim() !== (device.explanation ?? '').trim();
+
+  return (
+    <div className="mt-10 rounded-xl border border-rule bg-white p-6">
+      <div className="mb-1 flex items-baseline justify-between">
+        <h3 className="font-display text-xl">Narration</h3>
+        <span className="text-xs text-inkfaint">
+          Everything authored is yours to edit. The verse is not authored.
+        </span>
+      </div>
+      <p className="mb-4 text-sm text-inksoft">
+        Applying changes re-voices the narration and re-times the captions.
+      </p>
+
+      <label className="mb-1 block text-xs font-semibold tracking-widest text-inksoft uppercase">
+        Opening line
+      </label>
+      <textarea
+        dir={dir}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        rows={3}
+        className="mb-4 w-full rounded-lg border border-rule bg-white px-3 py-2 font-display text-lg leading-snug"
+      />
+
+      {(device.explanation ?? '') !== '' && (
+        <>
+          <label className="mb-1 block text-xs font-semibold tracking-widest text-inksoft uppercase">
+            Teaching
+          </label>
+          <textarea
+            dir={dir}
+            value={explanation}
+            onChange={(e) => setExplanation(e.target.value)}
+            rows={4}
+            className="mb-4 w-full rounded-lg border border-rule bg-white px-3 py-2 text-base leading-relaxed"
+          />
+        </>
+      )}
+
+      <div className="flex items-center gap-4">
+        <button
+          type="button"
+          disabled={busy || !dirty || !content.trim()}
+          onClick={() => onApply(content, explanation || undefined)}
+          className="rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+        >
+          {busy ? 'Re-voicing…' : 'Apply & re-voice'}
+        </button>
+        <span className="text-sm text-inkfaint">
+          Closes with: “This is based on {passage?.reference ?? 'the passage'}.”
+        </span>
+      </div>
+    </div>
   );
 }
 

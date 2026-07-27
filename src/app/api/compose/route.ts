@@ -17,7 +17,19 @@ import { synthesizeAndAlign } from '@/lib/voice';
 import { alignScriptToAudio } from '@/lib/voice/align';
 import { verifyVerbatim } from '@/lib/verify/verbatim';
 import { directionFor, getLanguage } from '@/lib/languages/registry';
-import type { DeviceItem, Passage, ShortSpec, StyleId, VoiceId } from '@/lib/types';
+import { buildVisuals } from '@/lib/visuals/match';
+import { findCc0Photo } from '@/lib/visuals/openverse';
+import { generateKieImage, kieConfigured } from '@/lib/visuals/kie';
+import type {
+  DeviceItem,
+  Narration,
+  Passage,
+  ShortSpec,
+  StyleId,
+  VisualItem,
+  VisualMode,
+  VoiceId,
+} from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -31,6 +43,10 @@ interface ComposeBody {
   languageCode?: string;
   /** Creator's edited narration for the DEVICE portion only. */
   deviceOverride?: string;
+  /** Creator's edited teaching text (the explanation). Never the verse. */
+  explanationOverride?: string;
+  /** V2: text only, free graphics, or AI images. Default text. */
+  visualMode?: VisualMode;
   speakReference?: boolean;
 }
 
@@ -61,6 +77,9 @@ export async function POST(request: Request) {
   const effectiveDevice: DeviceItem = {
     ...device,
     content: (body.deviceOverride ?? device.content).trim() || device.content,
+    explanation:
+      (body.explanationOverride ?? device.explanation)?.trim() ||
+      device.explanation,
   };
 
   const { script, segments } = buildNarrationScript({
@@ -132,6 +151,40 @@ export async function POST(request: Request) {
     timingSource = 'estimated';
   }
 
+  // --- V2 visuals -----------------------------------------------------------
+  // Resolved HERE, server-side, so preview and export consume one spec. Icons
+  // are deterministic; the hero photo/AI image is fetched once and embedded
+  // by URL (the render step localizes it). Every failure degrades toward
+  // icons-only — a broken image API can never block a short.
+  const visualMode: VisualMode = body.visualMode ?? 'text';
+  let visuals: ShortSpec['visuals'];
+  if (visualMode !== 'text') {
+    const narration: Narration = {
+      script,
+      audioUrl,
+      durationSec,
+      timings,
+      timingSource,
+      segments,
+    };
+    const heroTime = (() => {
+      const teach =
+        segments.find((s) => s.kind === 'teaching') ?? segments[0];
+      const first = timings[teach?.wordStart ?? 0];
+      return first ? first.start + 0.4 : durationSec * 0.35;
+    })();
+
+    const extras: VisualItem[] = [];
+    if (visualMode === 'ai' && kieConfigured() && effectiveDevice.imagePrompt) {
+      const image = await generateKieImage(effectiveDevice.imagePrompt);
+      if (image) extras.push({ ...image, timeSec: heroTime });
+    } else if (visualMode === 'free' && effectiveDevice.visualTerms?.length) {
+      const photo = await findCc0Photo(effectiveDevice.visualTerms[0]);
+      if (photo) extras.push({ ...photo, timeSec: heroTime });
+    }
+    visuals = buildVisuals(visualMode, effectiveDevice, narration, extras);
+  }
+
   const entry = getLanguage(languageCode);
 
   const spec: ShortSpec & { script: string; dir: string } = {
@@ -144,6 +197,7 @@ export async function POST(request: Request) {
     voice,
     narration: { script, audioUrl, durationSec, timings, timingSource, segments },
     music: null,
+    visuals,
     durationSec,
     verified: true,
     // Presentation hints the template reads directly.

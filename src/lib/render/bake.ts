@@ -88,10 +88,15 @@ export function bakeComposition(options: BakeOptions): string {
     style += `; --t-doodle: url('${attrs.doodleData}')`;
   }
 
+  // V2: the device type drives the visual choreography (drama preset).
+  const deviceType = (spec.device as { type?: string } | undefined)?.type ?? '';
+  const drama = /^[a-z-]+$/.test(deviceType) ? deviceType : '';
+
   html = html.replace(
     /(<div\s+id="short")/,
     `$1 style="${escapeAttr(style)}" data-bg="${attrs.bg}" data-dark="${attrs.dark}"` +
       ` data-anim="${attrs.textStyle}"` +
+      (drama ? ` data-drama="${drama}"` : '') +
       (attrs.captionsOff ? ' data-captions="off"' : ''),
   );
 

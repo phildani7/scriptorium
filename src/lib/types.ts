@@ -66,8 +66,47 @@ export interface DeviceItem {
    * templates fall back to displaying the verse for those.
    */
   explanation?: string;
+  /**
+   * 3-5 concrete English nouns the short could illustrate (V2 visuals).
+   * Always English regardless of the short's language — the icon library is
+   * keyed in English. Optional; the matcher falls back to keyword extraction.
+   */
+  visualTerms?: string[];
+  /** One-sentence 1:1 image prompt for AI-visual mode. Optional. */
+  imagePrompt?: string;
   reference: string;
   emoji: string;
+}
+
+/* ---------------------------------------------------------------------- */
+/* V2 visuals                                                              */
+/* ---------------------------------------------------------------------- */
+
+/** Text only, free graphics (vendored SVGs + CC0 photos), or AI images. */
+export type VisualMode = 'text' | 'free' | 'ai';
+
+export interface VisualItem {
+  kind: 'icon' | 'photo' | 'ai-image';
+  /**
+   * Icons carry their vendored SVG markup inline (stroke: currentColor, so
+   * they recolor with the palette). Inline, not a file path: the offline
+   * renderer loads from file:// where fetched assets hit CORS walls.
+   */
+  svg?: string;
+  /** Photos/AI images: URL in preview; the render step localizes it. */
+  src?: string;
+  /** The concept this visual illustrates. */
+  term: string;
+  /** Seconds into the narration when it appears. Resolved at compose. */
+  timeSec: number;
+  /** Deterministic placement slot (0..3; hero uses 0). */
+  slot: number;
+  credit?: string;
+}
+
+export interface ShortVisuals {
+  mode: VisualMode;
+  items: VisualItem[];
 }
 
 export interface WordTiming {
@@ -138,6 +177,8 @@ export interface ShortSpec {
   voice: VoiceId;
   narration: Narration;
   music: { file: string; credit: string } | null;
+  /** V2: resolved visuals (mode + timed items). Absent = text only. */
+  visuals?: ShortVisuals;
   /** 20-45 */
   durationSec: number;
   /** Set by lib/verify once the rendered verse has been diffed against `passage.text`. */

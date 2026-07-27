@@ -59,6 +59,20 @@ timeline built synchronously, seeded randomness only, transform/opacity/filter
 tweens, seek-safe at any frame — which is exactly what lets the renderer
 capture frames by seeking.
 
+## Visuals (V2)
+
+Creators choose **Text only** or **Text + pictures**. Pictures come from two
+sources: **Free graphics** — ~150 vendored icons (lucide, ISC — nothing needs
+attribution) matched by keyword to the narration and CC0 photos from
+Openverse — or **AI images**, one 1:1 image per short via the Kie.ai
+GPT-Image API (enabled by `KIE_API_KEY`). Each teaching lens carries its own
+dramatic choreography: hooks **blast** in, analogies enter as a **split**
+pair, punch-lines **pop** with a particle burst, illustrations **waterfall**,
+object lessons get a **spotlight** hero with a glow. Every visual is anchored
+to the second its word is spoken and clears the frame before the citation.
+The narration itself stays fully editable on the preview screen right up to
+export — only the verse is out of reach.
+
 ## Export and gallery
 
 "Export MP4" fires a `repository_dispatch`; a GitHub Actions job re-synthesizes

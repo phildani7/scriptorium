@@ -130,6 +130,31 @@
 
       .clip { position: absolute; inset: 0; }
 
+      /* ---- V2 visuals: timed icons / images, drama per teaching type ---- */
+      #visuals { position: absolute; inset: 0; pointer-events: none; }
+      .vis { position: absolute; opacity: 0; will-change: transform; }
+      .vis-icon { color: var(--t-accent, #ff4d9d); }
+      .vis-icon svg { width: 100%; height: 100%; }
+      .vis-img {
+        object-fit: cover;
+        border-radius: 28px;
+        border: 1px solid color-mix(in srgb, var(--t-accent, #ff4d9d) 40%, transparent);
+        box-shadow: 0 0 60px color-mix(in srgb, var(--t-accent, #ff4d9d) 25%, transparent);
+      }
+      .vis-glow {
+        position: absolute;
+        opacity: 0;
+        background: radial-gradient(closest-side, color-mix(in srgb, var(--t-accent, #ff4d9d) 50%, transparent), transparent 72%);
+      }
+      .vis-dot {
+        position: absolute; border-radius: 50%;
+        background: var(--t-accent, #ff4d9d);
+        box-shadow: 0 0 12px color-mix(in srgb, var(--t-accent, #ff4d9d) 80%, transparent);
+        opacity: 0;
+      }
+      /* Stage text moves up when visuals ride along; the band is theirs. */
+      #short.has-visuals #stage { bottom: 900px; }
+
       /* ---- device ---- */
       #stage {
         position: absolute;
@@ -256,6 +281,7 @@
       <audio id="music" data-start="0" preload="auto" src=""></audio>
 
       <div class="clip" data-start="0" data-duration="30" data-track-index="0">
+        <div id="visuals"></div>
         <div id="reference-bar">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 2 3 6v6c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V6l-9-4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
@@ -340,6 +366,65 @@
             if (i < all.length - 1) deviceEl.appendChild(document.createTextNode(' '));
           });
         var deviceSpans = deviceEl.querySelectorAll('.w');
+
+        /* ---- V2 visuals: DOM (fixed slot table, deterministic) ---------- */
+        var drama = root.getAttribute('data-drama') || '';
+        var visualItems = (spec.visuals && spec.visuals.items) || [];
+        var vis = [];
+        if (visualItems.length) {
+          root.classList.add('has-visuals');
+          var visHolder = document.getElementById('visuals');
+          var VIS_SLOTS = [[170, 1060], [910, 1060], [170, 1330], [910, 1330]];
+          visualItems.forEach(function (item, idx) {
+            var isIcon = item.kind === 'icon';
+            var size = isIcon ? 170 : 460;
+            var cx = isIcon ? VIS_SLOTS[item.slot % 4][0] : 540;
+            var cy = isIcon ? VIS_SLOTS[item.slot % 4][1] : 1190;
+            var el;
+            if (isIcon) {
+              el = document.createElement('div');
+              el.className = 'vis vis-icon';
+              el.innerHTML = item.svg || '';
+            } else {
+              el = document.createElement('img');
+              el.className = 'vis vis-img';
+              el.src = item.src || '';
+            }
+            el.style.width = size + 'px';
+            el.style.height = size + 'px';
+            el.style.left = (cx - size / 2) + 'px';
+            el.style.top = (cy - size / 2) + 'px';
+
+            var glow = null;
+            if (drama === 'object-lesson') {
+              glow = document.createElement('div');
+              glow.className = 'vis-glow';
+              var g = size * 1.9;
+              glow.style.width = g + 'px';
+              glow.style.height = g + 'px';
+              glow.style.left = (cx - g / 2) + 'px';
+              glow.style.top = (cy - g / 2) + 'px';
+              visHolder.appendChild(glow);
+            }
+            visHolder.appendChild(el);
+
+            var dots = [];
+            if (drama === 'punch-line') {
+              for (var vd = 0; vd < 6; vd += 1) {
+                var dot = document.createElement('div');
+                dot.className = 'vis-dot';
+                var ds = 8 + ((idx * 7 + vd * 3) % 8);
+                dot.style.width = ds + 'px';
+                dot.style.height = ds + 'px';
+                dot.style.left = (cx - ds / 2) + 'px';
+                dot.style.top = (cy - ds / 2) + 'px';
+                visHolder.appendChild(dot);
+                dots.push(dot);
+              }
+            }
+            vis.push({ item: item, el: el, glow: glow, dots: dots, idx: idx });
+          });
+        }
 
         /* Neon always drifts: particles are part of the style's identity, on
            top of whatever background variant the theme chose. */
@@ -501,6 +586,56 @@
             tl.to(el, { color: 'var(--t-ink, #fff4fa)', duration: 0.06, ease: 'none' }, Math.max(0, w.start));
             tl.to(el, { color: 'var(--t-soft, #a58fb8)', duration: 0.18, ease: 'none' }, Math.max(0.06, w.end));
           });
+        });
+
+        /* ---- V2 visuals: drama (clears the frame before the seam) ------- */
+        var visExit = seam;
+        vis.forEach(function (v) {
+          var at = Math.max(0.4, Math.min(v.item.timeSec, visExit - 1.6));
+          var side = v.idx % 2 === 0 ? -1 : 1;
+          if (drama === 'hook') {
+            tl.fromTo(v.el,
+              { opacity: 0, scale: 3, rotation: side * 7, filter: 'blur(14px)' },
+              { opacity: 1, scale: 1, rotation: 0, filter: 'blur(0px)', duration: 0.5, ease: 'power4.out', immediateRender: false }, at);
+          } else if (drama === 'analogy') {
+            tl.fromTo(v.el,
+              { opacity: 0, x: side * 300, rotationY: side * -22, transformPerspective: 700 },
+              { opacity: 1, x: 0, rotationY: 0, duration: 0.6, ease: 'power4.out', immediateRender: false }, at);
+          } else if (drama === 'punch-line') {
+            tl.fromTo(v.el,
+              { opacity: 0, scale: 0 },
+              { opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(2.4)', immediateRender: false }, at);
+            v.dots.forEach(function (dot, di) {
+              var ang = (di / Math.max(1, v.dots.length)) * Math.PI * 2 + v.idx * 0.7;
+              tl.fromTo(dot,
+                { x: 0, y: 0, opacity: 0.9, scale: 1 },
+                { x: Math.cos(ang) * 130, y: Math.sin(ang) * 130, opacity: 0, scale: 0.4, duration: 0.55, ease: 'power2.out', immediateRender: false }, at + 0.08);
+            });
+          } else if (drama === 'object-lesson') {
+            if (v.glow) {
+              tl.fromTo(v.glow, { opacity: 0, scale: 0.7 },
+                { opacity: 0.5, scale: 1, duration: 0.9, ease: 'power2.out', immediateRender: false }, at);
+            }
+            tl.fromTo(v.el,
+              { opacity: 0, scale: 1.5, filter: 'blur(16px)' },
+              { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.9, ease: 'power3.out', immediateRender: false }, at);
+          } else {
+            tl.fromTo(v.el,
+              { opacity: 0, y: -120, rotation: side * 5 },
+              { opacity: 1, y: 0, rotation: 0, duration: 0.6, ease: 'back.out(1.4)', immediateRender: false }, at);
+          }
+          var holdStart = at + 1.1;
+          var holdSpan = visExit - 0.4 - holdStart;
+          if (holdSpan > 1 && (drama === 'illustration' || drama === 'object-lesson')) {
+            tl.fromTo(v.el, { y: 0 },
+              { y: -14, duration: holdSpan, ease: 'sine.inOut', immediateRender: false }, holdStart);
+          }
+          tl.fromTo(v.el, { opacity: 1, scale: 1 },
+            { opacity: 0, scale: 0.92, duration: 0.3, ease: 'power2.in', immediateRender: false }, visExit - 0.32);
+          if (v.glow) {
+            tl.fromTo(v.glow, { opacity: 0.5 },
+              { opacity: 0, duration: 0.3, immediateRender: false }, visExit - 0.32);
+          }
         });
 
         window.__timelines = window.__timelines || {};

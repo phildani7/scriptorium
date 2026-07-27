@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server';
 import { providerStatus } from '@/lib/ai';
 import { LANGUAGES, coverage, tierOf } from '@/lib/languages/registry';
+import { kieConfigured } from '@/lib/visuals/kie';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,12 @@ export function GET() {
       note: process.env.SPEECHMATICS_API_KEY
         ? undefined
         : 'SPEECHMATICS_API_KEY is not set, so narration falls back to the device voice.',
+    },
+    visuals: {
+      /** Free graphics are always available (vendored icons + CC0 photos). */
+      free: true,
+      /** AI images need KIE_API_KEY; the UI disables the option until set. */
+      kie: kieConfigured(),
     },
     coverage: coverage(),
     languages: LANGUAGES.map((l) => ({
