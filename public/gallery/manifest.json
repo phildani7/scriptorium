@@ -1,5 +1,20 @@
 [
   {
+    "id": "short-JHN.8.32-warm-minimal-ms2q7n7y",
+    "video": "/gallery/short-JHN.8.32-warm-minimal-ms2q7n7y.mp4",
+    "poster": "/gallery/short-JHN.8.32-warm-minimal-ms2q7n7y.jpg",
+    "reference": "John 8:32",
+    "version": "ASV",
+    "attribution": "American Standard Version (ASV)",
+    "musicCredit": "\"At Rest\" Kevin MacLeod (incompetech.com), CC BY 4.0",
+    "language": "en",
+    "style": "kinetic-type",
+    "lens": "object-lesson",
+    "durationSec": 32,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-27"
+  },
+  {
     "id": "short-JER.17.5-8-warm-minimal-ms2iqhg6",
     "video": "/gallery/short-JER.17.5-8-warm-minimal-ms2iqhg6.mp4",
     "poster": "/gallery/short-JER.17.5-8-warm-minimal-ms2iqhg6.jpg",
