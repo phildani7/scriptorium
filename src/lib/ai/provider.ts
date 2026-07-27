@@ -126,11 +126,12 @@ export const DEVICE_ARRAY_SCHEMA = {
           content: { type: 'string' },
           point: { type: 'string' },
           explanation: { type: 'string' },
+          // No minItems/maxItems: the Claude structured-output validator
+          // rejects array bounds other than 0/1. The prompt asks for 3-5 and
+          // the matcher caps consumption, so hard bounds add nothing here.
           visualTerms: {
             type: 'array',
             items: { type: 'string' },
-            minItems: 3,
-            maxItems: 5,
           },
           imagePrompt: { type: 'string' },
           reference: { type: 'string' },
