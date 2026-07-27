@@ -1,5 +1,20 @@
 [
   {
+    "id": "short-PRO.3.7-kinetic-type-ms30jpqh",
+    "video": "/gallery/short-PRO.3.7-kinetic-type-ms30jpqh.mp4",
+    "poster": "/gallery/short-PRO.3.7-kinetic-type-ms30jpqh.jpg",
+    "reference": "Proverbs 3:7",
+    "version": "ASV",
+    "attribution": "American Standard Version (ASV)",
+    "musicCredit": "\"Heartbreaking\" Kevin MacLeod (incompetech.com), CC BY 4.0",
+    "language": "en",
+    "style": "neon-night",
+    "lens": "punch-line",
+    "durationSec": 24,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-27"
+  },
+  {
     "id": "short-MRK.10.13-16-warm-minimal-ms30byj8",
     "video": "/gallery/short-MRK.10.13-16-warm-minimal-ms30byj8.mp4",
     "poster": "/gallery/short-MRK.10.13-16-warm-minimal-ms30byj8.jpg",
