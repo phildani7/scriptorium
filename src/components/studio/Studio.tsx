@@ -21,13 +21,36 @@ import type {
   DeviceType,
   Passage,
   StyleId,
+  Tone,
   VisualMode,
 } from '@/lib/types';
 import { resolveMusic, type ShortTheme } from '@/lib/theme/options';
 import { PreviewFrame } from './PreviewFrame';
 import { ThemePanel } from './ThemePanel';
 
-type Step = 'compose' | 'passage' | 'devices' | 'preview';
+type Step = 'compose' | 'passage' | 'teachings' | 'series' | 'devices' | 'preview';
+
+/** Where the short starts: a topic/reference, or the creator's own text. */
+type SourceMode = 'topic' | 'text';
+
+interface ExtractedTeaching {
+  title: string;
+  summary: string;
+  reference: string;
+}
+
+interface SeriesDay {
+  day: number;
+  focus: string;
+  reference: string;
+  lens: DeviceType;
+}
+
+interface VersionOption {
+  id: number;
+  abbreviation: string;
+  title: string;
+}
 
 interface StatusPayload {
   ai: { active: string; glooConfigured: boolean; degradedReason?: string };
@@ -61,6 +84,7 @@ const LENSES: Array<{ id: DeviceType; label: string; blurb: string }> = [
   { id: 'punch-line', label: 'Punch line', blurb: 'One sentence that compresses the tension.' },
   { id: 'illustration', label: 'Illustration', blurb: 'A short true-to-life scenario.' },
   { id: 'object-lesson', label: 'Object lesson', blurb: 'Something you can hold up and show.' },
+  { id: 'summary', label: 'Summary', blurb: 'The passage distilled into a few clear sentences.' },
 ];
 
 const AGES: Array<{ id: AgeGroup; label: string }> = [
@@ -68,6 +92,14 @@ const AGES: Array<{ id: AgeGroup; label: string }> = [
   { id: 'youth', label: 'Youth' },
   { id: 'adult', label: 'Adult' },
 ];
+
+const TONES: Array<{ id: Tone; label: string; blurb: string }> = [
+  { id: 'conversational', label: 'Everyday', blurb: 'The way a trusted friend talks.' },
+  { id: 'formal', label: 'Formal', blurb: 'Considered and measured, no slang.' },
+  { id: 'liturgical', label: 'Liturgical', blurb: 'Reverent, at home in a service.' },
+];
+
+const SERIES_LENGTHS = [3, 5, 7, 14];
 
 export function Studio() {
   const [status, setStatus] = useState<StatusPayload | null>(null);
@@ -81,9 +113,23 @@ export function Studio() {
   const [languageCode, setLanguageCode] = useState('en');
   const [lens, setLens] = useState<DeviceType>('hook');
   const [ageGroup, setAgeGroup] = useState<AgeGroup>('adult');
+  const [tone, setTone] = useState<Tone>('conversational');
   /** V2: text only, or pictures — free graphics / AI images. */
   const [withPictures, setWithPictures] = useState(false);
   const [pictureSource, setPictureSource] = useState<'free' | 'ai'>('free');
+
+  /** Bible versions licensed for the chosen language; empty hides the picker. */
+  const [versions, setVersions] = useState<VersionOption[]>([]);
+  const [versionId, setVersionId] = useState<number | undefined>();
+
+  /** Start from the creator's own text instead of a topic or reference. */
+  const [sourceMode, setSourceMode] = useState<SourceMode>('topic');
+  const [sourceText, setSourceText] = useState('');
+  const [sourceFile, setSourceFile] = useState<File | null>(null);
+  const [teachings, setTeachings] = useState<ExtractedTeaching[]>([]);
+
+  const [seriesLen, setSeriesLen] = useState(5);
+  const [seriesDays, setSeriesDays] = useState<SeriesDay[]>([]);
 
   const [candidates, setCandidates] = useState<Passage[]>([]);
   const [passage, setPassage] = useState<Passage | null>(null);
@@ -108,6 +154,19 @@ export function Studio() {
       .then(setStatus)
       .catch(() => undefined);
   }, []);
+
+  // Versions licensed for the language. The picker only appears when the API
+  // offers a real choice; the default stays "first licensed version".
+  useEffect(() => {
+    setVersions([]);
+    setVersionId(undefined);
+    fetch(`/api/versions?lang=${encodeURIComponent(languageCode)}`)
+      .then((r) => r.json())
+      .then((data: { versions?: VersionOption[] }) =>
+        setVersions(data.versions ?? []),
+      )
+      .catch(() => undefined);
+  }, [languageCode]);
 
   const language = useMemo(
     () => status?.languages.find((l) => l.code === languageCode),
@@ -263,7 +322,7 @@ export function Studio() {
     try {
       const data = await post<{ candidates: Passage[]; notice?: string }>(
         '/api/resolve',
-        { input, languageCode },
+        { input, languageCode, versionId },
       );
       setNotice(data.notice ?? null);
       setCandidates(data.candidates);
@@ -280,19 +339,97 @@ export function Studio() {
     }
   };
 
-  const generate = async (chosenPassage: Passage) => {
+  const generate = async (chosenPassage: Passage, lensOverride?: DeviceType) => {
     setBusy(true);
     setError(null);
     setPassage(chosenPassage);
     try {
       const data = await post<{ devices: DeviceItem[] }>('/api/generate', {
         passage: chosenPassage,
-        lens,
+        lens: lensOverride ?? lens,
         ageGroup,
+        tone,
         languageCode,
       });
       setDevices(data.devices);
       setStep('devices');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** A known reference (teaching card, series day) straight into devices. */
+  const resolveAndGenerate = async (
+    reference: string,
+    lensOverride?: DeviceType,
+  ) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await post<{ candidates: Passage[]; notice?: string }>(
+        '/api/resolve',
+        { input: reference, languageCode, versionId },
+      );
+      setNotice(data.notice ?? null);
+      const chosen = data.candidates[0];
+      if (!chosen) throw new Error(`Could not retrieve ${reference}.`);
+      if (lensOverride) setLens(lensOverride);
+      await generate(chosen, lensOverride);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setBusy(false);
+    }
+  };
+
+  /** Mine the creator's own text (pasted or uploaded) for teachings. */
+  const onExtract = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      let response: Response;
+      if (sourceFile) {
+        const form = new FormData();
+        form.append('file', sourceFile);
+        form.append('languageCode', languageCode);
+        response = await fetch('/api/extract', { method: 'POST', body: form });
+      } else {
+        response = await fetch('/api/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: sourceText, languageCode }),
+        });
+      }
+      const data = (await response.json()) as {
+        teachings?: ExtractedTeaching[];
+        notice?: string;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error || 'Extraction failed.');
+      setNotice(data.notice ?? null);
+      setTeachings(data.teachings ?? []);
+      setStep('teachings');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Plan a multi-day series on the typed theme. */
+  const onPlanSeries = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await post<{ days: SeriesDay[] }>('/api/series', {
+        theme: input,
+        days: seriesLen,
+        languageCode,
+      });
+      setSeriesDays(data.days);
+      setStep('series');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -306,6 +443,8 @@ export function Studio() {
     setPassage(null);
     setDevices([]);
     setDevice(null);
+    setTeachings([]);
+    setSeriesDays([]);
     setPreviewHtml('');
     setError(null);
   };
@@ -332,27 +471,92 @@ export function Studio() {
       {/* ---------------- step 1: compose ---------------- */}
       {step === 'compose' && (
         <form
-          onSubmit={onResolve}
+          onSubmit={sourceMode === 'topic' ? onResolve : onExtract}
           className="rounded-2xl border border-rule bg-panel p-8 shadow-sm"
         >
-          <label
-            htmlFor="input"
-            className="mb-2 block font-display text-2xl"
-          >
-            What is this short about?
-          </label>
-          <p className="mb-4 text-sm text-inksoft">
-            A reference, a word, or a situation. Anything from{' '}
-            <em>Psalm 23</em> to <em>anxiety at work</em>.
-          </p>
+          <div className="mb-4 flex gap-1 rounded-xl border border-rule bg-white p-1 sm:max-w-md">
+            {(
+              [
+                { id: 'topic', label: 'Topic or verse' },
+                { id: 'text', label: 'From your text' },
+              ] as Array<{ id: SourceMode; label: string }>
+            ).map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setSourceMode(m.id)}
+                aria-pressed={sourceMode === m.id}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm transition ${
+                  sourceMode === m.id
+                    ? 'bg-accentsoft font-semibold text-accent'
+                    : 'text-inksoft hover:bg-ground'
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
 
-          <input
-            id="input"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="John 3:16"
-            className="mb-6 w-full rounded-xl border border-rule bg-white px-4 py-3 text-lg"
-          />
+          {sourceMode === 'topic' ? (
+            <>
+              <label htmlFor="input" className="mb-2 block font-display text-2xl">
+                What is this short about?
+              </label>
+              <p className="mb-4 text-sm text-inksoft">
+                A reference, a word, or a situation. Anything from{' '}
+                <em>Psalm 23</em> to <em>anxiety at work</em>.
+              </p>
+
+              <input
+                id="input"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="John 3:16"
+                className="mb-6 w-full rounded-xl border border-rule bg-white px-4 py-3 text-lg"
+              />
+            </>
+          ) : (
+            <>
+              <label htmlFor="source-text" className="mb-2 block font-display text-2xl">
+                Start from your own words
+              </label>
+              <p className="mb-4 text-sm text-inksoft">
+                Paste a sermon, notes, or an article — or upload a .txt / .pdf.
+                Its teachings are mined and each is anchored to a passage; the
+                verse itself still comes from YouVersion, never from the upload.
+              </p>
+
+              <textarea
+                id="source-text"
+                value={sourceText}
+                onChange={(e) => setSourceText(e.target.value)}
+                rows={6}
+                placeholder="Paste your source text here…"
+                disabled={sourceFile !== null}
+                className="mb-3 w-full rounded-xl border border-rule bg-white px-4 py-3 text-base leading-relaxed disabled:opacity-50"
+              />
+              <div className="mb-6 flex flex-wrap items-center gap-3 text-sm">
+                <label className="cursor-pointer rounded-lg border border-rule bg-white px-3 py-2 text-inksoft transition hover:border-accent">
+                  {sourceFile ? sourceFile.name : 'Upload .txt or .pdf'}
+                  <input
+                    type="file"
+                    accept=".txt,.pdf,text/plain,application/pdf"
+                    className="hidden"
+                    onChange={(e) => setSourceFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+                {sourceFile && (
+                  <button
+                    type="button"
+                    onClick={() => setSourceFile(null)}
+                    className="text-inkfaint underline"
+                  >
+                    remove file
+                  </button>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="mb-6 grid gap-5 sm:grid-cols-3">
             <Field label="Language">
@@ -368,6 +572,42 @@ export function Studio() {
                   </option>
                 ))}
               </select>
+            </Field>
+
+            {versions.length > 1 && (
+              <Field label="Bible version">
+                <select
+                  value={versionId ?? versions[0]?.id}
+                  onChange={(e) => setVersionId(Number(e.target.value))}
+                  className="w-full rounded-lg border border-rule bg-white px-3 py-2"
+                >
+                  {versions.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.abbreviation} — {v.title}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+
+            <Field label="Tone">
+              <div className="flex gap-1">
+                {TONES.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTone(t.id)}
+                    title={t.blurb}
+                    className={`flex-1 rounded-lg border px-2 py-2 text-sm transition ${
+                      tone === t.id
+                        ? 'border-accent bg-accentsoft font-semibold text-accent'
+                        : 'border-rule bg-white text-inksoft'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </Field>
 
             <Field label="Audience">
@@ -467,7 +707,7 @@ export function Studio() {
             <legend className="mb-2 text-xs font-semibold tracking-widest text-inksoft uppercase">
               Teaching lens
             </legend>
-            <div className="grid gap-2 sm:grid-cols-5">
+            <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
               {LENSES.map((l) => (
                 <button
                   key={l.id}
@@ -486,13 +726,49 @@ export function Studio() {
             </div>
           </fieldset>
 
-          <button
-            type="submit"
-            disabled={busy || !input.trim()}
-            className="rounded-xl bg-accent px-6 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-          >
-            {busy ? 'Finding the passage…' : 'Find the passage'}
-          </button>
+          {sourceMode === 'topic' ? (
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              <button
+                type="submit"
+                disabled={busy || !input.trim()}
+                className="rounded-xl bg-accent px-6 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+              >
+                {busy ? 'Finding the passage…' : 'Find the passage'}
+              </button>
+
+              <div className="flex items-center gap-2 text-sm text-inksoft">
+                <span>or plan a series:</span>
+                <select
+                  value={seriesLen}
+                  onChange={(e) => setSeriesLen(Number(e.target.value))}
+                  aria-label="Series length"
+                  className="rounded-lg border border-rule bg-white px-2 py-2"
+                >
+                  {SERIES_LENGTHS.map((n) => (
+                    <option key={n} value={n}>
+                      {n} days
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={busy || !input.trim()}
+                  onClick={onPlanSeries}
+                  className="rounded-xl border border-rule bg-white px-4 py-2 font-medium text-inksoft transition hover:border-accent disabled:opacity-50"
+                >
+                  {busy ? 'Planning…' : 'Plan it'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="submit"
+              disabled={busy || (!sourceFile && sourceText.trim().length < 120)}
+              className="rounded-xl bg-accent px-6 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            >
+              {busy ? 'Mining the teachings…' : 'Find the teachings'}
+            </button>
+          )}
         </form>
       )}
 
@@ -526,6 +802,81 @@ export function Studio() {
               </button>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* ---------------- step 1c: teachings mined from the source -------- */}
+      {step === 'teachings' && (
+        <section className="rounded-2xl border border-rule bg-panel p-8 shadow-sm">
+          <h2 className="mb-1 font-display text-3xl">Which teaching?</h2>
+          <p className="mb-6 text-sm text-inksoft">
+            Mined from your source, each anchored to a passage. Choosing one
+            retrieves that passage from YouVersion and builds the short from it.
+          </p>
+          <div className="grid gap-4">
+            {teachings.map((t, i) => (
+              <button
+                key={i}
+                type="button"
+                disabled={busy}
+                onClick={() => void resolveAndGenerate(t.reference)}
+                className="rounded-xl border border-rule bg-white p-5 text-left transition hover:border-accent disabled:opacity-50"
+              >
+                <div className="mb-2 text-xs font-semibold tracking-widest text-accent uppercase">
+                  {t.reference}
+                </div>
+                <p className="mb-2 font-display text-lg leading-snug">{t.title}</p>
+                <p className="text-sm text-inksoft">{t.summary}</p>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={reset}
+            className="mt-6 rounded-xl border border-rule px-4 py-2 text-sm font-medium text-inksoft hover:bg-white"
+          >
+            Back
+          </button>
+        </section>
+      )}
+
+      {/* ---------------- step 1d: a planned series ----------------------- */}
+      {step === 'series' && (
+        <section className="rounded-2xl border border-rule bg-panel p-8 shadow-sm">
+          <h2 className="mb-1 font-display text-3xl">Your series</h2>
+          <p className="mb-6 text-sm text-inksoft">
+            {seriesDays.length} days on “{input}”. Each day is one short; make
+            them in any order — every passage is retrieved from YouVersion when
+            you pick its day.
+          </p>
+          <div className="grid gap-3">
+            {seriesDays.map((d) => (
+              <button
+                key={d.day}
+                type="button"
+                disabled={busy}
+                onClick={() => void resolveAndGenerate(d.reference, d.lens)}
+                className="flex items-baseline gap-4 rounded-xl border border-rule bg-white p-4 text-left transition hover:border-accent disabled:opacity-50"
+              >
+                <span className="font-display text-2xl text-accent">
+                  {d.day}
+                </span>
+                <span className="flex-1">
+                  <span className="mb-1 block text-xs font-semibold tracking-widest text-accent uppercase">
+                    {d.reference} · {d.lens}
+                  </span>
+                  <span className="block text-sm text-inksoft">{d.focus}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={reset}
+            className="mt-6 rounded-xl border border-rule px-4 py-2 text-sm font-medium text-inksoft hover:bg-white"
+          >
+            Back
+          </button>
         </section>
       )}
 

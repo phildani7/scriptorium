@@ -44,6 +44,24 @@ every gallery entry that uses a track.
 | `heartbreaking.mp3` | Heartbreaking |
 | `wounded.mp3` | Wounded |
 
+## Music (Audiio licence, /public/music, pre-attenuated + faded at import)
+
+Licensed through the project creator's Audiio subscription (audiio.com).
+The licence covers distribution in produced video; **no attribution is
+required**. Credits still travel with gallery entries as a courtesy.
+
+| File | Track | Artist |
+| --- | --- | --- |
+| `right-here.mp3` | Right Here | Su |
+| `deeper-still.mp3` | Deeper Still | Jacob Montague |
+| `beyond-the-pull.mp3` | Beyond the Pull of Things (Ambient) | Dmitriy Redko |
+| `eternal-strings.mp3` | Eternal (Hanging Solo with Strings) | Pendelton |
+| `sleep-habits.mp3` | Sleep Habits | Allen Bright |
+| `elevate.mp3` | Elevate (Instrumental) | JinSei |
+| `snow-fall.mp3` | Snow Fall (Instrumental) | Nylon & Cedar |
+| `o-holy-night.mp3` | O Holy Night (Instrumental) | Allen & Bright |
+| `christmas-cassette.mp3` | Christmas on Cassette (Instrumental) | Alex Velte |
+
 ## Photo backgrounds (public domain, /public/backgrounds)
 
 NASA imagery is not subject to copyright. Normalized to 1080×1920 at import.
@@ -53,6 +71,16 @@ NASA imagery is not subject to copyright. Normalized to 1080×1920 at import.
 | `starfield.jpg` | Hubble Ultra Deep Field (NASA/ESA), via Wikimedia Commons |
 | `pillars.jpg` | Pillars of Creation, HST WFC3 (NASA/ESA), via Wikimedia Commons |
 | `earth.jpg` | The Blue Marble, Apollo 17 (NASA), via Wikimedia Commons |
+
+## Licensed stock art (creator-licensed, no attribution required)
+
+The video background loops (`/public/backgrounds/video`), the full-bleed
+image backgrounds (`/public/backgrounds/img`), and the full-colour clipart
+library (`/public/cliparts`) are stock assets licensed to the project
+creator. The licence covers use in produced video and **requires no
+attribution**. All were normalized at import with ffmpeg: videos to
+1080×1920 muted ~60 s loops, image backgrounds to 1080×1920 crops, cliparts
+downscaled to a 512 px bounding box with alpha preserved.
 
 ## Other backgrounds
 

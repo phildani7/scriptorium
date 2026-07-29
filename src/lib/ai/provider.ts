@@ -80,6 +80,21 @@ export interface AIProvider {
     languageCode: string,
     signal?: AbortSignal,
   ): Promise<string[]>;
+
+  /**
+   * Generic JSON completion for the smaller structured tasks (teaching
+   * extraction from a source text, series planning). Callers own the prompt
+   * and the validation; the provider owns transport, auth, and JSON mode.
+   */
+  completeJson(
+    args: {
+      system: string;
+      user: string;
+      maxTokens: number;
+      schema: Record<string, unknown>;
+    },
+    signal?: AbortSignal,
+  ): Promise<unknown>;
 }
 
 export class ProviderError extends Error {
@@ -106,6 +121,7 @@ const DEVICE_TYPES: readonly DeviceType[] = [
   'punch-line',
   'hook',
   'object-lesson',
+  'summary',
 ];
 
 /**
@@ -161,6 +177,64 @@ export const REFERENCE_LIST_SCHEMA = {
     references: { type: 'array', items: { type: 'string' } },
   },
   required: ['references'],
+  additionalProperties: false,
+} as const;
+
+/** A teaching mined from a creator's own source text (sermon, notes, article). */
+export interface ExtractedTeaching {
+  title: string;
+  summary: string;
+  reference: string;
+}
+
+export const TEACHING_LIST_SCHEMA = {
+  type: 'object',
+  properties: {
+    teachings: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          summary: { type: 'string' },
+          reference: { type: 'string' },
+        },
+        required: ['title', 'summary', 'reference'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['teachings'],
+  additionalProperties: false,
+} as const;
+
+/** One planned day of a multi-day shorts series. */
+export interface SeriesDay {
+  day: number;
+  focus: string;
+  reference: string;
+  lens: DeviceType;
+}
+
+export const SERIES_PLAN_SCHEMA = {
+  type: 'object',
+  properties: {
+    days: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          day: { type: 'number' },
+          focus: { type: 'string' },
+          reference: { type: 'string' },
+          lens: { type: 'string', enum: DEVICE_TYPES },
+        },
+        required: ['day', 'focus', 'reference', 'lens'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['days'],
   additionalProperties: false,
 } as const;
 
@@ -266,6 +340,101 @@ function isDeviceItem(value: unknown): value is DeviceItem {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+export function coerceTeachings(value: unknown): ExtractedTeaching[] {
+  const list =
+    isRecord(value) && Array.isArray(value.teachings) ? value.teachings : null;
+  if (!list) throw new Error('Expected { teachings: [...] }.');
+
+  const teachings = list.filter(
+    (t): t is ExtractedTeaching =>
+      isRecord(t) &&
+      typeof t.title === 'string' &&
+      t.title.trim().length > 0 &&
+      typeof t.summary === 'string' &&
+      typeof t.reference === 'string' &&
+      t.reference.trim().length > 0,
+  );
+  if (teachings.length === 0) {
+    throw new Error('No teaching in the response had { title, summary, reference }.');
+  }
+  return teachings;
+}
+
+export function coerceSeriesPlan(value: unknown): SeriesDay[] {
+  const list = isRecord(value) && Array.isArray(value.days) ? value.days : null;
+  if (!list) throw new Error('Expected { days: [...] }.');
+
+  const days = list.filter(
+    (d): d is SeriesDay =>
+      isRecord(d) &&
+      typeof d.day === 'number' &&
+      typeof d.focus === 'string' &&
+      typeof d.reference === 'string' &&
+      d.reference.trim().length > 0 &&
+      typeof d.lens === 'string' &&
+      (DEVICE_TYPES as readonly string[]).includes(d.lens),
+  );
+  if (days.length === 0) {
+    throw new Error('No day in the response had { day, focus, reference, lens }.');
+  }
+  return days.sort((a, b) => a.day - b.day);
+}
+
+/**
+ * Teaching extraction from a creator's own source text. The same central rule
+ * as everywhere else: the model returns REFERENCES and its own prose about the
+ * source — verse text always comes from YouVersion afterwards.
+ */
+export function buildTeachingExtractionPrompt(languageName: string): string {
+  return [
+    'A creator has supplied their own source text — sermon notes, an article, a',
+    'devotional, a transcript — and wants to turn its teachings into Scripture',
+    'shorts. Mine the text for its distinct teachings.',
+    '',
+    'Return 3 to 5 teachings. For each:',
+    '- "title": the teaching in a short phrase (max ~8 words), in the source\'s own spirit.',
+    `- "summary": 1-2 sentences in ${languageName} capturing what the SOURCE argues or teaches.`,
+    '- "reference": ONE canonical Bible passage (1-8 verses) that genuinely anchors this',
+    '  teaching. If the source itself cites a passage for it, prefer that citation.',
+    '  Use standard English book names and numerals, e.g. "Romans 8:1-4". The verse',
+    '  text is retrieved from an authoritative Bible API — never write verse text yourself.',
+    '',
+    'Rules:',
+    '1. Teachings must come FROM the source, not from your general knowledge of the topic.',
+    '2. Distinct teachings — no restatements of the same point.',
+    '3. Skip anything that has no honest scriptural anchor rather than proof-texting it.',
+    '',
+    'Return ONLY JSON: { "teachings": [ { "title", "summary", "reference" } ] }.',
+  ].join('\n');
+}
+
+/**
+ * Series planning: a theme and a day count become a coherent sequence of
+ * passages and lenses. References only, as always.
+ */
+export function buildSeriesPlanPrompt(languageName: string, days: number): string {
+  return [
+    `Plan a ${days}-day series of short vertical Scripture videos on the creator's theme.`,
+    'Each day is one short built from one passage through one teaching lens.',
+    '',
+    'For each day return:',
+    '- "day": 1-based position.',
+    `- "focus": one sentence in ${languageName} — what this day contributes to the arc.`,
+    '- "reference": ONE canonical passage (1-8 verses), standard English book names,',
+    '  e.g. "Philippians 4:6-7". Verse text is retrieved from an authoritative Bible',
+    '  API — never write verse text yourself.',
+    '- "lens": one of "analogy", "illustration", "punch-line", "hook", "object-lesson", "summary".',
+    '',
+    'Rules:',
+    `1. Exactly ${days} days, a real progression: open the need, deepen, turn, land.`,
+    '2. No passage repeats. Vary the lenses; pick each day\'s lens for its content,',
+    '   not for variety\'s own sake.',
+    '3. Prefer passages that address the theme in context — no keyword proof-texts.',
+    '',
+    'Return ONLY JSON: { "days": [ { "day", "focus", "reference", "lens" } ] }.',
+  ].join('\n');
 }
 
 /**

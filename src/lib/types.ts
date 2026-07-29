@@ -12,7 +12,8 @@ export type DeviceType =
   | 'illustration'
   | 'punch-line'
   | 'hook'
-  | 'object-lesson';
+  | 'object-lesson'
+  | 'summary';
 
 export type StyleId =
   | 'warm-minimal'
@@ -86,7 +87,7 @@ export interface DeviceItem {
 export type VisualMode = 'text' | 'free' | 'ai';
 
 export interface VisualItem {
-  kind: 'icon' | 'photo' | 'ai-image';
+  kind: 'icon' | 'clipart' | 'photo' | 'ai-image';
   /**
    * Icons carry their vendored SVG markup inline (stroke: currentColor, so
    * they recolor with the palette). Inline, not a file path: the offline
@@ -185,6 +186,12 @@ export interface ShortSpec {
   verified: boolean;
 }
 
+/**
+ * Cultural register of the generated teaching — not a translation switch but a
+ * voice: how the device would be said out loud in that community.
+ */
+export type Tone = 'conversational' | 'formal' | 'liturgical';
+
 /** Context handed to the prompt builders. */
 export interface PromptContext {
   ageGroup: AgeGroup;
@@ -193,4 +200,6 @@ export interface PromptContext {
   passageReference: string;
   passageText: string;
   versionAbbreviation?: string;
+  /** Cultural tone; absent means 'conversational'. */
+  tone?: Tone;
 }

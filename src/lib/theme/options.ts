@@ -96,8 +96,9 @@ export interface BackgroundOption {
     | 'halftone'
     | 'linen'
     | 'photo'
+    | 'video'
     | 'doodle';
-  /** For kind 'photo' or 'doodle': root-relative asset path. */
+  /** For kind 'photo', 'video' or 'doodle': root-relative asset path. */
   src?: string;
 }
 
@@ -126,6 +127,30 @@ export const BACKGROUNDS: readonly BackgroundOption[] = [
   { id: 'doodle-heights', label: 'Mountains ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-heights.svg' },
   { id: 'doodle-table', label: 'Bread & cup ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-table.svg' },
   { id: 'doodle-praise', label: 'Praise notes ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-praise.svg' },
+  // Licensed animated loops (creator-licensed stock; no attribution required).
+  // 1080x1920 muted 60s loops, normalized at import with ffmpeg.
+  { id: 'video-still-waters', label: 'Still waters ▶', kind: 'video', src: '/backgrounds/video/still-waters.mp4' },
+  { id: 'video-forest-path', label: 'Forest path ▶', kind: 'video', src: '/backgrounds/video/forest-path.mp4' },
+  // Licensed full-bleed image backgrounds, cropped to 1080x1920 at import.
+  // They ride the same photo pipeline: Ken Burns drift + palette-tinted scrim.
+  { id: 'img-fluffy-sky', label: 'Fluffy sky', kind: 'photo', src: '/backgrounds/img/fluffy-sky.jpg' },
+  { id: 'img-tropical-sunset', label: 'Tropical sunset', kind: 'photo', src: '/backgrounds/img/tropical-sunset.jpg' },
+  { id: 'img-nebula', label: 'Nebula', kind: 'photo', src: '/backgrounds/img/nebula.jpg' },
+  { id: 'img-sun-rays', label: 'Sun rays', kind: 'photo', src: '/backgrounds/img/sun-rays.jpg' },
+  { id: 'img-stained-glass', label: 'Stained glass', kind: 'photo', src: '/backgrounds/img/stained-glass.jpg' },
+  { id: 'img-gold-leaf', label: 'Gold leaf', kind: 'photo', src: '/backgrounds/img/gold-leaf.jpg' },
+  { id: 'img-golden-silk', label: 'Golden silk', kind: 'photo', src: '/backgrounds/img/golden-silk.jpg' },
+  { id: 'img-blue-marble', label: 'Blue marble', kind: 'photo', src: '/backgrounds/img/blue-marble.jpg' },
+  { id: 'img-wood-grain', label: 'Wood grain', kind: 'photo', src: '/backgrounds/img/wood-grain.jpg' },
+  { id: 'img-paint-splash', label: 'Paint splash', kind: 'photo', src: '/backgrounds/img/paint-splash.jpg' },
+  { id: 'img-grunge-color', label: 'Color grunge', kind: 'photo', src: '/backgrounds/img/grunge-color.jpg' },
+  { id: 'img-halftone-pop', label: 'Halftone pop', kind: 'photo', src: '/backgrounds/img/halftone-pop.jpg' },
+  { id: 'img-groovy-liquid', label: 'Groovy liquid', kind: 'photo', src: '/backgrounds/img/groovy-liquid.jpg' },
+  { id: 'img-rainbow-glitter', label: 'Rainbow glitter', kind: 'photo', src: '/backgrounds/img/rainbow-glitter.jpg' },
+  { id: 'img-confetti', label: 'Confetti', kind: 'photo', src: '/backgrounds/img/confetti.jpg' },
+  { id: 'img-geo-pattern', label: 'Geometric', kind: 'photo', src: '/backgrounds/img/geo-pattern.jpg' },
+  { id: 'img-floral-pattern', label: 'Floral', kind: 'photo', src: '/backgrounds/img/floral-pattern.jpg' },
+  { id: 'img-harvest', label: 'Harvest', kind: 'photo', src: '/backgrounds/img/harvest.jpg' },
 ] as const;
 
 export interface TextStyleOption {
@@ -176,6 +201,17 @@ export const MUSIC: readonly MusicOption[] = [
   { id: 'at-rest', label: 'At Rest', file: '/music/at-rest.mp3', credit: '"At Rest" Kevin MacLeod (incompetech.com), CC BY 4.0' },
   { id: 'heartbreaking', label: 'Tender', file: '/music/heartbreaking.mp3', credit: '"Heartbreaking" Kevin MacLeod (incompetech.com), CC BY 4.0' },
   { id: 'wounded', label: 'Reflective', file: '/music/wounded.mp3', credit: '"Wounded" Kevin MacLeod (incompetech.com), CC BY 4.0' },
+  // Audiio catalogue, licensed to this project's creator — no attribution
+  // required. Leveled and faded at import to match the existing beds.
+  { id: 'right-here', label: 'Right Here', file: '/music/right-here.mp3', credit: '"Right Here" Su — Audiio license' },
+  { id: 'deeper-still', label: 'Deeper Still', file: '/music/deeper-still.mp3', credit: '"Deeper Still" Jacob Montague — Audiio license' },
+  { id: 'beyond-the-pull', label: 'Ambient Drift', file: '/music/beyond-the-pull.mp3', credit: '"Beyond the Pull of Things (Ambient)" Dmitriy Redko — Audiio license' },
+  { id: 'eternal-strings', label: 'Eternal Strings', file: '/music/eternal-strings.mp3', credit: '"Eternal (Hanging Solo with Strings)" Pendelton — Audiio license' },
+  { id: 'sleep-habits', label: 'Gentle Sleep', file: '/music/sleep-habits.mp3', credit: '"Sleep Habits" Allen Bright — Audiio license' },
+  { id: 'elevate', label: 'Elevate', file: '/music/elevate.mp3', credit: '"Elevate (Instrumental)" JinSei — Audiio license' },
+  { id: 'snow-fall', label: 'Snow Fall', file: '/music/snow-fall.mp3', credit: '"Snow Fall (Instrumental)" Nylon & Cedar — Audiio license' },
+  { id: 'o-holy-night', label: 'O Holy Night', file: '/music/o-holy-night.mp3', credit: '"O Holy Night (Instrumental)" Allen & Bright — Audiio license' },
+  { id: 'christmas-cassette', label: 'Christmas Cassette', file: '/music/christmas-cassette.mp3', credit: '"Christmas on Cassette (Instrumental)" Alex Velte — Audiio license' },
 ] as const;
 
 /** The theme a spec carries. Every field optional; templates have defaults. */
@@ -236,6 +272,8 @@ export function themeAttributes(theme: ShortTheme | undefined): {
   dark: '1' | '0';
   /** Root-relative photo path, when the background is a photo. */
   photoSrc?: string;
+  /** Root-relative video path, when the background is an animated loop. */
+  videoSrc?: string;
   /**
    * Doodle SVG as a data URI, when the background is a doodle frame. A data
    * URI, not a path: mask-image loads are CORS-checked, and the offline
@@ -252,6 +290,7 @@ export function themeAttributes(theme: ShortTheme | undefined): {
     bg: background.kind,
     dark: palette.dark ? '1' : '0',
     photoSrc: background.kind === 'photo' ? background.src : undefined,
+    videoSrc: background.kind === 'video' ? background.src : undefined,
     doodleData:
       background.kind === 'doodle' ? DOODLE_DATA[background.id] : undefined,
     textStyle:

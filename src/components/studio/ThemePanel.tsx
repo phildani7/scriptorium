@@ -162,7 +162,8 @@ export function ThemePanel({ style, theme, busy, onStyle, onTheme }: ThemePanelP
           })}
         </div>
         <p className="mt-2 text-xs text-inkfaint">
-          ✶ NASA imagery, public domain.
+          ✶ NASA imagery, public domain. ▶ animated loops and the image
+          backgrounds are licensed stock — no attribution required.
         </p>
       </Group>
 
@@ -213,7 +214,8 @@ export function ThemePanel({ style, theme, busy, onStyle, onTheme }: ThemePanelP
           })}
         </div>
         <p className="mt-2 text-xs text-inkfaint">
-          Kevin MacLeod (incompetech.com), CC BY 4.0 — credited automatically.
+          Kevin MacLeod tracks are CC BY 4.0, credited automatically; the rest
+          are licensed via Audiio — no attribution required.
         </p>
       </Group>
 

@@ -124,6 +124,19 @@ export class ClaudeProvider implements AIProvider {
     }
   }
 
+  async completeJson(
+    args: {
+      system: string;
+      user: string;
+      maxTokens: number;
+      schema: Record<string, unknown>;
+    },
+    signal?: AbortSignal,
+  ): Promise<unknown> {
+    const response = await this.send(args, signal);
+    return extractJson(response.text);
+  }
+
   private async send(
     args: {
       system: string;

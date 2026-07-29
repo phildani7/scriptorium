@@ -29,9 +29,11 @@ describe('matchIcons', () => {
   it('anchors a visual term to the moment its word is spoken', () => {
     const items = matchIcons(device, narrationOf(['the', 'climb', 'up', 'the', 'mountain', 'begins']));
     const mountain = items.find((i) => i.term === 'mountain');
-    assert.ok(mountain, 'mountain icon matched');
+    assert.ok(mountain, 'mountain visual matched');
     assert.equal(mountain.timeSec, 4); // word index 4
-    assert.ok(mountain.svg?.includes('<svg'));
+    // Full-colour clipart outranks the line icon for a term both libraries know.
+    assert.equal(mountain.kind, 'clipart');
+    assert.ok(mountain.src?.startsWith('/cliparts/'));
   });
 
   it('spreads unspoken terms across the window instead of dropping them', () => {

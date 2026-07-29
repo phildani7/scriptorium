@@ -47,8 +47,23 @@ export function buildPassageRef(context: PromptContext): string {
 }
 
 /**
+ * Cultural register, chosen by the creator. A voice, not a vocabulary list —
+ * the same truth said the way that community actually says things out loud.
+ */
+function toneInstruction(tone: PromptContext['tone']): string {
+  switch (tone) {
+    case 'formal':
+      return 'Register: formal and considered. Complete sentences, measured cadence, no slang or pop-culture references. The voice of a careful preacher, not a caption writer.';
+    case 'liturgical':
+      return 'Register: liturgical and reverent. Language that would sit comfortably in a service — weighty, unhurried, drawing on the church\'s devotional vocabulary without becoming archaic or stiff.';
+    default:
+      return 'Register: conversational and warm — the way a trusted friend actually talks. Contractions welcome; never slangy for its own sake, never preachy.';
+  }
+}
+
+/**
  * The preamble every panel prompt inherits: role, fidelity to the text,
- * reverence, family-safety, target language, and JSON-only output.
+ * reverence, family-safety, target language, tone, and JSON-only output.
  */
 export function buildUniversalSystemPrompt(context: PromptContext): string {
   const code = context.preferredLanguage || 'en';
@@ -72,6 +87,10 @@ Write for a ${languageName} audience. ${
       : 'Write in clear, natural English.'
   }
 </language>
+
+<tone>
+${toneInstruction(context.tone)}
+</tone>
 
 <output>
 Return ONLY valid JSON in the exact shape requested. No markdown fences, no preamble, no trailing commentary.

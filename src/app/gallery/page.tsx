@@ -14,7 +14,7 @@
  *   2. the copy bundled into this deployment, as the offline fallback
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
 const GALLERY_REPO = process.env.NEXT_PUBLIC_GALLERY_REPO; // "owner/name"
@@ -38,9 +38,53 @@ interface GalleryEntry {
   timingSource: string;
 }
 
+/** Distinct values of one entry field, for a filter dropdown. */
+function distinct(entries: GalleryEntry[], key: 'language' | 'lens' | 'style') {
+  return [...new Set(entries.map((e) => e[key]).filter(Boolean))].sort();
+}
+
 export default function GalleryPage() {
   const [entries, setEntries] = useState<GalleryEntry[] | null>(null);
   const [live, setLive] = useState(false);
+
+  const [query, setQuery] = useState('');
+  const [language, setLanguage] = useState('');
+  const [lens, setLens] = useState('');
+  const [style, setStyle] = useState('');
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    if (!entries) return null;
+    const q = query.trim().toLowerCase();
+    return entries.filter(
+      (e) =>
+        (!language || e.language === language) &&
+        (!lens || e.lens === lens) &&
+        (!style || e.style === style) &&
+        (!q ||
+          [e.reference, e.version, e.lens, e.style, e.language]
+            .join(' ')
+            .toLowerCase()
+            .includes(q)),
+    );
+  }, [entries, query, language, lens, style]);
+
+  /** The share target: this gallery page anchored to the entry. */
+  const linkFor = (entry: GalleryEntry) =>
+    typeof window === 'undefined'
+      ? ''
+      : `${window.location.origin}/gallery#${encodeURIComponent(entry.id)}`;
+
+  const copyLink = async (entry: GalleryEntry) => {
+    try {
+      await navigator.clipboard.writeText(linkFor(entry));
+      setCopied(entry.id);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      // Clipboard can be unavailable (http, permissions); the share links
+      // beside the button still work.
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -95,6 +139,54 @@ export default function GalleryPage() {
         </Link>
       </header>
 
+      {entries !== null && entries.length > 0 && (
+        <div className="mb-8 flex flex-wrap items-center gap-3">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search reference, version, style…"
+            aria-label="Search the gallery"
+            className="w-full max-w-xs rounded-xl border border-rule bg-white px-4 py-2 text-sm"
+          />
+          {(
+            [
+              ['Language', language, setLanguage, distinct(entries, 'language')],
+              ['Lens', lens, setLens, distinct(entries, 'lens')],
+              ['Style', style, setStyle, distinct(entries, 'style')],
+            ] as Array<[string, string, (v: string) => void, string[]]>
+          ).map(([label, value, set, values]) => (
+            <select
+              key={label}
+              value={value}
+              onChange={(e) => set(e.target.value)}
+              aria-label={`Filter by ${label.toLowerCase()}`}
+              className="rounded-xl border border-rule bg-white px-3 py-2 text-sm text-inksoft"
+            >
+              <option value="">All {label.toLowerCase()}s</option>
+              {values.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          ))}
+          {(query || language || lens || style) && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery('');
+                setLanguage('');
+                setLens('');
+                setStyle('');
+              }}
+              className="text-sm text-inkfaint underline"
+            >
+              clear
+            </button>
+          )}
+        </div>
+      )}
+
       {entries === null && (
         <p className="text-sm text-inksoft">Loading…</p>
       )}
@@ -106,11 +198,18 @@ export default function GalleryPage() {
         </div>
       )}
 
-      {entries !== null && entries.length > 0 && (
+      {filtered !== null && entries !== null && entries.length > 0 && filtered.length === 0 && (
+        <div className="rounded-2xl border border-rule bg-panel p-10 text-center text-inksoft">
+          No shorts match those filters.
+        </div>
+      )}
+
+      {filtered !== null && filtered.length > 0 && (
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {entries.map((entry) => (
+          {filtered.map((entry) => (
             <figure
               key={entry.id}
+              id={entry.id}
               className="overflow-hidden rounded-2xl border border-rule bg-panel shadow-sm"
             >
               <video
@@ -145,6 +244,32 @@ export default function GalleryPage() {
                     ♪ {entry.musicCredit}
                   </div>
                 )}
+                <div className="mt-2 flex flex-wrap items-center gap-3 border-t border-rule pt-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => void copyLink(entry)}
+                    className="font-medium text-accent hover:underline"
+                  >
+                    {copied === entry.id ? 'Copied ✓' : 'Copy link'}
+                  </button>
+                  {(
+                    [
+                      ['WhatsApp', `https://wa.me/?text=${encodeURIComponent(`${entry.reference} — ${linkFor(entry)}`)}`],
+                      ['Telegram', `https://t.me/share/url?url=${encodeURIComponent(linkFor(entry))}&text=${encodeURIComponent(entry.reference)}`],
+                      ['X', `https://twitter.com/intent/tweet?text=${encodeURIComponent(entry.reference)}&url=${encodeURIComponent(linkFor(entry))}`],
+                    ] as Array<[string, string]>
+                  ).map(([name, href]) => (
+                    <a
+                      key={name}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-inksoft hover:text-accent hover:underline"
+                    >
+                      {name}
+                    </a>
+                  ))}
+                </div>
               </figcaption>
             </figure>
           ))}

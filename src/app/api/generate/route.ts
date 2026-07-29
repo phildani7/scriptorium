@@ -12,7 +12,7 @@ import { NextResponse } from 'next/server';
 import { guard } from '@/lib/rate-limit';
 import { getProvider, providerStatus } from '@/lib/ai';
 import type { Tradition } from '@/lib/ai';
-import type { AgeGroup, DeviceType, Passage } from '@/lib/types';
+import type { AgeGroup, DeviceType, Passage, Tone } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -22,6 +22,7 @@ interface GenerateBody {
   lens?: DeviceType;
   ageGroup?: AgeGroup;
   tradition?: Tradition;
+  tone?: Tone;
   languageCode?: string;
 }
 
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
         // and structurally prevented, from reproducing it as its own output.
         passageText: passage.text,
         versionAbbreviation: passage.versionAbbreviation,
+        tone: body.tone,
       },
       filterType: lens,
       tradition,

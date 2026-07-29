@@ -100,6 +100,19 @@ export function bakeComposition(options: BakeOptions): string {
       (attrs.captionsOff ? ' data-captions="off"' : ''),
   );
 
+  // Video background: point the static loop at its file, or remove the holder
+  // entirely — an empty-src <video> would make the renderer wait on a failed
+  // media request, exactly like the audio elements below.
+  html = attrs.videoSrc
+    ? html.replace(
+        /(<video\s+id="bg-video"[^>]*?\s)src="[^"]*"/,
+        `$1src="${escapeAttr(rebase(attrs.videoSrc))}"`,
+      )
+    : html.replace(
+        /<div id="bg-video-holder">[\s\S]*?<\/div>/,
+        '<div id="bg-video-holder"></div>',
+      );
+
   // Music bed: point the static element at the chosen track, or remove it —
   // an <audio> with an empty src makes the renderer wait on a failed request.
   const music = resolveMusic(theme);
@@ -124,7 +137,7 @@ export function bakeComposition(options: BakeOptions): string {
   // "fonts/…" for self-contained render bundles. Only undefined skips.
   if (assetPrefix !== undefined) {
     html = html.replace(
-      /(href|src)="\/(fonts|vendor|music|backgrounds)\//g,
+      /(href|src)="\/(fonts|vendor|music|backgrounds|cliparts)\//g,
       `$1="${assetPrefix}$2/`,
     );
   }

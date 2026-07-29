@@ -148,6 +148,33 @@ export class GlooProvider implements AIProvider {
     }
   }
 
+  async completeJson(
+    args: {
+      system: string;
+      user: string;
+      maxTokens: number;
+      /** Described in the prompt upstream; Gloo has no documented JSON mode. */
+      schema: Record<string, unknown>;
+    },
+    signal?: AbortSignal,
+  ): Promise<unknown> {
+    const body = await this.chat(
+      {
+        messages: [
+          { role: 'system', content: args.system },
+          { role: 'user', content: args.user },
+        ],
+        ...(this.config.model
+          ? { model: this.config.model }
+          : { auto_routing: true }),
+        stream: false,
+        max_tokens: args.maxTokens,
+      },
+      signal,
+    );
+    return extractJson(readContent(body));
+  }
+
   private async chat(
     payload: Record<string, unknown>,
     signal?: AbortSignal,

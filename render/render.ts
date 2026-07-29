@@ -150,7 +150,14 @@ async function main() {
   if (visuals?.items?.length) {
     let visualIndex = 0;
     for (const item of visuals.items) {
-      if (!item.src || !/^https?:\/\//i.test(item.src)) continue;
+      if (!item.src) continue;
+      // Bundled art (cliparts) travels as a root-relative path; the bundle
+      // itself is served from file://, so make it plain relative instead.
+      if (item.src.startsWith('/')) {
+        item.src = item.src.slice(1);
+        continue;
+      }
+      if (!/^https?:\/\//i.test(item.src)) continue;
       visualIndex += 1;
       const ext =
         item.src.split('?')[0].match(/\.(png|jpe?g|webp|gif)$/i)?.[1] ?? 'jpg';
@@ -182,7 +189,7 @@ async function main() {
   // linter flags traversal as a real hazard — self-contained is also simply
   // the right shape for a render bundle.
   cpSync(join(ROOT, 'public', 'fonts'), join(workdir, 'fonts'), { recursive: true });
-  for (const dir of ['music', 'backgrounds']) {
+  for (const dir of ['music', 'backgrounds', 'cliparts']) {
     const src = join(ROOT, 'public', dir);
     if (existsSync(src)) cpSync(src, join(workdir, dir), { recursive: true });
   }

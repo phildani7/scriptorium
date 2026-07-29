@@ -101,6 +101,23 @@
       }
       [data-bg='photo'] #bg-photo { display: block; }
       [data-bg='photo'] #bg-fx { display: none; }
+      /* Video: licensed animated loop behind a palette-tinted scrim. The
+         framework owns media playback at render; autoplay covers preview. */
+      #bg-video-holder { position: absolute; inset: 0; display: none; }
+      [data-bg='video'] #bg-video-holder { display: block; }
+      [data-bg='video'] #bg-fx { display: none; }
+      #bg-video { width: 100%; height: 100%; object-fit: cover; }
+      #bg-video-holder::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--t-bg, #111) 62%, transparent),
+          color-mix(in srgb, var(--t-bg, #111) 30%, transparent) 40%,
+          color-mix(in srgb, var(--t-bg, #111) 72%, transparent)
+        );
+      }
       #bg-photo::after {
         content: '';
         position: absolute;
@@ -133,6 +150,8 @@
       /* ---- V2 visuals: timed icons / images, drama per teaching type ---- */
       #visuals { position: absolute; inset: 0; pointer-events: none; }
       .vis { position: absolute; opacity: 0; will-change: transform; }
+      /* Cliparts keep their own full-colour art: no recolor, contained fit. */
+      .vis-clip { object-fit: contain; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.25)); }
       .vis-icon { color: var(--t-accent, #ff4d9d); }
       .vis-icon svg { width: 100%; height: 100%; }
       .vis-img {
@@ -273,6 +292,7 @@
       data-start="0" data-duration="30" data-script="latin" data-dir="ltr">
       <div id="ground"></div>
       <div id="bg-photo"></div>
+      <div id="bg-video-holder"><video id="bg-video" data-start="0" preload="auto" muted playsinline autoplay loop src=""></video></div>
       <div id="bg-fx"></div>
       <div id="particles"></div>
       <div id="flare"></div>
@@ -377,9 +397,10 @@
           var VIS_SLOTS = [[170, 1060], [910, 1060], [170, 1330], [910, 1330]];
           visualItems.forEach(function (item, idx) {
             var isIcon = item.kind === 'icon';
-            var size = isIcon ? 170 : 460;
-            var cx = isIcon ? VIS_SLOTS[item.slot % 4][0] : 540;
-            var cy = isIcon ? VIS_SLOTS[item.slot % 4][1] : 1190;
+            var isClip = item.kind === 'clipart';
+            var size = isIcon ? 170 : isClip ? 250 : 460;
+            var cx = isIcon || isClip ? VIS_SLOTS[item.slot % 4][0] : 540;
+            var cy = isIcon || isClip ? VIS_SLOTS[item.slot % 4][1] : 1190;
             var el;
             if (isIcon) {
               el = document.createElement('div');
@@ -387,7 +408,7 @@
               el.innerHTML = item.svg || '';
             } else {
               el = document.createElement('img');
-              el.className = 'vis vis-img';
+              el.className = isClip ? 'vis vis-clip' : 'vis vis-img';
               el.src = item.src || '';
             }
             el.style.width = size + 'px';

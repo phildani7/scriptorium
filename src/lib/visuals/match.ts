@@ -14,6 +14,7 @@ import type {
   VisualMode,
 } from '@/lib/types';
 import { ICON_BY_TERM } from './icons.generated';
+import { CLIPARTS } from './cliparts';
 
 /** Max simultaneous-ish visuals per short; slots cycle 0..3. */
 const MAX_ITEMS = 4;
@@ -30,6 +31,34 @@ function normalize(word: string): string {
   const w = word.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
   // Light stemming: plural s, possessive s. Enough for a keyword library.
   return w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w;
+}
+
+/**
+ * Both libraries keyed by NORMALIZED term, built once at module load. The
+ * lookup side always normalizes, so un-normalized keys (e.g. "cross", which
+ * stems to "cros") could never match — normalizing the keys too closes that
+ * gap for both libraries at once.
+ */
+const CLIPART_BY_NORM: Record<string, string> = {};
+for (const entry of CLIPARTS) {
+  for (const term of entry.terms) {
+    CLIPART_BY_NORM[normalize(term)] ??= entry.src;
+  }
+}
+const ICON_BY_NORM: Record<string, string> = {};
+for (const [term, svg] of Object.entries(ICON_BY_TERM)) {
+  ICON_BY_NORM[normalize(term)] ??= svg;
+}
+
+type Art = { kind: 'clipart'; src: string } | { kind: 'icon'; svg: string };
+
+/** Full-colour clipart outranks a palette-recolored line icon. */
+function artFor(term: string): Art | null {
+  const clip = CLIPART_BY_NORM[term];
+  if (clip) return { kind: 'clipart', src: clip };
+  const svg = ICON_BY_NORM[term];
+  if (svg) return { kind: 'icon', svg };
+  return null;
 }
 
 /**
@@ -69,10 +98,9 @@ export function matchIcons(device: DeviceItem, narration: Narration): VisualItem
   /** Two visuals landing within 1.2s read as clutter, not rhythm. */
   const clearOf = (t: number) => usedTimes.every((u) => Math.abs(u - t) > 1.2);
 
-  const push = (term: string, time: number, svg: string) => {
+  const push = (term: string, time: number, art: Art) => {
     items.push({
-      kind: 'icon',
-      svg,
+      ...(art.kind === 'clipart' ? { kind: 'clipart' as const, src: art.src } : art),
       term,
       timeSec: Math.round(time * 1000) / 1000,
       slot: items.length % 4,
@@ -85,27 +113,27 @@ export function matchIcons(device: DeviceItem, narration: Narration): VisualItem
   for (const raw of device.visualTerms ?? []) {
     if (items.length >= MAX_ITEMS) break;
     const term = normalize(raw);
-    const svg = ICON_BY_TERM[term];
-    if (!svg || usedTerms.has(term)) continue;
+    const art = artFor(term);
+    if (!art || usedTerms.has(term)) continue;
     const hit = window.find((w) => w.word === term && clearOf(w.time));
     if (hit) {
-      push(term, hit.time, svg);
+      push(term, hit.time, art);
     } else {
       // Not spoken (non-English narration): spread across the window.
       const spread =
         windowStart +
         ((items.length + 1) / (MAX_ITEMS + 1)) * (windowEnd - windowStart);
-      if (clearOf(spread)) push(term, spread, svg);
+      if (clearOf(spread)) push(term, spread, art);
     }
   }
 
-  // 2. Fill remaining slots from narration words that hit the library.
+  // 2. Fill remaining slots from narration words that hit the libraries.
   for (const w of window) {
     if (items.length >= MAX_ITEMS) break;
     if (STOPWORDS.has(w.word) || usedTerms.has(w.word)) continue;
-    const svg = ICON_BY_TERM[w.word];
-    if (!svg || !clearOf(w.time)) continue;
-    push(w.word, w.time, svg);
+    const art = artFor(w.word);
+    if (!art || !clearOf(w.time)) continue;
+    push(w.word, w.time, art);
   }
 
   return items;
