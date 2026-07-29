@@ -32,7 +32,9 @@ import type {
 } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+// Fluid compute allows this even on Hobby; TTS + batch alignment for a long
+// short can genuinely need more than 60 s, and a 504 here loses real work.
+export const maxDuration = 300;
 
 interface ComposeBody {
   passage?: Passage;

@@ -86,10 +86,21 @@ export async function POST(request: Request) {
     }
 
     // --- 2. topical --------------------------------------------------------
-    const references = await getProvider().suggestReferences(input, languageCode);
+    const suggestion = await getProvider().suggestReferences(input, languageCode);
+
+    // A purely technical/commercial topic: declined politely, never
+    // proof-texted. The studio shows the note and stays on the input.
+    if (suggestion.decline) {
+      return NextResponse.json({
+        mode: 'declined',
+        candidates: [],
+        declined: true,
+        message: suggestion.decline,
+      });
+    }
 
     const candidates: Passage[] = [];
-    for (const reference of references.slice(0, 4)) {
+    for (const reference of suggestion.references.slice(0, 4)) {
       const ref = parseReference(reference);
       if (!ref) continue;
       try {

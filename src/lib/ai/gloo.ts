@@ -27,6 +27,7 @@ import {
   type GenerateOptions,
   type GenerationResult,
   ProviderError,
+  type ReferenceSuggestion,
   buildReferenceSuggestionPrompt,
   coerceDevices,
   coerceReferences,
@@ -117,7 +118,7 @@ export class GlooProvider implements AIProvider {
     query: string,
     languageCode: string,
     signal?: AbortSignal,
-  ): Promise<string[]> {
+  ): Promise<ReferenceSuggestion> {
     const languageName = getLanguage(languageCode)?.name ?? languageCode;
     const body = await this.chat(
       {

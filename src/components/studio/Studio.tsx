@@ -325,10 +325,22 @@ export function Studio() {
     setBusy(true);
     setError(null);
     try {
-      const data = await post<{ candidates: Passage[]; notice?: string }>(
-        '/api/resolve',
-        { input, languageCode, versionId },
-      );
+      const data = await post<{
+        candidates: Passage[];
+        notice?: string;
+        declined?: boolean;
+        message?: string;
+      }>('/api/resolve', { input, languageCode, versionId });
+
+      // A topic this tool is not for: show the polite note, stay right here.
+      if (data.declined || data.candidates.length === 0) {
+        setNotice(
+          data.message ??
+            'No passages found — try a reference, a feeling, or a life situation.',
+        );
+        return;
+      }
+
       setNotice(data.notice ?? null);
       setCandidates(data.candidates);
       if (data.candidates.length === 1) {
@@ -476,11 +488,22 @@ export function Studio() {
     setBusy(true);
     setError(null);
     try {
-      const data = await post<{ days: SeriesDay[] }>('/api/series', {
+      const data = await post<{
+        days: SeriesDay[];
+        declined?: boolean;
+        message?: string;
+      }>('/api/series', {
         theme: input,
         days: seriesLen,
         languageCode,
       });
+      if (data.declined || data.days.length === 0) {
+        setNotice(
+          data.message ??
+            'Could not plan a series on that theme — try a feeling or a faith topic.',
+        );
+        return;
+      }
       setSeriesDays(data.days);
       setStep('series');
     } catch (e) {
@@ -781,7 +804,7 @@ export function Studio() {
           </fieldset>
 
           {sourceMode === 'topic' ? (
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <>
               <button
                 type="submit"
                 disabled={busy || !input.trim()}
@@ -790,13 +813,21 @@ export function Studio() {
                 {busy ? 'Finding the passage…' : 'Find the passage'}
               </button>
 
-              <div className="flex items-center gap-2 text-sm text-inksoft">
-                <span>or plan a series:</span>
+              <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-rule bg-ground/60 px-4 py-3">
+                <div className="min-w-48 flex-1">
+                  <div className="text-sm font-semibold text-ink">
+                    Make it a series instead
+                  </div>
+                  <div className="text-xs text-inksoft">
+                    One short a day on this theme — a passage and a lens per
+                    day, planned as an arc.
+                  </div>
+                </div>
                 <select
                   value={seriesLen}
                   onChange={(e) => setSeriesLen(Number(e.target.value))}
                   aria-label="Series length"
-                  className="rounded-lg border border-rule bg-white px-2 py-2"
+                  className="rounded-lg border border-rule bg-white px-2 py-2 text-sm"
                 >
                   {SERIES_LENGTHS.map((n) => (
                     <option key={n} value={n}>
@@ -808,12 +839,12 @@ export function Studio() {
                   type="button"
                   disabled={busy || !input.trim()}
                   onClick={onPlanSeries}
-                  className="rounded-xl border border-rule bg-white px-4 py-2 font-medium text-inksoft transition hover:border-accent disabled:opacity-50"
+                  className="rounded-xl border border-accent px-4 py-2 text-sm font-semibold text-accent transition hover:bg-accentsoft disabled:opacity-50"
                 >
-                  {busy ? 'Planning…' : 'Plan it'}
+                  {busy ? 'Planning…' : 'Plan the series'}
                 </button>
               </div>
-            </div>
+            </>
           ) : (
             <button
               type="submit"
@@ -899,10 +930,14 @@ export function Studio() {
       {step === 'series' && (
         <section className="rounded-2xl border border-rule bg-panel p-8 shadow-sm">
           <h2 className="mb-1 font-display text-3xl">Your series</h2>
-          <p className="mb-6 text-sm text-inksoft">
-            {seriesDays.length} days on “{input}”. Each day is one short; make
-            them in any order — every passage is retrieved from YouVersion when
-            you pick its day.
+          <p className="mb-2 text-sm text-inksoft">
+            {seriesDays.length} days on “{input}”. Pick a day to make its short
+            now — every passage is retrieved from YouVersion when you choose it,
+            and you can come back for the other days in any order.
+          </p>
+          <p className="mb-6 text-xs text-inkfaint">
+            Generating the whole series in one click is coming in the
+            production model.
           </p>
           <div className="grid gap-3">
             {seriesDays.map((d) => (

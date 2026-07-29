@@ -54,7 +54,11 @@ export async function POST(request: Request) {
       maxTokens: 1800,
       schema: SERIES_PLAN_SCHEMA,
     });
-    return NextResponse.json({ days: coerceSeriesPlan(raw).slice(0, days) });
+    const plan = coerceSeriesPlan(raw);
+    if (plan.decline) {
+      return NextResponse.json({ days: [], declined: true, message: plan.decline });
+    }
+    return NextResponse.json({ days: plan.days.slice(0, days) });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: 502 });

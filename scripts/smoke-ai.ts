@@ -54,7 +54,7 @@ async function main() {
     'the fear of being replaced at work',
     'en',
   );
-  console.log(refs.join(' · '));
+  console.log(refs.decline ?? refs.references.join(' · '));
   console.log(
     '\nNote: these are references only. The verse text for each is fetched from',
     'YouVersion, never from the model.',

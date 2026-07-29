@@ -25,6 +25,7 @@ import {
   DEVICE_ARRAY_SCHEMA,
   ProviderError,
   REFERENCE_LIST_SCHEMA,
+  type ReferenceSuggestion,
   type Tradition,
   buildReferenceSuggestionPrompt,
   coerceDevices,
@@ -101,7 +102,7 @@ export class ClaudeProvider implements AIProvider {
     query: string,
     languageCode: string,
     signal?: AbortSignal,
-  ): Promise<string[]> {
+  ): Promise<ReferenceSuggestion> {
     const languageName = getLanguage(languageCode)?.name ?? languageCode;
     const response = await this.send(
       {

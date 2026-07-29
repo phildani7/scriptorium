@@ -23,7 +23,8 @@ import {
 } from '@/lib/theme/options';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+// create_short composes narration inline; give it the same ceiling compose has.
+export const maxDuration = 300;
 
 // Duplicated from the studio's client component on purpose: importing a
 // 'use client' module into a route handler breaks under Turbopack.
@@ -117,11 +118,12 @@ function buildServer(origin: string): McpServer {
       },
     },
     async ({ input, lens, ageGroup, tone, languageCode, versionId }) => {
-      const resolved = await api<{ candidates: Array<Record<string, unknown>> }>(
-        origin,
-        '/api/resolve',
-        { input, languageCode, versionId },
-      );
+      const resolved = await api<{
+        candidates: Array<Record<string, unknown>>;
+        declined?: boolean;
+        message?: string;
+      }>(origin, '/api/resolve', { input, languageCode, versionId });
+      if (resolved.declined) throw new Error(resolved.message ?? 'Topic declined.');
       const passage = resolved.candidates[0];
       if (!passage) throw new Error(`No passage found for "${input}".`);
       const generated = await api<{ devices: unknown[] }>(origin, '/api/generate', {
@@ -193,11 +195,14 @@ function buildServer(origin: string): McpServer {
       },
     },
     async (args) => {
-      const resolved = await api<{ candidates: Array<Record<string, unknown>> }>(
-        origin,
-        '/api/resolve',
-        { input: args.input, languageCode: args.languageCode, versionId: args.versionId },
-      );
+      const resolved = await api<{
+        candidates: Array<Record<string, unknown>>;
+        declined?: boolean;
+        message?: string;
+      }>(origin, '/api/resolve', {
+        input: args.input, languageCode: args.languageCode, versionId: args.versionId,
+      });
+      if (resolved.declined) throw new Error(resolved.message ?? 'Topic declined.');
       const passage = resolved.candidates[0];
       if (!passage) throw new Error(`No passage found for "${args.input}".`);
 

@@ -73,13 +73,14 @@ export interface AIProvider {
   /**
    * Turn a topic or feeling ("anxiety at work") into candidate passage
    * REFERENCES only. The model never supplies verse text — the references come
-   * back here and the text is then fetched from YouVersion.
+   * back here and the text is then fetched from YouVersion. Topics with no
+   * spiritual dimension come back as a polite decline instead of proof-texts.
    */
   suggestReferences(
     query: string,
     languageCode: string,
     signal?: AbortSignal,
-  ): Promise<string[]>;
+  ): Promise<ReferenceSuggestion>;
 
   /**
    * Generic JSON completion for the smaller structured tasks (teaching
@@ -175,10 +176,17 @@ export const REFERENCE_LIST_SCHEMA = {
   type: 'object',
   properties: {
     references: { type: 'array', items: { type: 'string' } },
+    decline: { type: 'string' },
   },
   required: ['references'],
   additionalProperties: false,
 } as const;
+
+/** Suggested references, or a polite decline for a non-spiritual topic. */
+export interface ReferenceSuggestion {
+  references: string[];
+  decline?: string;
+}
 
 /** A teaching mined from a creator's own source text (sermon, notes, article). */
 export interface ExtractedTeaching {
@@ -234,6 +242,7 @@ export const SERIES_PLAN_SCHEMA = {
         additionalProperties: false,
       },
     },
+    decline: { type: 'string' },
   },
   required: ['days'],
   additionalProperties: false,
@@ -310,7 +319,7 @@ export function coerceDevices(value: unknown): DeviceItem[] {
   return devices;
 }
 
-export function coerceReferences(value: unknown): string[] {
+export function coerceReferences(value: unknown): ReferenceSuggestion {
   const list = Array.isArray(value)
     ? value
     : isRecord(value) && Array.isArray(value.references)
@@ -319,9 +328,19 @@ export function coerceReferences(value: unknown): string[] {
 
   if (!list) throw new Error('Expected a JSON array of reference strings.');
 
-  return list
+  const decline =
+    isRecord(value) && typeof value.decline === 'string' && value.decline.trim()
+      ? value.decline.trim()
+      : undefined;
+
+  const references = list
     .filter((r): r is string => typeof r === 'string' && r.trim().length > 0)
     .map((r) => r.trim());
+
+  if (references.length === 0 && !decline) {
+    throw new Error('The response carried neither references nor a decline.');
+  }
+  return { references, decline: references.length === 0 ? decline : undefined };
 }
 
 function isDeviceItem(value: unknown): value is DeviceItem {
@@ -374,9 +393,20 @@ export function coerceTeachings(value: unknown): TeachingExtraction {
   return { teachings, decline: teachings.length === 0 ? decline : undefined };
 }
 
-export function coerceSeriesPlan(value: unknown): SeriesDay[] {
+export interface SeriesPlan {
+  days: SeriesDay[];
+  /** The model's polite one-liner when the theme has no spiritual dimension. */
+  decline?: string;
+}
+
+export function coerceSeriesPlan(value: unknown): SeriesPlan {
   const list = isRecord(value) && Array.isArray(value.days) ? value.days : null;
   if (!list) throw new Error('Expected { days: [...] }.');
+
+  const decline =
+    isRecord(value) && typeof value.decline === 'string' && value.decline.trim()
+      ? value.decline.trim()
+      : undefined;
 
   const days = list.filter(
     (d): d is SeriesDay =>
@@ -388,10 +418,13 @@ export function coerceSeriesPlan(value: unknown): SeriesDay[] {
       typeof d.lens === 'string' &&
       (DEVICE_TYPES as readonly string[]).includes(d.lens),
   );
-  if (days.length === 0) {
+  if (days.length === 0 && !decline) {
     throw new Error('No day in the response had { day, focus, reference, lens }.');
   }
-  return days.sort((a, b) => a.day - b.day);
+  return {
+    days: days.sort((a, b) => a.day - b.day),
+    decline: days.length === 0 ? decline : undefined,
+  };
 }
 
 /**
@@ -454,8 +487,13 @@ export function buildSeriesPlanPrompt(languageName: string, days: number): strin
     '2. No passage repeats. Vary the lenses; pick each day\'s lens for its content,',
     '   not for variety\'s own sake.',
     '3. Prefer passages that address the theme in context — no keyword proof-texts.',
+    '4. Real human situations always qualify. But if the theme is a purely',
+    '   technical, academic, or commercial subject with no honest spiritual',
+    '   dimension, return an empty "days" array plus "decline": one warm',
+    `   sentence in ${languageName} explaining this tool plans Scripture series`,
+    '   about faith and life, and inviting such a theme instead.',
     '',
-    'Return ONLY JSON: { "days": [ { "day", "focus", "reference", "lens" } ] }.',
+    'Return ONLY JSON: { "days": [ { "day", "focus", "reference", "lens" } ], "decline"? }.',
   ].join('\n');
 }
 
@@ -479,8 +517,15 @@ export function buildReferenceSuggestionPrompt(languageName: string): string {
     '3. Prefer passages that genuinely address the topic in context, not proof-texts',
     '   that merely share a keyword.',
     '4. Keep each reference to a single passage of 1-8 verses.',
+    '5. Real human situations always qualify — grief, work stress, parenting,',
+    '   doubt, money, illness. But if the input is a purely technical, academic,',
+    '   or commercial subject with no honest spiritual dimension ("VLSI testing",',
+    '   a product name, homework jargon), do NOT proof-text it. Return an empty',
+    `   "references" array plus "decline": one warm sentence in ${languageName}`,
+    '   explaining this tool makes Scripture shorts about faith and life, and',
+    '   inviting a topic, feeling, or passage instead. Never mock the input.',
     '',
-    'Return ONLY a JSON array of strings. No markdown, no commentary.',
-    'Example: ["Philippians 4:6-7", "Matthew 6:25-34", "1 Peter 5:6-7"]',
+    'Return ONLY JSON: { "references": [ ... ], "decline"? }. No markdown, no commentary.',
+    'Example: { "references": ["Philippians 4:6-7", "Matthew 6:25-34", "1 Peter 5:6-7"] }',
   ].join('\n');
 }

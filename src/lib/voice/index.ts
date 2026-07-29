@@ -156,7 +156,18 @@ export async function synthesizeAndAlign(
     };
   }
 
-  const words = await speechmatics.transcribe(audio, asrCode, { signal });
+  // The transcription supplies only the CLOCK; the words on screen come from
+  // the script regardless. So a slow or failed batch job must never sink the
+  // whole request — degrade to estimated timings and say so via matchRate.
+  let words: Awaited<ReturnType<typeof speechmatics.transcribe>> = [];
+  try {
+    words = await speechmatics.transcribe(audio, asrCode, {
+      signal,
+      timeoutMs: 90_000,
+    });
+  } catch {
+    // timingSource below reports 'estimated'; the UI already surfaces it.
+  }
   const aligned = alignScriptToAudio(script, words, durationSec);
 
   return {
