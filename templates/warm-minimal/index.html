@@ -287,6 +287,16 @@
         font-size: calc(64px * var(--t-scale, 1));
         line-height: 1.55;
       }
+      /* The teaching chunks carry the same Devanagari text as the device;
+         without this override they inherit the Latin display face and its
+         tight leading, which clips matras above and below the baseline. */
+      #short[data-script='devanagari'] .tchunk,
+      #short[data-script='bengali'] .tchunk {
+        font-family: 'Noto Serif Devanagari', serif;
+        font-size: calc(54px * var(--t-scale, 1));
+        line-height: 1.62;
+        letter-spacing: 0;
+      }
       #short[data-dir='rtl'] #stage,
       #short[data-dir='rtl'] #caption-rail { direction: rtl; }
 

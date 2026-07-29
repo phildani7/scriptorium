@@ -193,6 +193,15 @@ export interface ExtractedTeaching {
   title: string;
   summary: string;
   reference: string;
+  /**
+   * Concrete English nouns for the icon/photo libraries — same contract as
+   * DeviceItem.visualTerms. Without these, a doc-sourced short in a
+   * non-English language can never earn a picture: the libraries are keyed in
+   * English and the narration is not.
+   */
+  visualTerms?: string[];
+  /** One-sentence square-image description, for the AI-image mode. */
+  imagePrompt?: string;
 }
 
 export const TEACHING_LIST_SCHEMA = {
@@ -206,8 +215,13 @@ export const TEACHING_LIST_SCHEMA = {
           title: { type: 'string' },
           summary: { type: 'string' },
           reference: { type: 'string' },
+          visualTerms: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+          imagePrompt: { type: 'string' },
         },
-        required: ['title', 'summary', 'reference'],
+        required: ['title', 'summary', 'reference', 'visualTerms', 'imagePrompt'],
         additionalProperties: false,
       },
     },
@@ -378,15 +392,25 @@ export function coerceTeachings(value: unknown): TeachingExtraction {
       ? value.decline.trim()
       : undefined;
 
-  const teachings = list.filter(
-    (t): t is ExtractedTeaching =>
-      isRecord(t) &&
-      typeof t.title === 'string' &&
-      t.title.trim().length > 0 &&
-      typeof t.summary === 'string' &&
-      typeof t.reference === 'string' &&
-      t.reference.trim().length > 0,
-  );
+  const teachings = list
+    .filter(
+      (t): t is ExtractedTeaching =>
+        isRecord(t) &&
+        typeof t.title === 'string' &&
+        t.title.trim().length > 0 &&
+        typeof t.summary === 'string' &&
+        typeof t.reference === 'string' &&
+        t.reference.trim().length > 0,
+    )
+    // The visual fields are best-effort: a malformed entry costs the pictures,
+    // never the teaching.
+    .map((t) => ({
+      ...t,
+      visualTerms: Array.isArray(t.visualTerms)
+        ? t.visualTerms.filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+        : undefined,
+      imagePrompt: typeof t.imagePrompt === 'string' && t.imagePrompt.trim() ? t.imagePrompt : undefined,
+    }));
   if (teachings.length === 0 && !decline) {
     throw new Error('No teaching in the response had { title, summary, reference }.');
   }
@@ -455,6 +479,13 @@ export function buildTeachingExtractionPrompt(languageName: string): string {
     '  choose the most genuinely relevant passage. Use standard English book',
     '  names and numerals, e.g. "Romans 8:1-4". The verse text is retrieved from',
     '  an authoritative Bible API — never write verse text yourself.',
+    '- "visualTerms": 3-5 concrete ENGLISH nouns naming things the teaching',
+    '  literally mentions or evokes (e.g. "shepherd", "storm", "bread", "path") —',
+    '  always English single words regardless of the response language, because',
+    '  they key an icon library. Prefer physical, drawable things.',
+    '- "imagePrompt": ONE English sentence describing a single square',
+    '  photograph-style image illustrating the teaching — concrete scene, warm',
+    '  and reverent, no text in the image, no depiction of God or Jesus\' face.',
     '',
     'Rules:',
     '1. Teachings must come FROM the source, not from your general knowledge of the topic.',
@@ -468,7 +499,8 @@ export function buildTeachingExtractionPrompt(languageName: string): string {
     '   teaching — sermons, devotionals, faith articles. I\'d love to help with a',
     '   document like that." Never mock or judge the source.',
     '',
-    'Return ONLY JSON: { "teachings": [ { "title", "summary", "reference" } ], "decline"? }.',
+    'Return ONLY JSON: { "teachings": [ { "title", "summary", "reference",',
+    '"visualTerms", "imagePrompt" } ], "decline"? }.',
   ].join('\n');
 }
 

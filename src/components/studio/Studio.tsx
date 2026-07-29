@@ -37,6 +37,10 @@ interface ExtractedTeaching {
   title: string;
   summary: string;
   reference: string;
+  /** English nouns for the icon/photo libraries; without them a doc-sourced
+      short in a non-English language can never earn a picture. */
+  visualTerms?: string[];
+  imagePrompt?: string;
 }
 
 interface SeriesDay {
@@ -471,6 +475,8 @@ export function Studio() {
         point: t.summary,
         reference: chosen.reference,
         emoji: '📖',
+        visualTerms: t.visualTerms,
+        imagePrompt: t.imagePrompt,
       };
       setPassage(chosen);
       setDevice(device);
@@ -645,10 +651,22 @@ export function Studio() {
                 {status?.languages.map((l) => (
                   <option key={l.code} value={l.code}>
                     {l.nativeName} — {l.name}
-                    {l.tier === 'full' ? '' : l.tier === 'voiced' ? ' (voiced)' : ' (captions)'}
+                    {l.tier === 'full' ? '' : l.tier === 'voiced' ? ' (voiced)' : ' — no voice yet'}
                   </option>
                 ))}
               </select>
+              {language && language.tier === 'text-first' && (
+                <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  No neural voice exists for {language.name} yet — the short
+                  will show its words on screen with no narration audio.
+                </p>
+              )}
+              {language && language.code !== 'en' && language.tier !== 'text-first' && (
+                <p className="mt-2 text-xs text-inkfaint">
+                  {language.name} narration is generated during export; the
+                  studio preview plays silently.
+                </p>
+              )}
             </Field>
 
             {versions.length > 1 && (
@@ -1055,6 +1073,12 @@ export function Studio() {
             </div>
           )}
 
+          <AudioStatus
+            audioUrl={audioUrl}
+            languageName={language?.name ?? languageCode}
+            tier={language?.tier}
+          />
+
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="relative">
               <PreviewFrame
@@ -1190,6 +1214,47 @@ function NarrationEditor({
         </span>
       </div>
     </div>
+  );
+}
+
+/**
+ * The audio truth, stated where the creator is listening for it. English
+ * narration is synthesized server-side and plays in the preview; every other
+ * voiced language is synthesized inside the export job, so the preview is
+ * silent by design; three languages have no free voice model at all yet.
+ */
+function AudioStatus({
+  audioUrl,
+  languageName,
+  tier,
+}: {
+  audioUrl?: string;
+  languageName: string;
+  tier?: string;
+}) {
+  if (audioUrl) {
+    return (
+      <p className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <strong className="font-semibold">Audio ready</strong> — narration
+        plays in this preview and in the exported MP4.
+      </p>
+    );
+  }
+  if (tier === 'text-first') {
+    return (
+      <p className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <strong className="font-semibold">No voice available</strong> — no free
+        neural voice exists for {languageName} yet. The exported video shows
+        every word on screen but has no narration audio.
+      </p>
+    );
+  }
+  return (
+    <p className="mb-6 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+      <strong className="font-semibold">Silent preview</strong> — the{' '}
+      {languageName} neural voice is generated during export, so this preview
+      plays without sound. The exported MP4 is narrated.
+    </p>
   );
 }
 
