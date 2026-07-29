@@ -196,6 +196,17 @@
       /* Long openings step down instead of clipping at the frame top. */
       #device.longer { font-size: calc(62px * var(--t-scale, 1)); }
       #device.longest { font-size: calc(50px * var(--t-scale, 1)); }
+      /* The thought, staged in word-timed chunks (a few words per screen). */
+      .tchunk {
+        grid-area: 1 / 1;
+        align-self: center;
+        font-family: var(--t-font-display, 'Space Grotesk', sans-serif);
+        font-weight: 700;
+        font-size: calc(56px * var(--t-scale, 1));
+        line-height: 1.24;
+        text-shadow: 0 0 28px color-mix(in srgb, var(--t-accent, #ff4d9d) 28%, transparent);
+        opacity: 0;
+      }
 
       /* ---- verse: a glass slab with a glowing spine ---- */
       #verse-panel { opacity: 0; }
@@ -395,6 +406,31 @@
         var deviceChars = (deviceEl.textContent || '').length;
         if (deviceChars > 300) deviceEl.classList.add('longest');
         else if (deviceChars > 190) deviceEl.classList.add('longer');
+        /* ---- the thought, staged in chunks -----------------------------
+           A few words per screen (about five screens for a typical thought),
+           each chunk timed to its own words, so the stage reads along with
+           the captions instead of holding one line for the whole teaching. */
+        var teachSegStage = null;
+        for (var tsi = 0; tsi < segments.length; tsi += 1) {
+          if (segments[tsi].kind === 'teaching') { teachSegStage = segments[tsi]; break; }
+        }
+        var chunks = [];
+        if (teachSegStage) {
+          var twords = [];
+          for (var twi = teachSegStage.wordStart; twi < teachSegStage.wordEnd; twi += 1) {
+            if (timings[twi]) twords.push(timings[twi]);
+          }
+          var per = Math.max(4, Math.min(12, Math.ceil(twords.length / 5)));
+          var stageEl = document.getElementById('stage');
+          for (var ci = 0; ci < twords.length; ci += per) {
+            var cwds = twords.slice(ci, ci + per);
+            var chunkDiv = document.createElement('div');
+            chunkDiv.className = 'tchunk';
+            chunkDiv.textContent = cwds.map(function (w) { return w.word; }).join(' ');
+            stageEl.appendChild(chunkDiv);
+            chunks.push({ el: chunkDiv, start: cwds[0].start, end: cwds[cwds.length - 1].end });
+          }
+        }
 
         /* ---- V2 visuals: DOM (fixed slot table, deterministic) ---------- */
         var drama = root.getAttribute('data-drama') || '';
@@ -579,7 +615,22 @@
         // the verse slab condenses out of the light.
         tl.fromTo('#flare', { opacity: 0 }, { opacity: 0.85, duration: 0.28, ease: 'power2.in', immediateRender: false }, seam - 0.3);
         tl.to('#flare', { opacity: 0, duration: 0.7, ease: 'power2.out' }, seam);
-        tl.to('#device', { opacity: 0, scale: 1.18, filter: 'blur(12px)', duration: 0.45, ease: 'power4.in' }, seam - 0.4);
+        var deviceExit = chunks.length
+          ? Math.max(0.7, chunks[0].start - 0.45)
+          : seam - 0.4;
+        tl.to('#device', { opacity: 0, scale: 1.18, filter: 'blur(12px)', duration: 0.45, ease: 'power4.in' }, deviceExit);
+        chunks.forEach(function (c, ci2) {
+          var cIn = Math.max(0, c.start - 0.12);
+          var cOut = ci2 === chunks.length - 1
+            ? Math.min(seam - 0.55, c.end + 0.6)
+            : chunks[ci2 + 1].start - 0.12;
+          if (cOut < cIn + 0.35) cOut = cIn + 0.35;
+          tl.fromTo(c.el,
+            { opacity: 0, y: 34, filter: 'blur(6px)' },
+            { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.4, ease: 'power3.out', immediateRender: false }, cIn);
+          tl.to(c.el,
+            { opacity: 0, y: -26, filter: 'blur(6px)', duration: 0.28, ease: 'power2.in' }, cOut - 0.28);
+        });
         if (recipe) {
           tl.fromTo('#verse-panel', recipe.from, enterTo({}), seam + 0.08);
         } else {
@@ -623,16 +674,25 @@
             return;
           }
           var travel = v.travel;
-          var start = Math.max(0.3, Math.min(v.item.timeSec - travel / 2, visExit - travel - 0.3));
-          var fromX = v.dirRight ? -(v.size + 80) : 1080 + 80;
-          var toX = v.dirRight ? 1080 + 80 : -(v.size + 80);
-          tl.fromTo(v.el,
-            { x: fromX, rotation: v.angle },
-            { x: toX, rotation: v.angle + (v.dirRight ? 12 : -12), duration: travel, ease: 'none', immediateRender: false }, start);
-          tl.fromTo(v.el, { opacity: 0 },
-            { opacity: 1, duration: 0.5, ease: 'power1.out', immediateRender: false }, start);
-          tl.fromTo(v.el, { opacity: 1 },
-            { opacity: 0, duration: 0.5, ease: 'power1.in', immediateRender: false }, start + travel - 0.5);
+          var visEnd = duration - 0.4;
+          function crossing(at, angle, dirRight) {
+            var fromX = dirRight ? -(v.size + 80) : 1080 + 80;
+            var toX = dirRight ? 1080 + 80 : -(v.size + 80);
+            tl.fromTo(v.el,
+              { x: fromX, rotation: angle },
+              { x: toX, rotation: angle + (dirRight ? 12 : -12), duration: travel, ease: 'none', immediateRender: false }, at);
+            tl.fromTo(v.el, { opacity: 0 },
+              { opacity: 1, duration: 0.5, ease: 'power1.out', immediateRender: false }, at);
+            tl.fromTo(v.el, { opacity: 1 },
+              { opacity: 0, duration: 0.5, ease: 'power1.in', immediateRender: false }, at + travel - 0.5);
+          }
+          var start = Math.max(0.3, Math.min(v.item.timeSec - travel / 2, visEnd - travel));
+          crossing(start, v.angle, v.dirRight);
+          // Encore pass: art keeps appearing until the captions end.
+          var again = start + travel + 1.2;
+          if (visEnd - again > travel) {
+            crossing(again + rand() * (visEnd - again - travel), -v.angle, !v.dirRight);
+          }
         });
 
         window.__timelines = window.__timelines || {};

@@ -629,16 +629,25 @@
             return;
           }
           var travel = v.travel;
-          var start = Math.max(0.3, Math.min(v.item.timeSec - travel / 2, visExit - travel - 0.3));
-          var fromX = v.dirRight ? -(v.size + 80) : 1080 + 80;
-          var toX = v.dirRight ? 1080 + 80 : -(v.size + 80);
-          tl.fromTo(v.el,
-            { x: fromX, rotation: v.angle },
-            { x: toX, rotation: v.angle + (v.dirRight ? 12 : -12), duration: travel, ease: 'none', immediateRender: false }, start);
-          tl.fromTo(v.el, { opacity: 0 },
-            { opacity: 1, duration: 0.5, ease: 'power1.out', immediateRender: false }, start);
-          tl.fromTo(v.el, { opacity: 1 },
-            { opacity: 0, duration: 0.5, ease: 'power1.in', immediateRender: false }, start + travel - 0.5);
+          var visEnd = duration - 0.4;
+          function crossing(at, angle, dirRight) {
+            var fromX = dirRight ? -(v.size + 80) : 1080 + 80;
+            var toX = dirRight ? 1080 + 80 : -(v.size + 80);
+            tl.fromTo(v.el,
+              { x: fromX, rotation: angle },
+              { x: toX, rotation: angle + (dirRight ? 12 : -12), duration: travel, ease: 'none', immediateRender: false }, at);
+            tl.fromTo(v.el, { opacity: 0 },
+              { opacity: 1, duration: 0.5, ease: 'power1.out', immediateRender: false }, at);
+            tl.fromTo(v.el, { opacity: 1 },
+              { opacity: 0, duration: 0.5, ease: 'power1.in', immediateRender: false }, at + travel - 0.5);
+          }
+          var start = Math.max(0.3, Math.min(v.item.timeSec - travel / 2, visEnd - travel));
+          crossing(start, v.angle, v.dirRight);
+          // Encore pass: art keeps appearing until the captions end.
+          var again = start + travel + 1.2;
+          if (visEnd - again > travel) {
+            crossing(again + rand() * (visEnd - again - travel), -v.angle, !v.dirRight);
+          }
         });
 
         window.__timelines = window.__timelines || {};
