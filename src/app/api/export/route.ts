@@ -2,13 +2,19 @@
  * MP4 export.
  *
  * Vercel functions cannot render video — no Chromium, no FFmpeg, a 60-second
- * ceiling — so export is a hand-off, not a job. Two paths:
+ * ceiling — so export is a hand-off, not a job. Three paths, first available
+ * wins (the preferred one is chosen by `body.backend` or RENDER_BACKEND):
  *
- *   configured  GITHUB_DISPATCH_TOKEN + GITHUB_REPO are set: fire a
+ *   actions     GITHUB_DISPATCH_TOKEN + GITHUB_REPO are set: fire a
  *               repository_dispatch carrying a COMPACT render request. The
  *               Actions runner re-synthesizes narration from its own secrets,
  *               re-fetches the passage (the render gate does that regardless),
  *               renders, and commits the MP4 + poster into the gallery.
+ *
+ *   sandbox     a Vercel Sandbox microVM clones the repo and runs the SAME
+ *               scripts/render-request.ts, detached, then pushes the gallery
+ *               entry with the same bot identity. Kept alongside Actions as a
+ *               deliberate second cloud path — neither replaces the other.
  *
  *   fallback    return the full spec so the creator can render locally with
  *               `npm run render`. Degraded, but never dead.
@@ -22,16 +28,20 @@
 import { NextResponse } from 'next/server';
 import { cleanEnv } from '@/lib/env';
 import { guard } from '@/lib/rate-limit';
+import { launchSandboxRender, sandboxConfigured } from '@/lib/render/sandbox';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+type RenderBackend = 'actions' | 'sandbox';
 
 export async function POST(request: Request) {
   const limited = guard(request, 'export', 10);
   if (limited) return limited;
 
-  let body: { spec?: Record<string, unknown> };
+  let body: { spec?: Record<string, unknown>; backend?: RenderBackend };
   try {
-    body = (await request.json()) as { spec?: Record<string, unknown> };
+    body = (await request.json()) as { spec?: Record<string, unknown>; backend?: RenderBackend };
   } catch {
     return NextResponse.json({ error: 'Body must be JSON.' }, { status: 400 });
   }
@@ -43,8 +53,26 @@ export async function POST(request: Request) {
 
   const token = cleanEnv('GITHUB_DISPATCH_TOKEN');
   const repo = cleanEnv('GITHUB_REPO'); // "owner/name"
+  const actionsAvailable = Boolean(token && repo);
+  const sandboxAvailable = sandboxConfigured();
 
-  if (!token || !repo) {
+  const preferred: RenderBackend =
+    body.backend ?? (cleanEnv('RENDER_BACKEND') as RenderBackend | undefined) ?? 'actions';
+  // Preferred backend first, the other as fallback, local spec last.
+  const backend: RenderBackend | null =
+    preferred === 'sandbox'
+      ? sandboxAvailable
+        ? 'sandbox'
+        : actionsAvailable
+          ? 'actions'
+          : null
+      : actionsAvailable
+        ? 'actions'
+        : sandboxAvailable
+          ? 'sandbox'
+          : null;
+
+  if (!backend) {
     return NextResponse.json({
       queued: false,
       spec,
@@ -79,6 +107,30 @@ export async function POST(request: Request) {
         }
       : undefined,
   };
+
+  if (backend === 'sandbox') {
+    try {
+      const { sandboxId } = await launchSandboxRender(renderRequest);
+      return NextResponse.json({
+        queued: true,
+        message:
+          'Export queued in a Vercel Sandbox microVM. It is verifying the verse ' +
+          'against YouVersion, synthesizing narration, and producing the MP4 — ' +
+          'it lands in the gallery in a few minutes.',
+        sandboxId,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      // The sandbox failing to launch must not kill the export while the
+      // Actions path still exists.
+      if (!actionsAvailable) {
+        return NextResponse.json(
+          { error: `Sandbox render failed to launch: ${message}` },
+          { status: 502 },
+        );
+      }
+    }
+  }
 
   const response = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
     method: 'POST',
