@@ -10,8 +10,8 @@
  * deployments).
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { prepareSandboxRender } from '@/lib/render/sandbox';
 
 function arg(name: string): string | undefined {
@@ -36,9 +36,23 @@ async function main() {
     });
     console.log(await job.output('both'));
     if (job.exitCode !== 0) throw new Error(`render job exited ${job.exitCode}`);
+
+    // Bring the MP4 home. With a push token the gallery commit carries it
+    // anyway; without one this download is the deliverable.
+    const id = String(request.id ?? 'short').replace(/[^\w.-]/g, '-');
+    const remote = `/vercel/sandbox/renders/${id}.mp4`;
+    try {
+      const bytes = await sandbox.fs.readFile(remote);
+      mkdirSync('renders', { recursive: true });
+      const local = join('renders', `${id}.mp4`);
+      writeFileSync(local, Buffer.from(bytes as Uint8Array));
+      console.log(`downloaded  ${local} (${(bytes as Uint8Array).byteLength} bytes)`);
+    } catch (error) {
+      console.warn(`could not download ${remote}: ${error instanceof Error ? error.message : error}`);
+    }
     console.log(
-      'Done. With GITHUB_DISPATCH_TOKEN set the gallery entry was pushed to ' +
-        'the repo — `git pull` to see it.',
+      'Done. With GITHUB_DISPATCH_TOKEN set the gallery entry was also pushed ' +
+        'to the repo — `git pull` to see it.',
     );
   } finally {
     await sandbox.stop().catch(() => undefined);

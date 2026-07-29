@@ -66,7 +66,9 @@ npm install --no-save --no-audit --no-fund ffmpeg-static ffprobe-static
 sudo ln -sf /vercel/sandbox/node_modules/ffmpeg-static/ffmpeg /usr/local/bin/ffmpeg
 sudo ln -sf "$(node -e "console.log(require('ffprobe-static').path)")" /usr/local/bin/ffprobe
 echo "== piper (best effort; English uses Speechmatics)"
-pip3 install --quiet piper-tts || echo "piper unavailable; non-English narration falls back to estimated timings"
+pip3 install --quiet piper-tts 2>/dev/null \
+  || python3 -m pip install --quiet piper-tts 2>/dev/null \
+  || echo "piper unavailable; non-English narration falls back to estimated timings"
 echo "== render"
 npx tsx scripts/render-request.ts --request request.json
 if [ -n "\${GITHUB_PUSH_TOKEN:-}" ]; then
@@ -85,7 +87,8 @@ else
   echo "no GITHUB_PUSH_TOKEN; render kept inside the sandbox only"
 fi
 echo "== done"
-sudo halt || true
+# End the session promptly so a detached VM does not idle until its timeout.
+sudo shutdown -h now 2>/dev/null || sudo poweroff 2>/dev/null || true
 `;
 }
 
