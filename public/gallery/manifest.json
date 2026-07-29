@@ -1,5 +1,20 @@
 [
   {
+    "id": "short-MRK.12.41-44-warm-minimal-ms6mbf9z",
+    "video": "/gallery/short-MRK.12.41-44-warm-minimal-ms6mbf9z.mp4",
+    "poster": "/gallery/short-MRK.12.41-44-warm-minimal-ms6mbf9z.jpg",
+    "reference": "मरकुस 12:41-44",
+    "version": "HHBD",
+    "attribution": "Hindi Holy Bible (HHBD)",
+    "musicCredit": "\"Wounded\" Kevin MacLeod (incompetech.com), CC BY 4.0",
+    "language": "hi",
+    "style": "kinetic-type",
+    "lens": "analogy",
+    "durationSec": 40,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-29"
+  },
+  {
     "id": "short-PRO.3.7-kinetic-type-ms30jpqh",
     "video": "/gallery/short-PRO.3.7-kinetic-type-ms30jpqh.mp4",
     "poster": "/gallery/short-PRO.3.7-kinetic-type-ms30jpqh.jpg",
