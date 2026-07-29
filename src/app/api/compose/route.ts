@@ -48,6 +48,12 @@ interface ComposeBody {
   /** V2: text only, free graphics, or AI images. Default text. */
   visualMode?: VisualMode;
   speakReference?: boolean;
+  /**
+   * Doc-sourced format: speak and display the verse after the teaching
+   * (title → thought → verse → reference). The verse segment then goes
+   * through the verbatim gate below.
+   */
+  speakVerse?: boolean;
 }
 
 export async function POST(request: Request) {
@@ -86,6 +92,7 @@ export async function POST(request: Request) {
     device: effectiveDevice,
     passage,
     speakReference: body.speakReference ?? true,
+    includeVerse: body.speakVerse ?? false,
   });
 
   // --- the gate ------------------------------------------------------------

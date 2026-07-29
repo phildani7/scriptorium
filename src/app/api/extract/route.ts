@@ -81,8 +81,16 @@ export async function POST(request: Request) {
       maxTokens: 2000,
       schema: TEACHING_LIST_SCHEMA,
     });
+    const result = coerceTeachings(raw);
+
+    // Not an error: a document this tool is not for. Declined politely, and
+    // the studio goes straight back to accepting a new source.
+    if (result.decline) {
+      return NextResponse.json({ teachings: [], declined: true, message: result.decline });
+    }
+
     return NextResponse.json({
-      teachings: coerceTeachings(raw),
+      teachings: result.teachings,
       notice: truncated
         ? `The source was long; teachings were mined from the first ${MAX_CHARS.toLocaleString()} characters.`
         : undefined,

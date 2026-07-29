@@ -208,6 +208,9 @@ export function Studio() {
 
   const visualMode: VisualMode = withPictures ? pictureSource : 'text';
 
+  /** Doc-sourced shorts also speak + display the verse after the thought. */
+  const [speakVerse, setSpeakVerse] = useState(false);
+
   /** Turn a chosen device into a rendered preview. Shared by both paths. */
   const compose = useCallback(
     async (
@@ -215,6 +218,7 @@ export function Studio() {
       deviceOverride?: string,
       forPassage?: Passage,
       explanationOverride?: string,
+      withVerse?: boolean,
     ) => {
       const target = forPassage ?? passage;
       if (!target) return;
@@ -232,6 +236,7 @@ export function Studio() {
             languageCode,
             style: styleId,
             theme,
+            speakVerse: withVerse ?? speakVerse,
           },
         );
 
@@ -250,7 +255,7 @@ export function Studio() {
         setBusy(false);
       }
     },
-    [languageCode, passage, post, styleId, theme, bake, visualMode],
+    [languageCode, passage, post, styleId, theme, bake, visualMode, speakVerse],
   );
 
   /** Presentation-only changes: mutate the spec and re-bake. */
@@ -343,6 +348,8 @@ export function Studio() {
     setBusy(true);
     setError(null);
     setPassage(chosenPassage);
+    // Lens-generated shorts cite the verse; only doc-sourced ones quote it.
+    setSpeakVerse(false);
     try {
       const data = await post<{ devices: DeviceItem[] }>('/api/generate', {
         passage: chosenPassage,
@@ -404,16 +411,62 @@ export function Studio() {
       }
       const data = (await response.json()) as {
         teachings?: ExtractedTeaching[];
+        declined?: boolean;
+        message?: string;
         notice?: string;
         error?: string;
       };
       if (!response.ok) throw new Error(data.error || 'Extraction failed.');
+
+      // A document this tool is not for: show the polite note and stay right
+      // here, ready for the next source.
+      if (data.declined) {
+        setNotice(data.message ?? 'This tool turns Christian teaching into Scripture shorts — try a different document.');
+        setSourceFile(null);
+        setSourceText('');
+        return;
+      }
+
       setNotice(data.notice ?? null);
       setTeachings(data.teachings ?? []);
       setStep('teachings');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
+      setBusy(false);
+    }
+  };
+
+  /**
+   * A mined teaching becomes a short directly — no lens generation step.
+   * Opening = the doc's title, teaching = its thought, then the retrieved
+   * verse is spoken and displayed (and gate-checked).
+   */
+  const teachingToShort = async (t: ExtractedTeaching) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await post<{ candidates: Passage[]; notice?: string }>(
+        '/api/resolve',
+        { input: t.reference, languageCode, versionId },
+      );
+      const chosen = data.candidates[0];
+      if (!chosen) throw new Error(`Could not retrieve ${t.reference}.`);
+      const device: DeviceItem = {
+        type: 'summary',
+        content: t.title,
+        explanation: t.summary,
+        point: t.summary,
+        reference: chosen.reference,
+        emoji: '📖',
+      };
+      setPassage(chosen);
+      setDevice(device);
+      setLens('summary');
+      setSpeakVerse(true);
+      await compose(device, undefined, chosen, undefined, true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
       setBusy(false);
     }
   };
@@ -445,6 +498,7 @@ export function Studio() {
     setDevice(null);
     setTeachings([]);
     setSeriesDays([]);
+    setSpeakVerse(false);
     setPreviewHtml('');
     setError(null);
   };
@@ -462,7 +516,7 @@ export function Studio() {
         </div>
       )}
 
-      {notice && step !== 'compose' && (
+      {notice && (
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           {notice}
         </div>
@@ -811,7 +865,8 @@ export function Studio() {
           <h2 className="mb-1 font-display text-3xl">Which teaching?</h2>
           <p className="mb-6 text-sm text-inksoft">
             Mined from your source, each anchored to a passage. Choosing one
-            retrieves that passage from YouVersion and builds the short from it.
+            opens on its title, speaks the thought, then quotes the verse —
+            retrieved from YouVersion, never from your document.
           </p>
           <div className="grid gap-4">
             {teachings.map((t, i) => (
@@ -819,7 +874,7 @@ export function Studio() {
                 key={i}
                 type="button"
                 disabled={busy}
-                onClick={() => void resolveAndGenerate(t.reference)}
+                onClick={() => void teachingToShort(t)}
                 className="rounded-xl border border-rule bg-white p-5 text-left transition hover:border-accent disabled:opacity-50"
               >
                 <div className="mb-2 text-xs font-semibold tracking-widest text-accent uppercase">
@@ -965,7 +1020,7 @@ export function Studio() {
             </div>
           )}
 
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="relative">
               <PreviewFrame
                 html={previewHtml}
@@ -981,6 +1036,7 @@ export function Studio() {
             </div>
 
             <ThemePanel
+              section="side"
               style={styleId}
               theme={theme}
               busy={rebaking}
@@ -988,6 +1044,15 @@ export function Studio() {
               onTheme={applyTheme}
             />
           </div>
+
+          <ThemePanel
+            section="wide"
+            style={styleId}
+            theme={theme}
+            busy={rebaking}
+            onStyle={applyStyle}
+            onTheme={applyTheme}
+          />
 
           {device && (
             <NarrationEditor

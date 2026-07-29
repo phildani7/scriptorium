@@ -90,6 +90,8 @@ interface RenderRequest {
   device: DeviceItem;
   script?: string;
   dir?: string;
+  /** Doc-sourced format: the verse is spoken and displayed after the teaching. */
+  speakVerse?: boolean;
   /** V2: visual mode + any hero items (icons re-derive from the device). */
   visuals?: { mode: VisualMode; items?: VisualItem[] };
 }
@@ -108,7 +110,11 @@ async function main() {
   const id = String(request.id || `short-${Date.now().toString(36)}`).replace(/[^\w.-]/g, '-');
 
   // ---- rebuild narration ---------------------------------------------------
-  const { script, segments } = buildNarrationScript({ device, passage });
+  const { script, segments } = buildNarrationScript({
+    device,
+    passage,
+    includeVerse: Boolean(request.speakVerse),
+  });
 
   // Teaching-format scripts carry no verse segment (the verse is cited, not
   // displayed); render.ts still re-fetches the cited passage and diffs it

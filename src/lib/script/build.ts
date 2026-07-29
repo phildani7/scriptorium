@@ -29,21 +29,31 @@ export interface BuildScriptOptions {
    * where a verse comes from is how people learn to find it again.
    */
   speakReference?: boolean;
+  /**
+   * Doc-sourced format: after the teaching, the verse itself is spoken and
+   * displayed (title → thought → verse → reference). The verse segment goes
+   * through the verbatim gate exactly like the legacy verse-display shape.
+   */
+  includeVerse?: boolean;
 }
 
 export function buildNarrationScript(options: BuildScriptOptions): BuiltScript {
-  const { device, passage, speakReference = true } = options;
+  const { device, passage, speakReference = true, includeVerse = false } = options;
 
   // The current format: device line → the teaching unpacked → citation. The
   // verse is the SOURCE, verified upstream and cited at the end, but its text
-  // is never spoken or displayed. Specs from before this change carry no
-  // explanation, so they keep the original device → verse → reference shape.
+  // is never spoken or displayed — unless `includeVerse` asks for the
+  // doc-sourced shape, which quotes it after the teaching. Specs from before
+  // this change carry no explanation, so they keep the original
+  // device → verse → reference shape.
   const explanation = normalizeSpoken(device.explanation ?? '');
 
   const parts: Array<{ kind: ScriptSegment['kind']; text: string }> = explanation
     ? [
         { kind: 'device', text: normalizeSpoken(device.content) },
         { kind: 'teaching', text: explanation },
+        // Verbatim. The one part of the script that is not ours to shape.
+        ...(includeVerse ? [{ kind: 'verse' as const, text: passage.text }] : []),
       ]
     : [
         { kind: 'device', text: normalizeSpoken(device.content) },
@@ -51,12 +61,13 @@ export function buildNarrationScript(options: BuildScriptOptions): BuiltScript {
         { kind: 'verse', text: passage.text },
       ];
 
+  const verseSpoken = !explanation || includeVerse;
   if (speakReference) {
     parts.push({
       kind: 'reference',
-      text: explanation
-        ? spokenCitation(passage.reference, passage.languageCode)
-        : `${spokenReference(passage.reference, passage.languageCode)}.`,
+      text: verseSpoken
+        ? `${spokenReference(passage.reference, passage.languageCode)}.`
+        : spokenCitation(passage.reference, passage.languageCode),
     });
   }
 

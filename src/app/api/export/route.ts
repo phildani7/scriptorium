@@ -88,9 +88,19 @@ export async function POST(request: Request) {
   const visuals = spec.visuals as
     | { mode?: string; items?: Array<{ kind?: string; src?: string }> }
     | undefined;
+  // Doc-sourced shorts quote the verse; the runner rebuilds narration from
+  // the script, so the shape flag must travel with the request.
+  const specSegments = (spec.narration as { segments?: Array<{ kind?: string }> } | undefined)
+    ?.segments;
+  const speakVerse =
+    Array.isArray(specSegments) &&
+    specSegments.some((s) => s.kind === 'verse') &&
+    Boolean((spec.device as { explanation?: string } | undefined)?.explanation);
+
   const renderRequest = {
     id: spec.id,
     style: spec.style,
+    speakVerse,
     theme: spec.theme ?? {},
     languageCode: spec.languageCode,
     voice: spec.voice,

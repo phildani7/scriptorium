@@ -148,7 +148,7 @@
       }
       .vis-dot { position: absolute; border-radius: 50%; background: var(--t-accent, #e8b04b); opacity: 0; }
       /* Wall and teaching text keep the upper zone when visuals ride along. */
-      #short.has-visuals #teach { bottom: 820px; }
+      /* Pass-through art crosses the lower third; the stage keeps its full height. */
 
       /* ---- the word wall ---- */
       #wall {
@@ -387,7 +387,7 @@
                screen claims to be Scripture — and shows the citation in
                poster type instead. ----------------------------------------- */
         var verseEl = document.getElementById('verse-text');
-        if (!teachingMode) {
+        if (verseSeg) {
           var verseChunks = String(spec.passage.text).split(/\s+/).filter(Boolean);
           verseChunks.forEach(function (word, wi) {
             var span = document.createElement('span');
@@ -430,13 +430,9 @@
         if (visualItems.length) {
           root.classList.add('has-visuals');
           var visHolder = document.getElementById('visuals');
-          var VIS_SLOTS = [[170, 1160], [910, 1160], [170, 1440], [910, 1440]];
           visualItems.forEach(function (item, idx) {
+            var isHero = item.kind === 'photo' || item.kind === 'ai-image';
             var isIcon = item.kind === 'icon';
-            var isClip = item.kind === 'clipart';
-            var size = isIcon ? 170 : isClip ? 250 : 460;
-            var cx = isIcon || isClip ? VIS_SLOTS[item.slot % 4][0] : 540;
-            var cy = isIcon || isClip ? VIS_SLOTS[item.slot % 4][1] : 1300;
             var el;
             if (isIcon) {
               el = document.createElement('div');
@@ -444,42 +440,35 @@
               el.innerHTML = item.svg || '';
             } else {
               el = document.createElement('img');
-              el.className = isClip ? 'vis vis-clip' : 'vis vis-img';
+              el.className = isHero ? 'vis vis-img' : 'vis vis-clip';
               el.src = item.src || '';
             }
-            el.style.width = size + 'px';
-            el.style.height = size + 'px';
-            el.style.left = (cx - size / 2) + 'px';
-            el.style.top = (cy - size / 2) + 'px';
-
-            var glow = null;
-            if (drama === 'object-lesson') {
-              glow = document.createElement('div');
-              glow.className = 'vis-glow';
-              var g = size * 1.9;
-              glow.style.width = g + 'px';
-              glow.style.height = g + 'px';
-              glow.style.left = (cx - g / 2) + 'px';
-              glow.style.top = (cy - g / 2) + 'px';
-              visHolder.appendChild(glow);
+            if (isHero) {
+              var size = 460;
+              el.style.width = size + 'px';
+              el.style.height = size + 'px';
+              el.style.left = (540 - size / 2) + 'px';
+              el.style.top = (1300 - size / 2) + 'px';
+              visHolder.appendChild(el);
+              vis.push({ item: item, el: el, idx: idx, hero: true });
+            } else {
+              /* Pass-through art: full colour, sized and angled by the seeded
+                 PRNG, crossing the lower third around its spoken moment. It
+                 never parks, so it can never crowd the text. */
+              var span = isIcon ? 150 : 200 + Math.round(rand() * 80);
+              var cy = 1330 + rand() * 240;
+              el.style.width = span + 'px';
+              el.style.height = span + 'px';
+              el.style.left = '0px';
+              el.style.top = (cy - span / 2) + 'px';
+              visHolder.appendChild(el);
+              vis.push({
+                item: item, el: el, idx: idx, hero: false, size: span,
+                angle: (rand() - 0.5) * 36,
+                dirRight: idx % 2 === 0,
+                travel: 4.5 + rand() * 2,
+              });
             }
-            visHolder.appendChild(el);
-
-            var dots = [];
-            if (drama === 'punch-line') {
-              for (var vd = 0; vd < 6; vd += 1) {
-                var dot = document.createElement('div');
-                dot.className = 'vis-dot';
-                var ds = 8 + ((idx * 7 + vd * 3) % 8);
-                dot.style.width = ds + 'px';
-                dot.style.height = ds + 'px';
-                dot.style.left = (cx - ds / 2) + 'px';
-                dot.style.top = (cy - ds / 2) + 'px';
-                visHolder.appendChild(dot);
-                dots.push(dot);
-              }
-            }
-            vis.push({ item: item, el: el, glow: glow, dots: dots, idx: idx });
           });
         }
 
@@ -515,7 +504,7 @@
         var seam = teachingMode
           ? Math.max(0.9, teachStart - 0.5)
           : Math.max(0.9, verseStart - 0.5);
-        var seam2 = teachingMode ? Math.max(seam + 0.8, refStart - 0.5) : seam;
+        var seam2 = teachingMode ? Math.max(seam + 0.8, (verseSeg ? verseStart : refStart) - 0.5) : seam;
 
         /* ---- text-motion recipes (data-anim) ---------------------------
            A recipe changes how stage text ENTERS, never when — wall and
@@ -624,54 +613,32 @@
           }
         }
 
-        /* ---- V2 visuals: drama (clears the frame before the citation) --- */
+        /* ---- V2 visuals -------------------------------------------------
+           Heroes keep a centered entrance; pass-through art crosses the
+           lower third at its own angle and pace, timed to the spoken word.
+           All fromTo with explicit from-states: seek-safe both ways. */
         var visExit = seam2;
         vis.forEach(function (v) {
-          var at = Math.max(0.4, Math.min(v.item.timeSec, visExit - 1.6));
-          var side = v.idx % 2 === 0 ? -1 : 1;
-          if (drama === 'hook') {
+          if (v.hero) {
+            var at = Math.max(0.4, Math.min(v.item.timeSec, visExit - 1.6));
             tl.fromTo(v.el,
-              { opacity: 0, scale: 3, rotation: side * 7, filter: 'blur(14px)' },
-              { opacity: 1, scale: 1, rotation: 0, filter: 'blur(0px)', duration: 0.5, ease: 'power4.out', immediateRender: false }, at);
-          } else if (drama === 'analogy') {
-            tl.fromTo(v.el,
-              { opacity: 0, x: side * 300, rotationY: side * -22, transformPerspective: 700 },
-              { opacity: 1, x: 0, rotationY: 0, duration: 0.6, ease: 'power4.out', immediateRender: false }, at);
-          } else if (drama === 'punch-line') {
-            tl.fromTo(v.el,
-              { opacity: 0, scale: 0 },
-              { opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(2.4)', immediateRender: false }, at);
-            v.dots.forEach(function (dot, di) {
-              var ang = (di / Math.max(1, v.dots.length)) * Math.PI * 2 + v.idx * 0.7;
-              tl.fromTo(dot,
-                { x: 0, y: 0, opacity: 0.9, scale: 1 },
-                { x: Math.cos(ang) * 130, y: Math.sin(ang) * 130, opacity: 0, scale: 0.4, duration: 0.55, ease: 'power2.out', immediateRender: false }, at + 0.08);
-            });
-          } else if (drama === 'object-lesson') {
-            if (v.glow) {
-              tl.fromTo(v.glow, { opacity: 0, scale: 0.7 },
-                { opacity: 0.5, scale: 1, duration: 0.9, ease: 'power2.out', immediateRender: false }, at);
-            }
-            tl.fromTo(v.el,
-              { opacity: 0, scale: 1.5, filter: 'blur(16px)' },
-              { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.9, ease: 'power3.out', immediateRender: false }, at);
-          } else {
-            tl.fromTo(v.el,
-              { opacity: 0, y: -120, rotation: side * 5 },
-              { opacity: 1, y: 0, rotation: 0, duration: 0.6, ease: 'back.out(1.4)', immediateRender: false }, at);
+              { opacity: 0, scale: 0.92, y: 30, filter: 'blur(10px)' },
+              { opacity: 1, scale: 1, y: 0, filter: 'blur(0px)', duration: 0.7, ease: 'power3.out', immediateRender: false }, at);
+            tl.fromTo(v.el, { opacity: 1, scale: 1 },
+              { opacity: 0, scale: 0.94, duration: 0.3, ease: 'power2.in', immediateRender: false }, visExit - 0.32);
+            return;
           }
-          var holdStart = at + 1.1;
-          var holdSpan = visExit - 0.4 - holdStart;
-          if (holdSpan > 1 && (drama === 'illustration' || drama === 'object-lesson')) {
-            tl.fromTo(v.el, { y: 0 },
-              { y: -14, duration: holdSpan, ease: 'sine.inOut', immediateRender: false }, holdStart);
-          }
-          tl.fromTo(v.el, { opacity: 1, scale: 1 },
-            { opacity: 0, scale: 0.92, duration: 0.3, ease: 'power2.in', immediateRender: false }, visExit - 0.32);
-          if (v.glow) {
-            tl.fromTo(v.glow, { opacity: 0.5 },
-              { opacity: 0, duration: 0.3, immediateRender: false }, visExit - 0.32);
-          }
+          var travel = v.travel;
+          var start = Math.max(0.3, Math.min(v.item.timeSec - travel / 2, visExit - travel - 0.3));
+          var fromX = v.dirRight ? -(v.size + 80) : 1080 + 80;
+          var toX = v.dirRight ? 1080 + 80 : -(v.size + 80);
+          tl.fromTo(v.el,
+            { x: fromX, rotation: v.angle },
+            { x: toX, rotation: v.angle + (v.dirRight ? 12 : -12), duration: travel, ease: 'none', immediateRender: false }, start);
+          tl.fromTo(v.el, { opacity: 0 },
+            { opacity: 1, duration: 0.5, ease: 'power1.out', immediateRender: false }, start);
+          tl.fromTo(v.el, { opacity: 1 },
+            { opacity: 0, duration: 0.5, ease: 'power1.in', immediateRender: false }, start + travel - 0.5);
         });
 
         window.__timelines = window.__timelines || {};
@@ -682,7 +649,7 @@
            render-time refetch. */
         window.__verifyVerse = function () {
           var rendered = document.getElementById('verse-text').textContent || '';
-          if (teachingMode) return rendered === '';
+          if (!verseSeg) return rendered === '';
           var norm = function (s) {
             return s.normalize('NFC').replace(/[﻿­‎‏‪-‮⁦-⁩]/g, '').replace(/\s+/g, ' ').trim();
           };

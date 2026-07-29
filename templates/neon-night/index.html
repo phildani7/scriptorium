@@ -172,7 +172,7 @@
         opacity: 0;
       }
       /* Stage text moves up when visuals ride along; the band is theirs. */
-      #short.has-visuals #stage { bottom: 900px; }
+      /* Pass-through art crosses the lower third; the stage keeps its full height. */
 
       /* ---- device ---- */
       #stage {
@@ -193,6 +193,9 @@
       }
       #device .w { display: inline-block; opacity: 0; }
       #device .w.hot { color: var(--t-accent, #ff4d9d); }
+      /* Long openings step down instead of clipping at the frame top. */
+      #device.longer { font-size: calc(62px * var(--t-scale, 1)); }
+      #device.longest { font-size: calc(50px * var(--t-scale, 1)); }
 
       /* ---- verse: a glass slab with a glowing spine ---- */
       #verse-panel { opacity: 0; }
@@ -365,9 +368,12 @@
         // teaches, the captions carry it, and the slab closes on the
         // citation. Verse-display specs keep the quoted-verse climax.
         var teachingMode = segments.some(function (s) { return s.kind === 'teaching'; });
+        // Doc-sourced shorts SPEAK and DISPLAY the verse after the teaching;
+        // the panel then quotes it verbatim and the gate checks it.
+        var hasVerse = segments.some(function (s) { return s.kind === 'verse'; });
 
         var verseEl = document.getElementById('verse-text');
-        if (teachingMode) {
+        if (!hasVerse) {
           document.getElementById('citation-text').textContent = spec.passage.reference;
         } else {
           verseEl.textContent = spec.passage.text;
@@ -386,6 +392,9 @@
             if (i < all.length - 1) deviceEl.appendChild(document.createTextNode(' '));
           });
         var deviceSpans = deviceEl.querySelectorAll('.w');
+        var deviceChars = (deviceEl.textContent || '').length;
+        if (deviceChars > 300) deviceEl.classList.add('longest');
+        else if (deviceChars > 190) deviceEl.classList.add('longer');
 
         /* ---- V2 visuals: DOM (fixed slot table, deterministic) ---------- */
         var drama = root.getAttribute('data-drama') || '';
@@ -394,13 +403,9 @@
         if (visualItems.length) {
           root.classList.add('has-visuals');
           var visHolder = document.getElementById('visuals');
-          var VIS_SLOTS = [[170, 1060], [910, 1060], [170, 1330], [910, 1330]];
           visualItems.forEach(function (item, idx) {
+            var isHero = item.kind === 'photo' || item.kind === 'ai-image';
             var isIcon = item.kind === 'icon';
-            var isClip = item.kind === 'clipart';
-            var size = isIcon ? 170 : isClip ? 250 : 460;
-            var cx = isIcon || isClip ? VIS_SLOTS[item.slot % 4][0] : 540;
-            var cy = isIcon || isClip ? VIS_SLOTS[item.slot % 4][1] : 1190;
             var el;
             if (isIcon) {
               el = document.createElement('div');
@@ -408,42 +413,35 @@
               el.innerHTML = item.svg || '';
             } else {
               el = document.createElement('img');
-              el.className = isClip ? 'vis vis-clip' : 'vis vis-img';
+              el.className = isHero ? 'vis vis-img' : 'vis vis-clip';
               el.src = item.src || '';
             }
-            el.style.width = size + 'px';
-            el.style.height = size + 'px';
-            el.style.left = (cx - size / 2) + 'px';
-            el.style.top = (cy - size / 2) + 'px';
-
-            var glow = null;
-            if (drama === 'object-lesson') {
-              glow = document.createElement('div');
-              glow.className = 'vis-glow';
-              var g = size * 1.9;
-              glow.style.width = g + 'px';
-              glow.style.height = g + 'px';
-              glow.style.left = (cx - g / 2) + 'px';
-              glow.style.top = (cy - g / 2) + 'px';
-              visHolder.appendChild(glow);
+            if (isHero) {
+              var size = 460;
+              el.style.width = size + 'px';
+              el.style.height = size + 'px';
+              el.style.left = (540 - size / 2) + 'px';
+              el.style.top = (1190 - size / 2) + 'px';
+              visHolder.appendChild(el);
+              vis.push({ item: item, el: el, idx: idx, hero: true });
+            } else {
+              /* Pass-through art: full colour, sized and angled by the seeded
+                 PRNG, crossing the lower third around its spoken moment. It
+                 never parks, so it can never crowd the text. */
+              var span = isIcon ? 150 : 200 + Math.round(rand() * 80);
+              var cy = 1330 + rand() * 240;
+              el.style.width = span + 'px';
+              el.style.height = span + 'px';
+              el.style.left = '0px';
+              el.style.top = (cy - span / 2) + 'px';
+              visHolder.appendChild(el);
+              vis.push({
+                item: item, el: el, idx: idx, hero: false, size: span,
+                angle: (rand() - 0.5) * 36,
+                dirRight: idx % 2 === 0,
+                travel: 4.5 + rand() * 2,
+              });
             }
-            visHolder.appendChild(el);
-
-            var dots = [];
-            if (drama === 'punch-line') {
-              for (var vd = 0; vd < 6; vd += 1) {
-                var dot = document.createElement('div');
-                dot.className = 'vis-dot';
-                var ds = 8 + ((idx * 7 + vd * 3) % 8);
-                dot.style.width = ds + 'px';
-                dot.style.height = ds + 'px';
-                dot.style.left = (cx - ds / 2) + 'px';
-                dot.style.top = (cy - ds / 2) + 'px';
-                visHolder.appendChild(dot);
-                dots.push(dot);
-              }
-            }
-            vis.push({ item: item, el: el, glow: glow, dots: dots, idx: idx });
           });
         }
 
@@ -509,7 +507,7 @@
         var verseRange = rangeOf('verse') || { start: duration * 0.45, end: duration };
         // In teaching mode the device holds the stage while the narration
         // teaches; the flare seam moves to the closing citation.
-        var climaxStart = teachingMode
+        var climaxStart = !hasVerse
           ? (rangeOf('reference') || { start: duration * 0.86, end: duration }).start
           : verseRange.start;
         var seam = Math.max(0.9, climaxStart - 0.55);
@@ -609,54 +607,32 @@
           });
         });
 
-        /* ---- V2 visuals: drama (clears the frame before the seam) ------- */
+        /* ---- V2 visuals -------------------------------------------------
+           Heroes keep a centered entrance; pass-through art crosses the
+           lower third at its own angle and pace, timed to the spoken word.
+           All fromTo with explicit from-states: seek-safe both ways. */
         var visExit = seam;
         vis.forEach(function (v) {
-          var at = Math.max(0.4, Math.min(v.item.timeSec, visExit - 1.6));
-          var side = v.idx % 2 === 0 ? -1 : 1;
-          if (drama === 'hook') {
+          if (v.hero) {
+            var at = Math.max(0.4, Math.min(v.item.timeSec, visExit - 1.6));
             tl.fromTo(v.el,
-              { opacity: 0, scale: 3, rotation: side * 7, filter: 'blur(14px)' },
-              { opacity: 1, scale: 1, rotation: 0, filter: 'blur(0px)', duration: 0.5, ease: 'power4.out', immediateRender: false }, at);
-          } else if (drama === 'analogy') {
-            tl.fromTo(v.el,
-              { opacity: 0, x: side * 300, rotationY: side * -22, transformPerspective: 700 },
-              { opacity: 1, x: 0, rotationY: 0, duration: 0.6, ease: 'power4.out', immediateRender: false }, at);
-          } else if (drama === 'punch-line') {
-            tl.fromTo(v.el,
-              { opacity: 0, scale: 0 },
-              { opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(2.4)', immediateRender: false }, at);
-            v.dots.forEach(function (dot, di) {
-              var ang = (di / Math.max(1, v.dots.length)) * Math.PI * 2 + v.idx * 0.7;
-              tl.fromTo(dot,
-                { x: 0, y: 0, opacity: 0.9, scale: 1 },
-                { x: Math.cos(ang) * 130, y: Math.sin(ang) * 130, opacity: 0, scale: 0.4, duration: 0.55, ease: 'power2.out', immediateRender: false }, at + 0.08);
-            });
-          } else if (drama === 'object-lesson') {
-            if (v.glow) {
-              tl.fromTo(v.glow, { opacity: 0, scale: 0.7 },
-                { opacity: 0.5, scale: 1, duration: 0.9, ease: 'power2.out', immediateRender: false }, at);
-            }
-            tl.fromTo(v.el,
-              { opacity: 0, scale: 1.5, filter: 'blur(16px)' },
-              { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.9, ease: 'power3.out', immediateRender: false }, at);
-          } else {
-            tl.fromTo(v.el,
-              { opacity: 0, y: -120, rotation: side * 5 },
-              { opacity: 1, y: 0, rotation: 0, duration: 0.6, ease: 'back.out(1.4)', immediateRender: false }, at);
+              { opacity: 0, scale: 0.92, y: 30, filter: 'blur(10px)' },
+              { opacity: 1, scale: 1, y: 0, filter: 'blur(0px)', duration: 0.7, ease: 'power3.out', immediateRender: false }, at);
+            tl.fromTo(v.el, { opacity: 1, scale: 1 },
+              { opacity: 0, scale: 0.94, duration: 0.3, ease: 'power2.in', immediateRender: false }, visExit - 0.32);
+            return;
           }
-          var holdStart = at + 1.1;
-          var holdSpan = visExit - 0.4 - holdStart;
-          if (holdSpan > 1 && (drama === 'illustration' || drama === 'object-lesson')) {
-            tl.fromTo(v.el, { y: 0 },
-              { y: -14, duration: holdSpan, ease: 'sine.inOut', immediateRender: false }, holdStart);
-          }
-          tl.fromTo(v.el, { opacity: 1, scale: 1 },
-            { opacity: 0, scale: 0.92, duration: 0.3, ease: 'power2.in', immediateRender: false }, visExit - 0.32);
-          if (v.glow) {
-            tl.fromTo(v.glow, { opacity: 0.5 },
-              { opacity: 0, duration: 0.3, immediateRender: false }, visExit - 0.32);
-          }
+          var travel = v.travel;
+          var start = Math.max(0.3, Math.min(v.item.timeSec - travel / 2, visExit - travel - 0.3));
+          var fromX = v.dirRight ? -(v.size + 80) : 1080 + 80;
+          var toX = v.dirRight ? 1080 + 80 : -(v.size + 80);
+          tl.fromTo(v.el,
+            { x: fromX, rotation: v.angle },
+            { x: toX, rotation: v.angle + (v.dirRight ? 12 : -12), duration: travel, ease: 'none', immediateRender: false }, start);
+          tl.fromTo(v.el, { opacity: 0 },
+            { opacity: 1, duration: 0.5, ease: 'power1.out', immediateRender: false }, start);
+          tl.fromTo(v.el, { opacity: 1 },
+            { opacity: 0, duration: 0.5, ease: 'power1.in', immediateRender: false }, start + travel - 0.5);
         });
 
         window.__timelines = window.__timelines || {};
@@ -667,7 +643,7 @@
            render-time refetch. */
         window.__verifyVerse = function () {
           var rendered = document.getElementById('verse-text').textContent || '';
-          if (teachingMode) return rendered === '';
+          if (!hasVerse) return rendered === '';
           var norm = function (s) {
             return s.normalize('NFC').replace(/[﻿­‎‏‪-‮⁦-⁩]/g, '').replace(/\s+/g, ' ').trim();
           };

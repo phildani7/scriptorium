@@ -203,6 +203,7 @@ export const TEACHING_LIST_SCHEMA = {
         additionalProperties: false,
       },
     },
+    decline: { type: 'string' },
   },
   required: ['teachings'],
   additionalProperties: false,
@@ -342,10 +343,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-export function coerceTeachings(value: unknown): ExtractedTeaching[] {
+export interface TeachingExtraction {
+  teachings: ExtractedTeaching[];
+  /** The model's polite one-liner when the source has no Christian content. */
+  decline?: string;
+}
+
+export function coerceTeachings(value: unknown): TeachingExtraction {
   const list =
     isRecord(value) && Array.isArray(value.teachings) ? value.teachings : null;
   if (!list) throw new Error('Expected { teachings: [...] }.');
+
+  const decline =
+    isRecord(value) && typeof value.decline === 'string' && value.decline.trim()
+      ? value.decline.trim()
+      : undefined;
 
   const teachings = list.filter(
     (t): t is ExtractedTeaching =>
@@ -356,10 +368,10 @@ export function coerceTeachings(value: unknown): ExtractedTeaching[] {
       typeof t.reference === 'string' &&
       t.reference.trim().length > 0,
   );
-  if (teachings.length === 0) {
+  if (teachings.length === 0 && !decline) {
     throw new Error('No teaching in the response had { title, summary, reference }.');
   }
-  return teachings;
+  return { teachings, decline: teachings.length === 0 ? decline : undefined };
 }
 
 export function coerceSeriesPlan(value: unknown): SeriesDay[] {
@@ -393,20 +405,30 @@ export function buildTeachingExtractionPrompt(languageName: string): string {
     'devotional, a transcript — and wants to turn its teachings into Scripture',
     'shorts. Mine the text for its distinct teachings.',
     '',
-    'Return 3 to 5 teachings. For each:',
-    '- "title": the teaching in a short phrase (max ~8 words), in the source\'s own spirit.',
-    `- "summary": 1-2 sentences in ${languageName} capturing what the SOURCE argues or teaches.`,
-    '- "reference": ONE canonical Bible passage (1-8 verses) that genuinely anchors this',
-    '  teaching. If the source itself cites a passage for it, prefer that citation.',
-    '  Use standard English book names and numerals, e.g. "Romans 8:1-4". The verse',
-    '  text is retrieved from an authoritative Bible API — never write verse text yourself.',
+    'Each teaching becomes a short that OPENS on its title, then speaks the',
+    'thought, then quotes the anchoring verse. So for each teaching:',
+    '- "title": a short opening line (max ~8 words) in the source\'s own spirit —',
+    '  it is the first thing on screen, so make it land.',
+    `- "summary": the THOUGHT — 1-3 spoken sentences in ${languageName} carrying what`,
+    '  the SOURCE itself argues, in warm spoken prose a narrator can read aloud.',
+    '- "reference": ONE canonical Bible passage (1-4 verses). STRONGLY prefer a',
+    '  passage the source itself cites for this point; only if it cites none,',
+    '  choose the most genuinely relevant passage. Use standard English book',
+    '  names and numerals, e.g. "Romans 8:1-4". The verse text is retrieved from',
+    '  an authoritative Bible API — never write verse text yourself.',
     '',
     'Rules:',
     '1. Teachings must come FROM the source, not from your general knowledge of the topic.',
-    '2. Distinct teachings — no restatements of the same point.',
+    '2. Distinct teachings — no restatements of the same point. Return 3 to 5.',
     '3. Skip anything that has no honest scriptural anchor rather than proof-texting it.',
+    '4. If the source contains no Christian or biblical teaching content at all',
+    '   (a technical manual, a secular essay, marketing copy, another religion\'s',
+    '   scripture), do NOT force teachings out of it. Return an empty "teachings"',
+    `   array plus "decline": one warm, respectful sentence in ${languageName}`,
+    '   explaining that this tool turns Christian teaching into Scripture shorts',
+    '   and inviting a different document. Never mock or judge the source.',
     '',
-    'Return ONLY JSON: { "teachings": [ { "title", "summary", "reference" } ] }.',
+    'Return ONLY JSON: { "teachings": [ { "title", "summary", "reference" } ], "decline"? }.',
   ].join('\n');
 }
 
