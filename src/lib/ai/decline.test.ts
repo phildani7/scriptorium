@@ -70,8 +70,9 @@ test('a wordy decline is still a decline', () => {
     'and I would not want to attach a passage to it just because a word ' +
     'happens to overlap, because that is the kind of proof-texting this tool ' +
     'is built to avoid. If you are facing something personal or spiritual, ' +
-    'even loosely connected to your work, I would be glad to help you find ' +
-    'passages that genuinely speak to it.';
+    'even loosely connected to your work, such as the pressure of a deadline ' +
+    'or the fear of falling behind, I would be glad to help you find passages ' +
+    'that genuinely speak to it.';
   assert.ok(wordy.length > 600, 'sample must exceed the old cap to be a regression test');
   const result = readReferenceResponse(wordy);
   assert.deepEqual(result.references, []);
