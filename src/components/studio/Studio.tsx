@@ -530,6 +530,7 @@ export function Studio() {
         days: SeriesDay[];
         declined?: boolean;
         message?: string;
+        notice?: string;
       }>('/api/series', {
         theme: input,
         days: seriesLen,
@@ -542,6 +543,7 @@ export function Studio() {
         );
         return;
       }
+      setNotice(data.notice ?? null);
       setSeriesDays(data.days);
       setStep('series');
     } catch (e) {

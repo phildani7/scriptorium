@@ -48,17 +48,51 @@ export async function POST(request: Request) {
   try {
     const languageName =
       getLanguage(body.languageCode ?? 'en')?.name ?? 'English';
-    const raw = await getProvider().completeJson({
-      system: buildSeriesPlanPrompt(languageName, days),
-      user: `Theme: ${theme}`,
-      maxTokens: 1800,
-      schema: SERIES_PLAN_SCHEMA,
-    });
-    const plan = coerceSeriesPlan(raw);
+    const provider = getProvider();
+
+    const ask = (extra = '') =>
+      provider.completeJson({
+        system: buildSeriesPlanPrompt(languageName, days),
+        user: `Theme: ${theme}${extra}`,
+        maxTokens: 1800,
+        schema: SERIES_PLAN_SCHEMA,
+      });
+
+    let plan = coerceSeriesPlan(await ask());
+
+    // The creator picked "3 days" from a dropdown, so three is a promise, not
+    // a hint. The model honours it most of the time and quietly returns two
+    // the rest, which reads as the app losing a day. One retry costs a few
+    // seconds and turns an occasional visible defect into a rare one.
+    if (!plan.decline && plan.days.length < days) {
+      const short = plan.days.length;
+      const retry = coerceSeriesPlan(
+        await ask(
+          `\n\nIMPORTANT: your previous attempt returned only ${short} ` +
+            `day${short === 1 ? '' : 's'}. Return exactly ${days}, numbered 1 to ${days}.`,
+        ),
+      );
+      if (retry.days.length > plan.days.length) plan = retry;
+    }
+
     if (plan.decline) {
       return NextResponse.json({ days: [], declined: true, message: plan.decline });
     }
-    return NextResponse.json({ days: plan.days.slice(0, days) });
+
+    // Renumber after slicing: a model that skips a number leaves days 1, 2, 4,
+    // and a series that visibly skips day 3 looks broken even when the
+    // passages are good.
+    const planned = plan.days
+      .slice(0, days)
+      .map((entry, index) => ({ ...entry, day: index + 1 }));
+
+    return NextResponse.json({
+      days: planned,
+      notice:
+        planned.length < days
+          ? `Planned ${planned.length} days instead of ${days} — the model could not find ${days} distinct passages for this theme. Try a broader theme, or make the shorts you have.`
+          : undefined,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: 502 });

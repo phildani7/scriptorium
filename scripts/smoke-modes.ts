@@ -191,10 +191,19 @@ async function main() {
   });
 
   await check('series planning', async () => {
-    const r = await post<{ days: Array<{ reference: string; lens: string }> }>('/api/series', {
-      theme: 'learning to rest', days: 3, languageCode: 'en',
-    });
-    if (r.days.length !== 3) throw new Error(`expected 3 days, got ${r.days.length}`);
+    const r = await post<{
+      days: Array<{ day: number; reference: string; lens: string }>;
+      notice?: string;
+    }>('/api/series', { theme: 'learning to rest', days: 3, languageCode: 'en' });
+
+    if (r.days.length !== 3) {
+      throw new Error(`expected 3 days, got ${r.days.length}${r.notice ? ` — ${r.notice}` : ''}`);
+    }
+    // The creator picked a number from a dropdown; skipped or repeated day
+    // numbers make the plan look broken even when the passages are good.
+    const numbers = r.days.map((d) => d.day).join(',');
+    if (numbers !== '1,2,3') throw new Error(`days misnumbered: ${numbers}`);
+
     return r.days.map((d) => `${d.reference} (${d.lens})`).join(', ');
   });
 
@@ -213,11 +222,35 @@ async function main() {
   await check('free graphics', async () =>
     assertShape(await makeShort('Psalm 23:1', 'analogy', 'free'), 'free'));
 
-  await check('AI images — reuses a panel', async () =>
-    assertShape(await makeShort('Luke 15:20', 'illustration', 'ai'), 'ai'));
+  // Both AI branches, asserted together rather than one apiece.
+  //
+  // Which branch a single short takes depends on the nouns the model happened
+  // to pick for it, and that varies run to run: Luke 15:20 reuses a panel
+  // about nine times in ten, not ten. Pinning each passage to a fixed outcome
+  // would make this suite flake for a reason that is not a defect. What must
+  // hold is that BOTH paths work — a passage the library covers reuses, one it
+  // does not generates — so the pair is checked as a pair.
+  await check('AI images — reuse and generation both work', async () => {
+    const covered = await makeShort('Luke 15:20', 'illustration', 'ai');
+    const uncovered = await makeShort('Ephesians 2:19-20', 'analogy', 'ai');
 
-  await check('AI images — generates when none fits', async () =>
-    assertShape(await makeShort('Ephesians 2:19-20', 'analogy', 'ai'), 'ai'));
+    const shapes = [assertShape(covered, 'ai'), assertShape(uncovered, 'ai')];
+    const kinds = [covered, uncovered].map((s) => s.visuals?.items?.[0]?.kind);
+
+    if (!kinds.includes('doodle')) {
+      throw new Error(
+        `neither short reused a panel (${kinds.join(', ')}) — the library is ` +
+          'shipping but never being chosen',
+      );
+    }
+    if (!kinds.includes('ai-image')) {
+      throw new Error(
+        `neither short generated (${kinds.join(', ')}) — Grok is configured ` +
+          'but never being reached',
+      );
+    }
+    return `${shapes[0]} | ${shapes[1]}`;
+  });
 
   console.log('\nlanguages');
   await check('Hindi passage + devices', async () => {
