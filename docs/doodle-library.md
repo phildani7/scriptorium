@@ -93,7 +93,7 @@ Purple-grey mountain rock and gold sunrise, resolving to a cross and a temple. W
 | Panel | What is on it | Match tags | Band | Baked-in text |
 | --- | --- | --- | --- | --- |
 | `genesis22-0` | An old man in blue leads a small boy carrying firewood up a rocky mountain path at sunrise, a lantern in his hand. | mountain, climb, father, son, wood, lantern, path, sunrise, obedience, journey | 22% * | — |
-| `genesis22-1` | The old man kneels praying at a stone altar as an angel dives out of a blazing sky, the boy beside him. | altar, prayer, angel, stone, kneel, sacrifice, stop, sky, light | 24% * | — |
+| `genesis22-1` | The old man kneels praying at a stone altar as an angel dives out of a blazing sky, the boy beside him. | altar, prayer, angel, kneel, sacrifice, stone, stop, sky, light | 24% * | — |
 | `genesis22-2` | A ram caught in a thicket glows on the rocks while the old man rests a hand on the boy’s shoulder, both smiling. | ram, sheep, thicket, provision, rescue, substitute, relief, bush, lamb | 24% * | — |
 | `genesis22-3` | A golden temple stands on the mountainside at sunrise beside a wooden signpost. | temple, mountain, sunrise, place, gold, building | 24% * | yes |
 | `genesis22-4` | A lone cross on a distant mountain ridge with light rays pouring down a rocky valley. | cross, mountain, light, valley, ridge, ray, hill, sacrifice | 24% * | — |

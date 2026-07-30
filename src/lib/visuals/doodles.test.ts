@@ -98,6 +98,34 @@ test('several weak prose hits still cannot earn a panel', () => {
   assert.equal(match, null);
 });
 
+test('a hit on scenery, not on the subject, does not earn a panel', () => {
+  // The second live regression: Ephesians 2 (built together as living stones)
+  // matched `donkey-0`, a man riding down a walled vineyard lane. The panel
+  // really does list `wall` — it is the seventh tag, describing scenery. The
+  // library has no masonry panel, so the honest answer is to generate one.
+  const match = matchDoodle(
+    device({ visualTerms: ['stone', 'wall', 'cornerstone', 'builder', 'foundation'] }),
+  );
+  assert.equal(
+    match,
+    null,
+    `expected no match, got ${match?.panel.id} (${match?.panel.description})`,
+  );
+});
+
+test('subject hits still find their panel', () => {
+  // The counterweight: tightening the rule must not stop the good matches.
+  const running = matchDoodle(
+    device({ visualTerms: ['father', 'child', 'driveway', 'arms', 'running'] }),
+  );
+  assert.equal(running?.panel.id, 'prodigal-4', 'the running father');
+
+  const storm = matchDoodle(
+    device({ visualTerms: ['boat', 'waves', 'wind', 'water'] }),
+  );
+  assert.equal(storm?.panel.id, 'peter-0', 'the boat in the storm');
+});
+
 test('a phrase in visualTerms still matches on its words', () => {
   // The model is asked for single nouns and mostly complies, but "family
   // table" normalises whole to "familytable" and would match nothing.

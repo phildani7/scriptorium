@@ -45,7 +45,16 @@ export interface DoodlePanel {
   hasText: boolean;
   /** What is actually on the panel, one sentence. */
   description: string;
-  /** Concrete English match terms, lowercase singular where natural. */
+  /**
+   * Concrete English match terms, lowercase singular where natural.
+   *
+   * ORDER IS LOAD-BEARING. The first `SUBJECT_TAGS` name what the panel is
+   * *of*; the rest are things merely visible in it. A hit on the subject is
+   * evidence the panel fits; a hit on the tail is a coincidence waiting to
+   * happen — `donkey-0` lists `wall` because a vineyard wall runs along the
+   * lane, which is true, and which once illustrated a teaching about being
+   * built into a wall as a living stone with a picture of a man on a donkey.
+   */
   tags: readonly string[];
 }
 
@@ -144,7 +153,9 @@ export const DOODLE_PANELS: readonly DoodlePanel[] = [
     id: 'genesis22-1', src: '/doodles/genesis22/panel-1.jpg', topic: 'genesis22',
     band: 24, paper: '#fdf8e4', hasText: false,
     description: 'The old man kneels praying at a stone altar as an angel dives out of a blazing sky, the boy beside him.',
-    tags: ['altar', 'prayer', 'angel', 'stone', 'kneel', 'sacrifice', 'stop', 'sky', 'light'],
+    // `stone` describes the altar's material, not the subject, so it belongs
+    // in the tail — see the ordering note on `tags`.
+    tags: ['altar', 'prayer', 'angel', 'kneel', 'sacrifice', 'stone', 'stop', 'sky', 'light'],
   },
   {
     id: 'genesis22-2', src: '/doodles/genesis22/panel-2.jpg', topic: 'genesis22',
@@ -473,11 +484,13 @@ function normalize(word: string): string {
 }
 
 /**
- * One solid `visualTerms` hit (3) plus its no-text bonus. Below this the match
- * is a coincidence — a stray "light" or "hand" — and generating a fresh image
- * is the honest answer.
+ * One solid subject hit (3). Below this the match is a coincidence — a stray
+ * "light" or "hand" — and generating a fresh image is the honest answer.
  */
 const MIN_SCORE = 3;
+
+/** How many leading tags name what the panel is *of*, rather than what is in it. */
+const SUBJECT_TAGS = 4;
 
 /**
  * How well a panel fits a teaching, higher is better.
@@ -499,23 +512,29 @@ function scorePanel(
   panel: DoodlePanel,
   terms: Set<string>,
   weak: Set<string>,
-): { score: number; strong: number } {
+): { score: number; strong: number; subject: number } {
   let score = 0;
   let strong = 0;
-  for (const tag of panel.tags) {
+  let subject = 0;
+
+  panel.tags.forEach((tag, index) => {
     const t = normalize(tag);
     if (terms.has(t)) {
-      score += 3;
+      // A hit on what the panel is OF outranks one on scenery within it.
+      const isSubject = index < SUBJECT_TAGS;
+      score += isSubject ? 3 : 1.5;
       strong += 1;
+      if (isSubject) subject += 1;
     } else if (weak.has(t)) {
       score += 1;
     }
-  }
-  if (strong === 0) return { score: 0, strong: 0 };
+  });
+
+  if (strong === 0) return { score: 0, strong: 0, subject: 0 };
   // Tie-breakers, never enough to rescue a panel that matched nothing.
   if (!panel.hasText) score += 0.5;
   if (panel.band >= MIN_BAND) score += 0.25;
-  return { score, strong };
+  return { score, strong, subject };
 }
 
 export interface DoodleMatch {
@@ -557,8 +576,20 @@ export function matchDoodle(device: DeviceItem): DoodleMatch | null {
 
   let best: DoodleMatch | null = null;
   for (const panel of DOODLE_PANELS) {
-    const { score, strong } = scorePanel(panel, terms, weak);
-    if (strong === 0 || score < MIN_SCORE) continue;
+    const { score, strong, subject } = scorePanel(panel, terms, weak);
+    // A panel qualifies only by agreeing with the teaching on TWO concrete
+    // nouns, at least one of which is what the panel is of.
+    //
+    // One hit is not enough, and the reason is that these tags are ordinary
+    // words carrying more than one sense. A teaching about being built
+    // together as living stones offers "wall"; so does the panel where a
+    // donkey crushes its rider against a vineyard wall. Both are walls. They
+    // are not the same picture. Requiring a second, independent agreement is
+    // what separates "these are about the same scene" from "these share a
+    // noun" — and when nothing clears it, the library genuinely has no panel
+    // for this teaching and Grok should draw one.
+    if (strong < 2 || subject === 0) continue;
+    if (score < MIN_SCORE) continue;
     if (!best || score > best.score || (score === best.score && panel.id < best.panel.id)) {
       best = { panel, score };
     }
