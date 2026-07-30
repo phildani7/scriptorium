@@ -2,14 +2,18 @@
  * A creator's own source -> teachings, each anchored to a passage.
  *
  * Three shapes of source arrive here and converge immediately:
- *   - pasted text                       { text }
- *   - a YouTube video or article link   { url }
- *   - an uploaded .txt / .pdf           multipart
+ *   - pasted text                    { text }
+ *   - an article / blog / PDF link   { url }
+ *   - an uploaded .txt / .pdf        multipart
  *
  * The model mines the SOURCE for teachings and returns references only;
  * picking one runs the same resolve -> generate path as any other input, so
- * the verse text still comes verbatim from YouVersion. Nothing from an upload,
- * a web page, or a video transcript can become Scripture on screen.
+ * the verse text still comes verbatim from YouVersion. Nothing from an upload
+ * or a web page can become Scripture on screen.
+ *
+ * YouTube links are refused by `fetchLinkSource` — see `lib/source/youtube`.
+ * The studio stops them in the browser, but this rule has to live here too:
+ * the MCP tools and any direct caller never see that warning.
  */
 
 import { NextResponse } from 'next/server';
@@ -68,10 +72,7 @@ export async function POST(request: Request) {
       if (body.url?.trim()) {
         const source = await fetchLinkSource(body.url);
         text = source.text;
-        sourceNote =
-          source.kind === 'youtube'
-            ? `Read from the captions of ${source.title ? `“${source.title}”` : source.origin}. Scripture still comes from YouVersion, never from the video.`
-            : `Read from ${source.origin}. Scripture still comes from YouVersion, never from the page.`;
+        sourceNote = `Read from ${source.origin}. Scripture still comes from YouVersion, never from the page.`;
       } else {
         text = body.text ?? '';
       }

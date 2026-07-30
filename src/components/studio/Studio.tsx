@@ -25,6 +25,7 @@ import type {
   VisualMode,
 } from '@/lib/types';
 import { resolveMusic, type ShortTheme } from '@/lib/theme/options';
+import { isYouTubeUrl } from '@/lib/source/youtube';
 import { PreviewFrame } from './PreviewFrame';
 import { ThemePanel } from './ThemePanel';
 
@@ -32,8 +33,8 @@ type Step = 'compose' | 'passage' | 'teachings' | 'series' | 'devices' | 'previe
 
 /**
  * Where the short starts: a topic/reference, the creator's own text, or a
- * link to a YouTube video or an article. All three converge on the same
- * pipeline, and in all three the verse still comes from YouVersion.
+ * link to an article. All three converge on the same pipeline, and in all
+ * three the verse still comes from YouVersion.
  */
 type SourceMode = 'topic' | 'text' | 'link';
 
@@ -181,6 +182,13 @@ export function Studio() {
     () => status?.languages.find((l) => l.code === languageCode),
     [status, languageCode],
   );
+
+  /**
+   * A pasted YouTube link is a certain failure, so it is caught here rather
+   * than by the server twenty seconds later. `/api/extract` refuses it too —
+   * this is the courtesy, that is the rule.
+   */
+  const youTubePasted = useMemo(() => isYouTubeUrl(sourceUrl), [sourceUrl]);
 
   const post = useCallback(
     async <T,>(url: string, body: unknown): Promise<T> => {
@@ -577,7 +585,7 @@ export function Studio() {
               [
                 { id: 'topic', label: 'Topic or verse' },
                 { id: 'text', label: 'From your text' },
-                { id: 'link', label: 'YouTube or link' },
+                { id: 'link', label: 'From a link' },
               ] as Array<{ id: SourceMode; label: string }>
             ).map((m) => (
               <button
@@ -617,14 +625,13 @@ export function Studio() {
           ) : sourceMode === 'link' ? (
             <>
               <label htmlFor="source-url" className="mb-2 block font-display text-2xl">
-                Start from a video or an article
+                Start from an article
               </label>
               <p className="mb-4 text-sm text-inksoft">
-                Paste a YouTube link and its captions are read; paste any
-                article, blog post or PDF link and its text is read. The
-                teachings are mined from those words, and each is anchored to a
-                passage — the verse itself still comes from YouVersion, never
-                from the page.
+                Paste an article, blog post, devotional or PDF link and its
+                text is read. The teachings are mined from those words, and
+                each is anchored to a passage — the verse itself still comes
+                from YouVersion, never from the page.
               </p>
 
               <input
@@ -633,13 +640,49 @@ export function Studio() {
                 inputMode="url"
                 value={sourceUrl}
                 onChange={(e) => setSourceUrl(e.target.value)}
-                placeholder="https://www.youtube.com/watch?v=…"
-                className="mb-2 w-full rounded-xl border border-rule bg-white px-4 py-3 text-lg"
+                placeholder="https://example.com/an-article"
+                aria-invalid={youTubePasted}
+                aria-describedby={youTubePasted ? 'source-url-youtube' : undefined}
+                className={`mb-2 w-full rounded-xl border bg-white px-4 py-3 text-lg ${
+                  youTubePasted ? 'border-amber-400' : 'border-rule'
+                }`}
               />
-              <p className="mb-6 text-xs text-inkfaint">
-                Videos need captions turned on. Sites that build their article
-                in the browser cannot be read this way — paste the text instead.
-              </p>
+
+              {/* Said the moment the link is pasted rather than after a
+                  request that cannot succeed: the failure is certain, so
+                  making the creator wait for it teaches them nothing. */}
+              {youTubePasted ? (
+                <div
+                  id="source-url-youtube"
+                  role="status"
+                  className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                >
+                  <strong className="font-semibold">
+                    YouTube links are not supported.
+                  </strong>{' '}
+                  YouTube blocks caption requests from cloud servers, which is
+                  where this app runs, so the video cannot be read from here.
+                  Open it on YouTube, use <strong>⋯ → Show transcript</strong>,
+                  copy it, and paste it into{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSourceText('');
+                      setSourceMode('text');
+                    }}
+                    className="font-semibold underline underline-offset-2"
+                  >
+                    From your text
+                  </button>{' '}
+                  — that works well.
+                </div>
+              ) : (
+                <p className="mb-6 text-xs text-inkfaint">
+                  Sites that build their article in the browser cannot be read
+                  this way — paste the text instead. Video links are not
+                  supported.
+                </p>
+              )}
             </>
           ) : (
             <>
@@ -915,7 +958,11 @@ export function Studio() {
           ) : sourceMode === 'link' ? (
             <button
               type="submit"
-              disabled={busy || !/^https?:\/\/\S+\.\S/i.test(sourceUrl.trim())}
+              disabled={
+                busy ||
+                youTubePasted ||
+                !/^https?:\/\/\S+\.\S/i.test(sourceUrl.trim())
+              }
               className="rounded-xl bg-accent px-6 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
             >
               {busy ? 'Reading the link…' : 'Read the link'}

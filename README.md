@@ -42,7 +42,7 @@ You can see this claim in three places:
 
 ```
 input ──▶ /api/resolve   YouVersion    reference or topic ──▶ passage (verbatim)
-      ──▶ /api/extract   Gloo AI       your text/PDF/link ──▶ teachings (references only)
+      ──▶ /api/extract   Gloo AI       your text/PDF/article ──▶ teachings (references only)
       ──▶ /api/series    Gloo AI       theme + days ──▶ planned series (references only)
       ──▶ /api/generate  Gloo AI       passage ──▶ 3-7 teaching devices
       ──▶ review gate    human         verse locked; or Auto mode skips review
@@ -54,8 +54,8 @@ input ──▶ /api/resolve   YouVersion    reference or topic ──▶ passag
 
 Every input path converges on the same rule: models only ever return
 **references**; verse text is always fetched from YouVersion afterwards. A
-pasted sermon, an uploaded PDF, a YouTube transcript, a planned series — none
-of them can put a single generated word on screen as Scripture.
+pasted sermon, an uploaded PDF, a linked article, a planned series — none of
+them can put a single generated word on screen as Scripture.
 
 ## Start from anything
 
@@ -65,10 +65,14 @@ Five ways in, one pipeline out:
 - **Your own text** — paste a sermon or article, or upload a `.txt` / `.pdf`;
   its teachings are mined and each anchored to a passage (`/api/extract`, MIT
   `unpdf` for PDFs)
-- **A YouTube video or a link** — paste a video URL and its captions are read
-  (the same `timedtext` track the player uses, no key, no quota); paste an
-  article, blog post or PDF link and its prose is read. Mined exactly like a
-  pasted sermon, so the verse still comes from YouVersion, never from the page
+- **A link** — paste an article, blog post, devotional or PDF URL and its
+  prose is read (a small readability pass, no key, no quota). Mined exactly
+  like a pasted sermon, so the verse still comes from YouVersion, never from
+  the page. **YouTube links are not supported**, and the studio says so the
+  moment one is pasted rather than after a request that cannot succeed:
+  YouTube refuses caption requests from datacenter IPs, which is where this
+  app runs. The fix is the transcript (⋯ → Show transcript → paste into *From
+  your text*), which takes about fifteen seconds
 - **A series** — a theme and 3/5/7/14 days become a planned arc of passages
   and lenses, each day one click from a finished short (`/api/series`)
 - **The gallery** — search + filter by language/lens/style, and share any

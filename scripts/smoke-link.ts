@@ -3,24 +3,26 @@
  *
  *   npm run smoke:link -- <url> [<url> ...]
  *
- * With no arguments it exercises the shapes the reader has to survive: a
- * YouTube watch URL, a youtu.be short link, a plain article, and two failures
- * that must come back as a readable sentence rather than a stack trace.
+ * With no arguments it exercises the outcomes the reader has to produce: a
+ * readable article, a PDF, a YouTube link (refused on sight), and failures
+ * that must come back as a sentence rather than a stack trace.
  *
  * This path is best-effort by nature — it reads pages nobody promised would
  * stay readable — so what it proves is not "the internet works" but that each
  * outcome is one the studio can show a creator.
  */
 
-import { fetchLinkSource, LinkError, youTubeId } from '@/lib/source/link';
+import { fetchLinkSource, LinkError } from '@/lib/source/link';
+import { isYouTubeUrl } from '@/lib/source/youtube';
 
 const DEFAULTS = [
-  // Long-standing videos with real (non-ASR) caption tracks.
+  'https://en.wikipedia.org/wiki/Parable_of_the_Prodigal_Son',
+  'https://www.gutenberg.org/cache/epub/2800/pg2800.txt',
+  // Must be refused on sight, with the transcript workaround.
   'https://www.youtube.com/watch?v=jNQXAC9IVRw',
   'https://youtu.be/aqz-KE-bpKQ',
-  'https://en.wikipedia.org/wiki/Parable_of_the_Prodigal_Son',
   // Must fail politely, not explode.
-  'https://www.youtube.com/watch?v=00000000000',
+  'https://en.wikipedia.org/wiki/No_Such_Page_Exists_Here_12345',
   'not-a-url',
 ];
 
@@ -29,7 +31,7 @@ async function main() {
   const targets = urls.length ? urls : DEFAULTS;
 
   for (const url of targets) {
-    const kind = youTubeId(url) ? 'youtube' : 'article';
+    const kind = isYouTubeUrl(url) ? 'youtube' : 'article';
     process.stdout.write(`\n${url}\n  (${kind}) `);
     try {
       const source = await fetchLinkSource(url);

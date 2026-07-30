@@ -2,20 +2,25 @@
  * Turn a link into plain source text.
  *
  * The third way into the studio, beside a topic and a pasted document: give it
- * a YouTube video or an article URL and it reads the words out of that page.
+ * an article, blog post or PDF URL and it reads the words out of that page.
  * What comes back is treated exactly like a pasted sermon — it is mined for
  * teachings, and those teachings carry REFERENCES only. Nothing fetched here
  * can become Scripture on screen; the verse is still retrieved from YouVersion
  * afterwards. That rule has no exception for where the text came from.
  *
- * No API keys and no paid service. YouTube captions come from the same
- * timedtext endpoint the player itself uses; articles are fetched and stripped
- * with a small readability pass. Both are best-effort by nature: a video with
- * captions disabled, or a site that renders its body in client-side
- * JavaScript, cannot be read this way. Those cases return a clear, actionable
- * message rather than a stack trace or, worse, a page of navigation chrome
- * passed off as a sermon.
+ * No API keys and no paid service; pages are fetched and stripped with a small
+ * readability pass. It is best-effort by nature — a site that renders its body
+ * in client-side JavaScript cannot be read this way — and those cases return a
+ * clear, actionable message rather than a stack trace or, worse, a page of
+ * navigation chrome passed off as a sermon.
+ *
+ * YouTube is declined at the door; `lib/source/youtube` explains why at
+ * length. Short version: captions cannot be fetched from a datacenter IP, the
+ * failure is indistinguishable from a private video, and the honest response
+ * is to say so immediately rather than after a twenty-second wait.
  */
+
+import { isYouTubeUrl, YOUTUBE_NOT_SUPPORTED } from './youtube';
 
 /** Pretend to be a browser: several sites serve an interstitial otherwise. */
 const UA =
@@ -26,9 +31,9 @@ const FETCH_TIMEOUT_MS = 20000;
 
 export interface LinkSource {
   text: string;
-  /** Page or video title, when the page offered one. */
+  /** Page title, when the page offered one. */
   title?: string;
-  kind: 'youtube' | 'article';
+  kind: 'article';
   /** Human-readable origin, shown back to the creator. */
   origin: string;
 }
@@ -44,38 +49,17 @@ export function isHttpUrl(value: string): boolean {
   }
 }
 
-/** The video id, for any of the shapes YouTube hands out. */
-export function youTubeId(raw: string): string | null {
-  let url: URL;
-  try {
-    url = new URL(raw.trim());
-  } catch {
-    return null;
-  }
-  const host = url.hostname.replace(/^www\./, '').toLowerCase();
-
-  if (host === 'youtu.be') {
-    const id = url.pathname.slice(1).split('/')[0];
-    return /^[\w-]{11}$/.test(id) ? id : null;
-  }
-  if (host !== 'youtube.com' && host !== 'm.youtube.com' && host !== 'music.youtube.com') {
-    return null;
-  }
-  const v = url.searchParams.get('v');
-  if (v && /^[\w-]{11}$/.test(v)) return v;
-
-  const path = url.pathname.match(/^\/(shorts|embed|live|v)\/([\w-]{11})/);
-  return path ? path[2] : null;
-}
-
 export async function fetchLinkSource(raw: string): Promise<LinkSource> {
   const input = raw.trim();
   if (!isHttpUrl(input)) {
     throw new LinkError('That does not look like a link. Paste a full http:// or https:// address.');
   }
 
-  const videoId = youTubeId(input);
-  return videoId ? fetchYouTube(videoId) : fetchArticle(input);
+  // The browser stops this first, so reaching here means a caller that is not
+  // the studio — an MCP client, a script. Same answer either way.
+  if (isYouTubeUrl(input)) throw new LinkError(YOUTUBE_NOT_SUPPORTED);
+
+  return fetchArticle(input);
 }
 
 async function get(url: string, headers: Record<string, string> = {}) {
@@ -88,209 +72,6 @@ async function get(url: string, headers: Record<string, string> = {}) {
     throw new LinkError(`That link returned HTTP ${response.status}.`);
   }
   return response;
-}
-
-/* ---------------------------------------------------------------------- */
-/* YouTube                                                                 */
-/* ---------------------------------------------------------------------- */
-
-/**
- * Captions come from InnerTube — the API the YouTube apps themselves call —
- * not from scraping `ytInitialPlayerResponse` out of the watch page.
- *
- * The watch page still CONTAINS caption tracks, which is what makes the
- * scraping approach so convincing: the JSON parses, the track list looks
- * right, `baseUrl` is there. Fetching that `baseUrl` server-side then returns
- * **HTTP 200 with a zero-byte body**. The URLs are bound to the browser
- * session that was served the page, and the failure is silent — no error
- * status, no message, just nothing. Anything built on the watch page is
- * therefore not merely fragile, it is already broken.
- *
- * The mobile-app clients are not session-bound and hand back caption URLs
- * that work from anywhere. iOS is tried first because its tracks serve
- * `json3`, a stable documented shape; Android is the fallback and serves the
- * older `<timedtext>` XML, which `captionText` also reads. No key of ours,
- * no quota, no account.
- */
-const INNERTUBE_KEY = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8';
-
-const CLIENTS: ReadonlyArray<Record<string, unknown>> = [
-  { clientName: 'IOS', clientVersion: '20.10.4', deviceModel: 'iPhone16,2', hl: 'en' },
-  { clientName: 'ANDROID', clientVersion: '20.10.38', androidSdkVersion: 30, hl: 'en' },
-];
-
-interface CaptionTrack {
-  baseUrl?: string;
-  languageCode?: string;
-  kind?: string;
-}
-
-interface PlayerResponse {
-  videoDetails?: { title?: string; shortDescription?: string };
-  playabilityStatus?: { status?: string; reason?: string };
-  captions?: {
-    playerCaptionsTracklistRenderer?: { captionTracks?: CaptionTrack[] };
-  };
-}
-
-/**
- * Prefer a human-written track over an automatic one, and English over the
- * rest — ASR captions arrive without punctuation, and the teaching extractor
- * reads sentences.
- */
-function pickTrack(tracks: CaptionTrack[]): CaptionTrack | undefined {
-  const score = (t: CaptionTrack) =>
-    (t.kind === 'asr' ? 0 : 2) + (t.languageCode?.startsWith('en') ? 1 : 0);
-  return [...tracks].filter((t) => t.baseUrl).sort((a, b) => score(b) - score(a))[0];
-}
-
-interface PlayerAttempt {
-  response: PlayerResponse | null;
-  /** Why each client refused, in order. Empty when one succeeded. */
-  refusals: string[];
-}
-
-async function playerResponse(videoId: string): Promise<PlayerAttempt> {
-  const refusals: string[] = [];
-
-  for (const client of CLIENTS) {
-    const name = String(client.clientName);
-    try {
-      const response = await fetch(
-        `https://www.youtube.com/youtubei/v1/player?key=${INNERTUBE_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'User-Agent': UA },
-          body: JSON.stringify({ videoId, context: { client } }),
-          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-        },
-      );
-      if (!response.ok) {
-        refusals.push(`${name}:HTTP ${response.status}`);
-        continue;
-      }
-      const json = (await response.json()) as PlayerResponse;
-      // A client that cannot play the video reports no captions either, so
-      // move on rather than concluding the video has none.
-      if (json.playabilityStatus?.status === 'OK') return { response: json, refusals: [] };
-      refusals.push(
-        `${name}:${json.playabilityStatus?.status ?? 'no status'}` +
-          (json.playabilityStatus?.reason ? ` (${json.playabilityStatus.reason})` : ''),
-      );
-    } catch (error) {
-      refusals.push(`${name}:${error instanceof Error ? error.name : 'failed'}`);
-    }
-  }
-  return { response: null, refusals };
-}
-
-/**
- * YouTube refuses InnerTube player requests from datacenter IP ranges, which
- * is where this code runs in production. The refusal arrives as a normal
- * playability status — LOGIN_REQUIRED, or a bot-check reason — and looks
- * exactly like a private or removed video, so the two have to be told apart
- * before the creator is told anything.
- */
-function isBotWall(refusals: string[]): boolean {
-  return refusals.some((r) =>
-    /LOGIN_REQUIRED|not a bot|Sign in|bot|CONTENT_CHECK|AGE_VERIFICATION/i.test(r),
-  );
-}
-
-/** Caption bodies arrive as json3 or as the older timedtext XML. Read both. */
-function captionText(body: string): string {
-  const trimmed = body.trim();
-
-  if (trimmed.startsWith('{')) {
-    try {
-      const json = JSON.parse(trimmed) as {
-        events?: Array<{ segs?: Array<{ utf8?: string }> }>;
-      };
-      return (json.events ?? [])
-        .flatMap((e) => e.segs ?? [])
-        .map((s) => s.utf8 ?? '')
-        .join('')
-        .replace(/\s+/g, ' ')
-        .trim();
-    } catch {
-      return '';
-    }
-  }
-
-  if (trimmed.startsWith('<')) {
-    // <p t="…" d="…">text</p>, sometimes with nested <s> segment spans.
-    const parts = [...trimmed.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/g)].map((m) =>
-      decodeEntities(m[1].replace(/<[^>]+>/g, '')),
-    );
-    return parts.join(' ').replace(/\s+/g, ' ').trim();
-  }
-
-  return '';
-}
-
-async function fetchYouTube(videoId: string): Promise<LinkSource> {
-  const { response: player, refusals } = await playerResponse(videoId);
-  if (!player) {
-    // Telling a creator their video is "private or removed" when the truth is
-    // "this server is blocked" sends them to check a video that is fine. The
-    // two failures need different sentences.
-    if (isBotWall(refusals)) {
-      throw new LinkError(
-        'YouTube is refusing to serve captions to this server — it blocks ' +
-          'requests from cloud hosting, which is where this app runs. Open ' +
-          "the video's transcript on YouTube (⋯ → Show transcript), copy it, " +
-          'and paste it into “From your text”. Article links are unaffected.',
-      );
-    }
-    throw new LinkError(
-      'That video could not be opened — it may be private, age-restricted, ' +
-        `region-locked, or removed. (${refusals.join('; ') || 'no response'})`,
-    );
-  }
-
-  const title = player.videoDetails?.title?.trim() || undefined;
-  const tracks = player.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
-  const track = pickTrack(tracks);
-
-  if (!track?.baseUrl) {
-    throw new LinkError(
-      'That video has no captions available, so there is no text to read. ' +
-        'Try a video with captions turned on, or paste the transcript into ' +
-        '“From your text”.',
-    );
-  }
-
-  // Ask for json3; a track that ignores the hint answers in XML, which
-  // `captionText` also reads.
-  const url = new URL(track.baseUrl);
-  url.searchParams.set('fmt', 'json3');
-
-  let body: string;
-  try {
-    const response = await fetch(url, {
-      headers: { 'User-Agent': UA },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    body = await response.text();
-  } catch {
-    throw new LinkError('The caption track for that video could not be downloaded.');
-  }
-
-  const text = captionText(body);
-  if (text.length < 120) {
-    throw new LinkError(
-      "That video's captions are too short to mine for teachings — " +
-        'give it something with a few paragraphs of speech.',
-    );
-  }
-
-  return {
-    text: title ? `${title}\n\n${text}` : text,
-    title,
-    kind: 'youtube',
-    origin: `youtube.com/watch?v=${videoId}`,
-  };
 }
 
 /* ---------------------------------------------------------------------- */
