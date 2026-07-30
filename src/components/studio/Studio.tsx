@@ -790,9 +790,8 @@ export function Studio() {
                   </button>
                 </div>
                 <p className="mt-2 text-xs text-inkfaint">
-                  Free graphics: hand-picked icons and CC0 photos — nothing
-                  needs attribution. Each teaching lens brings its own
-                  dramatic style.
+                  Free graphics: hand-picked icons and CC0 photos. Each
+                  teaching lens brings its own dramatic style.
                 </p>
               </Field>
             </div>
