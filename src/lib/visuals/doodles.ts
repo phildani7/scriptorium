@@ -480,30 +480,42 @@ function normalize(word: string): string {
 const MIN_SCORE = 3;
 
 /**
- * How well a panel fits a teaching, higher is better. Zero means no honest
- * connection at all, and zero is a refusal — a panel that does not fit is
- * worse than no panel, because a wrong picture actively misteaches.
+ * How well a panel fits a teaching, higher is better.
  *
- * `visualTerms` are the model's own nouns for this teaching and are weighted
- * hardest. English words scraped out of the device text are a weaker signal
- * (and absent entirely in a Hindi short), so they score less.
+ * `visualTerms` are the model's own nouns for THIS teaching and are the only
+ * signal strong enough to earn a panel on its own. Words merely present in the
+ * authored English prose are a weak corroborating signal: they refine the
+ * choice between panels that already qualify, and they can never qualify one
+ * by themselves.
+ *
+ * That distinction is load-bearing, and it was learned the hard way. An
+ * earlier version simply summed both kinds, so three incidental prose words
+ * ("hand", "people", "together") were enough to clear the bar — and a
+ * teaching on belonging in Ephesians 2 was illustrated with a Job 38 panel of
+ * people raising their hands. Every individual word was a real hit. The
+ * picture was still wrong, because the panel was about something else.
  */
 function scorePanel(
   panel: DoodlePanel,
   terms: Set<string>,
   weak: Set<string>,
-): number {
+): { score: number; strong: number } {
   let score = 0;
+  let strong = 0;
   for (const tag of panel.tags) {
     const t = normalize(tag);
-    if (terms.has(t)) score += 3;
-    else if (weak.has(t)) score += 1;
+    if (terms.has(t)) {
+      score += 3;
+      strong += 1;
+    } else if (weak.has(t)) {
+      score += 1;
+    }
   }
-  if (score === 0) return 0;
+  if (strong === 0) return { score: 0, strong: 0 };
   // Tie-breakers, never enough to rescue a panel that matched nothing.
   if (!panel.hasText) score += 0.5;
   if (panel.band >= MIN_BAND) score += 0.25;
-  return score;
+  return { score, strong };
 }
 
 export interface DoodleMatch {
@@ -520,7 +532,18 @@ export interface DoodleMatch {
  * of DOODLE_PANELS is not load-bearing.
  */
 export function matchDoodle(device: DeviceItem): DoodleMatch | null {
-  const terms = new Set((device.visualTerms ?? []).map(normalize));
+  // The model is asked for single nouns but sometimes answers with a phrase
+  // ("family table", "elder's hand"). Normalising the phrase whole yields
+  // "familytable", which matches nothing, so each word is indexed too.
+  const terms = new Set<string>();
+  for (const raw of device.visualTerms ?? []) {
+    terms.add(normalize(raw));
+    for (const word of raw.split(/\s+/)) {
+      const w = normalize(word);
+      if (w.length > 2) terms.add(w);
+    }
+  }
+  terms.delete('');
 
   // Weak signal: nouns already present in the authored English text. In a
   // non-English short this set is simply empty, which is correct — the panel
@@ -534,8 +557,8 @@ export function matchDoodle(device: DeviceItem): DoodleMatch | null {
 
   let best: DoodleMatch | null = null;
   for (const panel of DOODLE_PANELS) {
-    const score = scorePanel(panel, terms, weak);
-    if (score < MIN_SCORE) continue;
+    const { score, strong } = scorePanel(panel, terms, weak);
+    if (strong === 0 || score < MIN_SCORE) continue;
     if (!best || score > best.score || (score === best.score && panel.id < best.panel.id)) {
       best = { panel, score };
     }

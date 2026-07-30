@@ -77,6 +77,35 @@ test('English prose alone is too weak to earn a panel', () => {
   assert.equal(match, null);
 });
 
+test('several weak prose hits still cannot earn a panel', () => {
+  // The live regression this exists for: a teaching on belonging in Ephesians
+  // 2 was illustrated with a Job 38 panel of people raising their hands,
+  // because "hand", "people" and "together" each scored 1 and three of them
+  // cleared the bar. Every hit was real; the picture was still wrong. A panel
+  // now needs at least one hit on the model's OWN nouns for this teaching.
+  const match = matchDoodle(
+    device({
+      visualTerms: ['gate', 'village', 'hearth'],
+      content:
+        'A stranger arrives at the gates with no name on any deed, and the ' +
+        'elder places a hand on their shoulder and says you belong here now.',
+      point: 'People are welcomed together into one household.',
+      explanation:
+        'You used to stand outside. Now you are inside, together with his ' +
+        'people, and a hand has been laid on your shoulder in welcome.',
+    }),
+  );
+  assert.equal(match, null);
+});
+
+test('a phrase in visualTerms still matches on its words', () => {
+  // The model is asked for single nouns and mostly complies, but "family
+  // table" normalises whole to "familytable" and would match nothing.
+  const match = matchDoodle(device({ visualTerms: ['a fishing boat', 'rough sea'] }));
+  assert.ok(match, 'expected the phrase to match on "boat"/"sea"');
+  assert.equal(match.panel.topic, 'peter');
+});
+
 test('matching is deterministic', () => {
   const d = device({ visualTerms: ['boat', 'storm', 'wave'] });
   const first = matchDoodle(d);
