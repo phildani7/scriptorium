@@ -144,8 +144,17 @@ function pickTrack(tracks: CaptionTrack[]): CaptionTrack | undefined {
   return [...tracks].filter((t) => t.baseUrl).sort((a, b) => score(b) - score(a))[0];
 }
 
-async function playerResponse(videoId: string): Promise<PlayerResponse | null> {
+interface PlayerAttempt {
+  response: PlayerResponse | null;
+  /** Why each client refused, in order. Empty when one succeeded. */
+  refusals: string[];
+}
+
+async function playerResponse(videoId: string): Promise<PlayerAttempt> {
+  const refusals: string[] = [];
+
   for (const client of CLIENTS) {
+    const name = String(client.clientName);
     try {
       const response = await fetch(
         `https://www.youtube.com/youtubei/v1/player?key=${INNERTUBE_KEY}`,
@@ -156,16 +165,36 @@ async function playerResponse(videoId: string): Promise<PlayerResponse | null> {
           signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         },
       );
-      if (!response.ok) continue;
+      if (!response.ok) {
+        refusals.push(`${name}:HTTP ${response.status}`);
+        continue;
+      }
       const json = (await response.json()) as PlayerResponse;
       // A client that cannot play the video reports no captions either, so
       // move on rather than concluding the video has none.
-      if (json.playabilityStatus?.status === 'OK') return json;
-    } catch {
-      // Try the next client; only an all-clients failure is an error.
+      if (json.playabilityStatus?.status === 'OK') return { response: json, refusals: [] };
+      refusals.push(
+        `${name}:${json.playabilityStatus?.status ?? 'no status'}` +
+          (json.playabilityStatus?.reason ? ` (${json.playabilityStatus.reason})` : ''),
+      );
+    } catch (error) {
+      refusals.push(`${name}:${error instanceof Error ? error.name : 'failed'}`);
     }
   }
-  return null;
+  return { response: null, refusals };
+}
+
+/**
+ * YouTube refuses InnerTube player requests from datacenter IP ranges, which
+ * is where this code runs in production. The refusal arrives as a normal
+ * playability status — LOGIN_REQUIRED, or a bot-check reason — and looks
+ * exactly like a private or removed video, so the two have to be told apart
+ * before the creator is told anything.
+ */
+function isBotWall(refusals: string[]): boolean {
+  return refusals.some((r) =>
+    /LOGIN_REQUIRED|not a bot|Sign in|bot|CONTENT_CHECK|AGE_VERIFICATION/i.test(r),
+  );
 }
 
 /** Caption bodies arrive as json3 or as the older timedtext XML. Read both. */
@@ -200,11 +229,22 @@ function captionText(body: string): string {
 }
 
 async function fetchYouTube(videoId: string): Promise<LinkSource> {
-  const player = await playerResponse(videoId);
+  const { response: player, refusals } = await playerResponse(videoId);
   if (!player) {
+    // Telling a creator their video is "private or removed" when the truth is
+    // "this server is blocked" sends them to check a video that is fine. The
+    // two failures need different sentences.
+    if (isBotWall(refusals)) {
+      throw new LinkError(
+        'YouTube is refusing to serve captions to this server — it blocks ' +
+          'requests from cloud hosting, which is where this app runs. Open ' +
+          "the video's transcript on YouTube (⋯ → Show transcript), copy it, " +
+          'and paste it into “From your text”. Article links are unaffected.',
+      );
+    }
     throw new LinkError(
       'That video could not be opened — it may be private, age-restricted, ' +
-        'region-locked, or removed.',
+        `region-locked, or removed. (${refusals.join('; ') || 'no response'})`,
     );
   }
 
