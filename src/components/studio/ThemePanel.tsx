@@ -20,6 +20,7 @@ import {
   PALETTES,
   SIZES,
   TEXT_STYLES,
+  type BackgroundOption,
   type ShortTheme,
 } from '@/lib/theme/options';
 import type { StyleId } from '@/lib/types';
@@ -172,27 +173,13 @@ export function ThemePanel({ style, theme, busy, section, onStyle, onTheme }: Th
   }
 
   return (
-    <div className={`mt-8 grid gap-6 border-t border-rule pt-6 md:grid-cols-3 ${dim}`}>
-      <Group label="Background">
-        <div className="flex flex-wrap gap-1.5">
-          {BACKGROUNDS.map((b) => (
-            <button
-              key={b.id}
-              type="button"
-              aria-pressed={(theme.backgroundId ?? 'grain') === b.id}
-              onClick={() => set({ backgroundId: b.id })}
-              className={chip((theme.backgroundId ?? 'grain') === b.id)}
-            >
-              {b.label}
-            </button>
-          ))}
-        </div>
-        <p className="mt-1.5 text-[11px] text-inkfaint">
-          ✶ NASA, public domain · ▶ licensed video loops · images licensed, no
-          attribution required.
-        </p>
-      </Group>
+    <div className={`mt-8 border-t border-rule pt-6 ${dim}`}>
+      <BackgroundPicker
+        selected={theme.backgroundId ?? 'grain'}
+        onPick={(backgroundId) => set({ backgroundId })}
+      />
 
+      <div className="mt-7 grid gap-6 md:grid-cols-2">
       <Group label="Text motion">
         <div className="flex flex-wrap gap-1.5">
           {TEXT_STYLES.map((t) => (
@@ -233,7 +220,125 @@ export function ThemePanel({ style, theme, busy, section, onStyle, onTheme }: Th
           stays correctly licensed however far it is reposted.
         </p>
       </Group>
+      </div>
     </div>
+  );
+}
+
+/**
+ * Seventy backgrounds, picked by looking rather than by reading.
+ *
+ * The list used to be seventy words in a wrap of chips. "Groovy liquid",
+ * "Halftone dots", "Sand layers" — a creator had to imagine each one, click,
+ * wait for a re-bake, and find out they had imagined it wrong. Now they point
+ * at the one they want.
+ *
+ * The tiles are 9:16, the shape of the thing they produce, packed tight so a
+ * whole group is takeable in one glance, and grouped because "a video loop"
+ * and "a CSS texture" are different decisions.
+ *
+ * Images and video loops carry no label: the picture is complete information
+ * and a caption would only crowd it. Textures and doodle frames DO keep their
+ * name, and that is not an inconsistency — they are whisper-quiet by design
+ * (a five-percent linen weave, a doodle border at a third opacity), so at tile
+ * size they honestly render as near-identical rectangles. A picture that
+ * cannot be told from its neighbour is not information. Where the thumbnail
+ * stops informing, the word takes over.
+ */
+function BackgroundPicker({
+  selected,
+  onPick,
+}: {
+  selected: string;
+  onPick: (id: string) => void;
+}) {
+  const groups: Array<{ key: BackgroundOption['group']; label: string; note?: string }> = [
+    { key: 'video', label: 'Video loops', note: 'Seamless, silent, licensed' },
+    { key: 'image', label: 'Images' },
+    { key: 'doodle', label: 'Doodle frames', note: 'Drawn in your palette' },
+    { key: 'texture', label: 'Textures', note: 'CSS-generated, take your palette' },
+  ];
+
+  return (
+    <Group label="Background">
+      <div className="flex flex-col gap-4">
+        {groups.map(({ key, label, note }) => {
+          const items = BACKGROUNDS.filter((b) => b.group === key);
+          if (items.length === 0) return null;
+          // Textures and doodles are too quiet to identify by sight alone.
+          const named = key === 'texture' || key === 'doodle';
+
+          return (
+            <div key={key}>
+              <div className="mb-1.5 flex items-baseline gap-2">
+                <span className="font-label text-[10px] font-bold tracking-[0.14em] text-inksoft uppercase">
+                  {label}
+                </span>
+                <span className="text-[10px] text-inkfaint">
+                  {items.length}
+                  {note ? ` · ${note}` : ''}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(52px,1fr))] gap-1.5">
+                {items.map((b) => {
+                  const active = selected === b.id;
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      title={b.label}
+                      aria-label={`Background: ${b.label}`}
+                      aria-pressed={active}
+                      onClick={() => onPick(b.id)}
+                      className={`group relative aspect-[9/16] overflow-hidden rounded-md border transition ${
+                        active
+                          ? 'border-accent ring-2 ring-accent'
+                          : 'border-rule hover:border-inkfaint'
+                      }`}
+                    >
+                      {b.thumb ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={b.thumb}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="absolute inset-0 bg-locked" />
+                      )}
+
+                      {named && (
+                        <span className="absolute inset-x-0 bottom-0 bg-black/55 px-1 py-0.5 text-[8px] leading-tight font-medium text-white">
+                          {b.label}
+                        </span>
+                      )}
+
+                      {active && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute top-0.5 right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent text-[9px] leading-none font-bold text-white"
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="mt-2 text-[11px] text-inkfaint">
+        Every asset here is licensed for use in produced video with no
+        attribution required. Video loops are silent and cross-faded so they
+        repeat without a visible cut.
+      </p>
+    </Group>
   );
 }
 

@@ -39,6 +39,7 @@ import { chromium } from 'playwright-core';
 
 import { bakeComposition } from '@/lib/render/bake';
 import { cleanEnv } from '@/lib/env';
+import { BACKGROUNDS } from '@/lib/theme/options';
 import { verifyVerbatim } from '@/lib/verify/verbatim';
 
 const ROOT = process.cwd();
@@ -207,9 +208,30 @@ async function main() {
   // linter flags traversal as a real hazard — self-contained is also simply
   // the right shape for a render bundle.
   cpSync(join(ROOT, 'public', 'fonts'), join(workdir, 'fonts'), { recursive: true });
-  for (const dir of ['music', 'backgrounds', 'cliparts']) {
+  for (const dir of ['music', 'cliparts']) {
     const src = join(ROOT, 'public', dir);
     if (existsSync(src)) cpSync(src, join(workdir, dir), { recursive: true });
+  }
+
+  // Backgrounds are copied one file deep rather than wholesale. The library is
+  // 34 video loops and 18 images and a short uses exactly one of them, so
+  // copying the folder put ~35 MB into every bundle to use half a megabyte of
+  // it — paid for again on every sandbox upload and every Actions run.
+  const themeBackground = (spec.theme as { backgroundId?: string } | undefined)?.backgroundId;
+  const background = BACKGROUNDS.find((b) => b.id === themeBackground) ?? BACKGROUNDS[1];
+  if (background?.src) {
+    const relative = background.src.replace(/^\//, '');
+    const from = join(ROOT, 'public', relative);
+    if (existsSync(from)) {
+      const to = join(workdir, relative);
+      mkdirSync(dirname(to), { recursive: true });
+      cpSync(from, to);
+      console.log(`background  ${relative}`);
+    } else {
+      // The composition falls back to its plain ground rather than failing;
+      // a missing texture is not worth refusing to render a verified short.
+      console.warn(`background  MISSING ${relative} — rendering without it`);
+    }
   }
 
   // public/vendor is generated, not committed: on a fresh checkout (CI) it

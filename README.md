@@ -101,11 +101,27 @@ translation is licensed.
 Three frozen HyperFrames styles — **Warm Minimal** (editorial, zoom-through
 seam), **Kinetic Type** (poster type landing word-by-word on the measured
 voice timings), **Neon Night** (glow, seeded particles, a flare at the turn) —
-crossed with one-click **8 palettes × 4 font pairs × 3 sizes × 38
+crossed with one-click **8 palettes × 4 font pairs × 3 sizes × 70
 backgrounds** (8 CSS-generated, 10 hand-drawn doodle frames, 18 licensed image
-backgrounds, and 2 licensed **animated video loops**), plus 8 text motions and
+backgrounds, and **34 animated video loops**), plus 8 text motions and
 **9 music beds**. Theme choices bake in as CSS custom properties, so the
 browser preview and the MP4 export consume byte-identical HTML.
+
+Backgrounds are **picked by looking, not by reading**. Seventy names in a wrap
+of chips asked a creator to imagine "Groovy liquid", click, wait for a re-bake
+and discover they had imagined it wrong; the picker is now a packed grid of
+9:16 thumbnails generated from the assets themselves. The images and video
+loops carry no caption because the picture is complete information. The CSS
+textures and doodle frames keep theirs — they are whisper-quiet by design and
+at tile size they honestly render as near-identical rectangles, and a picture
+that cannot be told from its neighbour is not information.
+
+The 32 newest loops arrive as 5-second clips and play under a 40–60 second
+short, so each one repeats ten times or more. Their last 0.8 s is cross-faded
+over their first, which makes the closing frame and the opening frame the same
+picture: the loop closes on itself instead of ticking. Audio is stripped, and
+a short's render bundle now carries only the one background it uses rather
+than the whole 35 MB library.
 
 **Nothing that ships in a short requires a credit to travel with it.** That is
 stricter than "correctly licensed", and it is the point: a short is made to be
