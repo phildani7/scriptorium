@@ -14,7 +14,7 @@ import { NextResponse } from 'next/server';
 import { guard } from '@/lib/rate-limit';
 import { buildNarrationScript } from '@/lib/script/build';
 import { synthesizeAndAlign } from '@/lib/voice';
-import { alignScriptToAudio } from '@/lib/voice/align';
+import { alignScriptToAudio, estimateDuration } from '@/lib/voice/align';
 import { verifyVerbatim } from '@/lib/verify/verbatim';
 import { directionFor, getLanguage } from '@/lib/languages/registry';
 import { buildVisuals } from '@/lib/visuals/match';
@@ -156,7 +156,7 @@ export async function POST(request: Request) {
     // the export job respectively), so here we lay out an estimated timeline
     // at a natural reading pace and label it honestly.
     const words = script.trim().split(/\s+/).length;
-    durationSec = Math.max(15, Math.min(45, words / 2.6));
+    durationSec = estimateDuration(words);
     timings = alignScriptToAudio(script, [], durationSec).timings;
     timingSource = 'estimated';
   }

@@ -43,6 +43,26 @@ interface ScriptToken {
  * @param asrWords    Speechmatics words, the source of truth for when
  * @param audioDurationSec used to bound the final word and to interpolate tails
  */
+/**
+ * How long this many words takes to narrate, when there is no audio to measure.
+ *
+ * 2.6 words a second is an unhurried teaching pace, and the bounds exist to
+ * stop a pathological script from producing a two-second or ten-minute short.
+ *
+ * The ceiling used to be 45s, chosen when a short was an opening line plus a
+ * verse. The six-page format runs 150-190 words — five teaching sentences, the
+ * device, the verse, the citation — so 45 clamped almost every non-English
+ * short and compressed its timeline to about four words a second. The exported
+ * MP4 was unaffected, because the render job measures the real audio it
+ * synthesizes; the STUDIO PREVIEW was not, and it flicked through the pages
+ * faster than the finished video ever would. A preview that runs at a
+ * different speed from the export is exactly the thing this project refuses to
+ * ship, so the ceiling now sits above what the format actually needs.
+ */
+export function estimateDuration(words: number): number {
+  return Math.max(15, Math.min(90, words / 2.6));
+}
+
 export function alignScriptToAudio(
   script: string,
   asrWords: AsrWord[],

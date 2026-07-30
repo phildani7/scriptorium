@@ -62,7 +62,17 @@ interface VersionOption {
 }
 
 interface StatusPayload {
-  ai: { active: string; glooConfigured: boolean; degradedReason?: string };
+  ai: {
+    active: string;
+    glooConfigured: boolean;
+    claudeConfigured: boolean;
+    glooModel?: string;
+    /** True when a live Claude fallback stands behind Gloo. */
+    fallbackReady: boolean;
+    degradedReason?: string;
+    /** Gloo answered, but a recent request had to be served by Claude. */
+    fallbackNotice?: string;
+  };
   scripture: { configured: boolean; note?: string };
   voice: { configured: boolean; note?: string };
   visuals?: { free: boolean; ai: boolean; doodles: number; grok: boolean };
@@ -1430,20 +1440,37 @@ function Field({
   );
 }
 
+/**
+ * The header states what the tool is for, then shows who supplies what.
+ *
+ * The two panels are the design's one deliberate move, and they are not
+ * decoration: this app has exactly two sources, and the line between them IS
+ * the architecture. The verse is RECEIVED — retrieved from YouVersion,
+ * verbatim, locked. The teaching is WRITTEN — composed by Gloo around that
+ * verse, and editable to the last word. So the panels are set in different
+ * type and different colour, to read as two materials rather than two cards
+ * from one set: Scripture quoted in the serif behind a rule, the teaching
+ * drafted in the body face, warm against cool.
+ *
+ * Saying it this plainly is also the honest thing. "Scripture is retrieved,
+ * never generated" is the promise the whole build rests on, and a promise is
+ * worth more when a visitor can see who keeps which half of it.
+ */
 function Header({ status }: { status: StatusPayload | null }) {
   const notes = [
     status?.ai.degradedReason,
+    status?.ai.fallbackNotice,
     status?.scripture.note,
     status?.voice.note,
   ].filter(Boolean) as string[];
 
+  const audited = status?.coverage.audited;
+
   return (
     <header className="mb-8">
-      <div className="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      <div className="mb-5 flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <h1 className="font-display text-4xl tracking-tight">Scriptorium</h1>
-        <p className="text-inksoft">
-          Scripture shorts, in your own language.
-        </p>
+        <p className="text-inksoft">Scripture shorts, in your own language.</p>
         <a
           href="/gallery"
           className="ml-auto rounded-xl border border-rule px-4 py-2 text-sm font-medium text-inksoft transition hover:bg-white"
@@ -1452,15 +1479,109 @@ function Header({ status }: { status: StatusPayload | null }) {
         </a>
       </div>
 
-      {status && (
-        <p className="text-sm text-inksoft">
-          <strong className="font-semibold text-ink">
-            {status.coverage.audited.withBible} languages
+      <p className="mb-6 max-w-3xl text-lg leading-relaxed text-ink">
+        Type a verse or a feeling, paste a sermon, or drop in an article link.
+        A minute later you have a finished vertical short — narrated,
+        captioned, illustrated, ready to post — in any of{' '}
+        <strong className="font-semibold">
+          {audited ? `${audited.withBible} languages` : 'dozens of languages'}
+        </strong>
+        . No designer, no voice actor, no editor.
+      </p>
+
+      {/* Two sources, two materials. */}
+      <div className="mb-4 grid gap-4 sm:grid-cols-2">
+        <section className="rounded-2xl border border-received/20 bg-receivedsoft/60 p-5">
+          <div className="mb-2 flex items-baseline gap-2">
+            <span className="font-label text-[11px] font-bold tracking-[0.18em] text-received uppercase">
+              Received
+            </span>
+            <span className="text-xs text-inksoft">the verse</span>
+          </div>
+          <p className="mb-3 border-l-2 border-received/40 pl-3 font-display text-xl leading-snug text-received">
+            YouVersion
+          </p>
+          <p className="text-sm leading-relaxed text-inksoft">
+            Every word of Scripture here is fetched from the{' '}
+            <strong className="font-semibold text-ink">
+              YouVersion Platform API
+            </strong>{' '}
+            and passed through untouched — never written by a model, never
+            paraphrased.{' '}
+            {audited
+              ? `${audited.totalVersions} Bible versions across ${audited.withBible} languages`
+              : 'Hundreds of Bible versions'}{' '}
+            are open to this app, including many that have never had a video
+            made in them. That generosity is the reason this tool can exist at
+            all, and the reason it can be trusted.
+          </p>
+        </section>
+
+        <section className="rounded-2xl border border-written/20 bg-writtensoft/60 p-5">
+          <div className="mb-2 flex items-baseline gap-2">
+            <span className="font-label text-[11px] font-bold tracking-[0.18em] text-written uppercase">
+              Written
+            </span>
+            <span className="text-xs text-inksoft">the teaching</span>
+          </div>
+          <p className="mb-3 font-label text-xl font-bold tracking-tight text-written">
+            Gloo AI Studio
+          </p>
+          <p className="text-sm leading-relaxed text-inksoft">
+            <strong className="font-semibold text-ink">Gloo</strong> writes the
+            five sentences around the verse — the opening line, the teaching,
+            the picture it reaches for. It is built for ministry rather than
+            general chat, so it weighs a Catholic parish and a Pentecostal
+            youth group differently instead of flattening both into one voice,
+            and it reports which model answered and how sure it was. Careful
+            work, made available to people who could not have afforded it.
+          </p>
+        </section>
+      </div>
+
+      {/* The gate that stands between the two panels above, so it sits
+          between them on the page as well: one strip, one statement. */}
+      <p className="mb-1 flex items-start gap-2.5 border-l-2 border-verified/50 py-0.5 pl-3 text-sm text-inksoft">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          className="mt-0.5 h-4 w-4 shrink-0 text-verified"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 2 3 6v6c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V6l-9-4Z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <path
+            d="m8.5 12 2.5 2.5 4.5-5"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span>
+          <strong className="font-label text-[11px] font-bold tracking-[0.14em] text-verified uppercase">
+            Verified
           </strong>{' '}
-          licensed to this app key · {status.coverage.audited.complete} with a
-          voice and word timing measured from the audio ·{' '}
-          {status.coverage.audited.totalVersions} Bible versions · Scripture
-          retrieved from YouVersion, never generated.
+          — before a single frame is captured, the verse on screen is fetched
+          again and compared character by character. A mismatch stops the
+          render.
+        </span>
+      </p>
+
+      {status && (
+        <p className="mt-3 font-label text-xs tracking-wide text-inkfaint">
+          {status.coverage.audited.withBible} languages ·{' '}
+          {status.coverage.audited.complete} with a neural voice and word
+          timing measured from the audio ·{' '}
+          {status.coverage.audited.totalVersions} Bible versions ·{' '}
+          {status.visuals?.doodles ?? 61} hand-drawn doodle panels
+          {status.ai.active === 'gloo' && status.ai.fallbackReady
+            ? ' · Gloo, with Claude standing by'
+            : ''}
         </p>
       )}
 

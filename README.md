@@ -196,10 +196,20 @@ any MCP client at the deployment and drive everything the UI can do:
 Every tool is a thin wrapper over the same API routes, so the
 retrieved-never-generated rule holds for agents exactly as it does for humans.
 
-**Gloo** is used for what only Gloo does: `tradition` values-alignment (a Catholic
-parish and a Pentecostal youth group need different emphases from the same verse) and
-`auto_routing`, whose tier and confidence are recorded per short. A Claude provider
-sits behind the same interface for development.
+**Gloo** writes every teaching, on `gloo-anthropic-claude-haiku-4.5`, and is used
+for what only Gloo does: `tradition` values-alignment (a Catholic parish and a
+Pentecostal youth group need different emphases from the same verse) and
+`auto_routing`, whose tier and confidence are recorded per short.
+
+Claude stands behind it as a **live** fallback, not merely a configured one.
+The distinction matters: Gloo runs on a prepaid balance, so the realistic
+failure is not "no credentials" — that is decided at boot — but "credit
+exhausted" or "rate limited", which arrive mid-request in front of whoever is
+watching. `src/lib/ai/resilient.ts` retries the same call on Claude and records
+the substitution, which `/api/status` then shows, because a short generated on
+the fallback carries none of Gloo's values alignment and the creator is
+entitled to know which engine wrote their teaching. Aborts are never retried —
+a cancelled request should not spend money on an answer nobody wants.
 
 **Speechmatics** does two jobs. TTS produces narration; batch transcription produces
 per-word timings. Crucially the transcript's *words are discarded* — ASR supplies only

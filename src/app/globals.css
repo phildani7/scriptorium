@@ -16,8 +16,32 @@
   --color-rule: #e2d8c7;
   --color-locked: #efe9dc;
 
+  /*
+    Two colours for the two sources, because this app has exactly two and the
+    difference between them is the whole architecture.
+
+    `received` is the verse: retrieved from YouVersion, verbatim, not ours to
+    edit. Wine — older, heavier, settled.
+    `written` is the teaching: composed by Gloo around that verse, and fully
+    editable. Indigo — deliberately a cool colour on a warm ground, so the two
+    read as different MATERIALS rather than two cards from one set.
+    `verified` marks the integrity gate that stands between them.
+
+    Terracotta stays reserved for things you can click. A colour that means
+    "interactive" cannot also mean "Scripture".
+  */
+  --color-received: #8f2d3b;
+  --color-receivedsoft: #f7e9e6;
+  --color-written: #3a4aa8;
+  --color-writtensoft: #e9ecf8;
+  --color-verified: #2f6b4f;
+  --color-verifiedsoft: #e6f0e9;
+
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "Inter", system-ui, sans-serif;
+  /* The label voice. Already shipped for the Kinetic Type shorts, so the
+     studio speaks in a face its own output uses. */
+  --font-label: "Space Grotesk", ui-monospace, monospace;
 }
 
 @font-face {
@@ -37,6 +61,13 @@
 @font-face {
   font-family: "Noto Serif Devanagari";
   src: url("/fonts/notoserifdevanagari-devanagari-700.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("/fonts/spacegrotesk-latin-600.woff2") format("woff2");
   font-weight: 400 700;
   font-display: swap;
 }

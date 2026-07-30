@@ -209,7 +209,13 @@ export interface ShortSpec {
   music: { file: string; credit: string } | null;
   /** V2: resolved visuals (mode + timed items). Absent = text only. */
   visuals?: ShortVisuals;
-  /** 20-45 */
+  /**
+   * Length of the finished short, in seconds. Measured from the synthesized
+   * narration wherever there is audio to measure, and estimated from the word
+   * count otherwise (`lib/voice/align`). The six-page format typically lands
+   * between 40 and 60 seconds, which is inside the limit on every vertical
+   * platform this targets.
+   */
   durationSec: number;
   /** Set by lib/verify once the rendered verse has been diffed against `passage.text`. */
   verified: boolean;

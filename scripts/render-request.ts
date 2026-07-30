@@ -21,7 +21,7 @@ import { buildNarrationScript } from '@/lib/script/build';
 import { getLanguage } from '@/lib/languages/registry';
 import { resolveMusic } from '@/lib/theme/options';
 import { verifyVerbatim } from '@/lib/verify/verbatim';
-import { alignScriptToAudio, wavDurationSeconds } from '@/lib/voice/align';
+import { alignScriptToAudio, estimateDuration, wavDurationSeconds } from '@/lib/voice/align';
 import { getSpeechmatics } from '@/lib/voice/speechmatics';
 import { synthesizeAndAlign } from '@/lib/voice';
 import { buildVisuals } from '@/lib/visuals/match';
@@ -162,9 +162,11 @@ async function main() {
     }
   }
 
+  // Only reached when there is no audio at all — a language with no voice
+  // model. Everything above measured the narration it actually synthesized.
   if (!timings) {
     const words = script.trim().split(/\s+/).length;
-    durationSec = Math.max(15, Math.min(45, words / 2.6));
+    durationSec = estimateDuration(words);
     timings = alignScriptToAudio(script, [], durationSec).timings;
     timingSource = 'estimated';
   }

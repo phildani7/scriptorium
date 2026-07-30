@@ -21,6 +21,7 @@
         "smoke:pages": "tsx scripts/smoke-pages.ts",
         "smoke:grok": "tsx --env-file-if-exists=.env.local scripts/smoke-grok.ts",
         "smoke:link": "tsx scripts/smoke-link.ts",
+        "smoke:modes": "tsx scripts/smoke-modes.ts",
         "gallery": "tsx --env-file-if-exists=.env.local scripts/build-gallery.ts"
     },
     "dependencies": {
