@@ -87,7 +87,13 @@ export interface DeviceItem {
 export type VisualMode = 'text' | 'free' | 'ai';
 
 export interface VisualItem {
-  kind: 'icon' | 'clipart' | 'photo' | 'ai-image';
+  /**
+   * `doodle` is a reused hand-drawn panel from `lib/visuals/doodles`;
+   * `ai-image` is a freshly generated one. Both are FULL-FRAME backgrounds
+   * and are rendered identically — the distinction exists for crediting and
+   * for telling reuse from spend in the logs.
+   */
+  kind: 'icon' | 'clipart' | 'photo' | 'ai-image' | 'doodle';
   /**
    * Icons carry their vendored SVG markup inline (stroke: currentColor, so
    * they recolor with the palette). Inline, not a file path: the offline
@@ -102,7 +108,21 @@ export interface VisualItem {
   timeSec: number;
   /** Deterministic placement slot (0..3; hero uses 0). */
   slot: number;
+  /**
+   * Full-frame art only: how far down the frame the sentence band reaches, as
+   * a percentage of height. The template lays a scrim of `paper` over that
+   * band so a sentence never has to compete with the drawing underneath.
+   */
+  band?: number;
+  /** Full-frame art only: the artwork's own paper colour, so the scrim seam
+      is invisible. */
+  paper?: string;
   credit?: string;
+}
+
+/** Full-frame art that becomes the short's background rather than an inset. */
+export function isFullFrameVisual(item: VisualItem): boolean {
+  return item.kind === 'doodle' || item.kind === 'ai-image';
 }
 
 export interface ShortVisuals {
@@ -137,6 +157,15 @@ export interface ScriptSegment {
   wordStart: number;
   /** Exclusive end index. */
   wordEnd: number;
+  /**
+   * `teaching` only: which of the five sentence pages this is, 0-based.
+   *
+   * The teaching is split one sentence per segment because one sentence is
+   * one PAGE on screen, and the page has to change exactly when the narrator
+   * moves on. Deriving that from a word count instead would drift; deriving
+   * it from the segment boundary cannot.
+   */
+  page?: number;
 }
 
 export interface Narration {

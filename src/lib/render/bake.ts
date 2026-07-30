@@ -88,6 +88,20 @@ export function bakeComposition(options: BakeOptions): string {
     style += `; --t-doodle: url('${attrs.doodleData}')`;
   }
 
+  // Full-frame art: a reused doodle panel or a generated image, which becomes
+  // the whole background. Written statically for the same reason the theme is
+  // — applying it from script would leave frame 0 showing the plain ground,
+  // and frame 0 is the poster.
+  const art = fullFrameVisual(spec);
+  if (art) {
+    // 1920 is the frame height; `band` arrives as a percentage of it.
+    const bandPx = Math.round(((art.band ?? 26) / 100) * 1920);
+    style +=
+      `; --t-art: url('${cssUrl(rebase(art.src))}')` +
+      `; --t-art-band: ${bandPx}px` +
+      `; --t-art-paper: ${cssColor(art.paper)}`;
+  }
+
   // V2: the device type drives the visual choreography (drama preset).
   const deviceType = (spec.device as { type?: string } | undefined)?.type ?? '';
   const drama = /^[a-z-]+$/.test(deviceType) ? deviceType : '';
@@ -97,6 +111,7 @@ export function bakeComposition(options: BakeOptions): string {
     `$1 style="${escapeAttr(style)}" data-bg="${attrs.bg}" data-dark="${attrs.dark}"` +
       ` data-anim="${attrs.textStyle}"` +
       (drama ? ` data-drama="${drama}"` : '') +
+      (art ? ' data-art="1"' : '') +
       (attrs.captionsOff ? ' data-captions="off"' : ''),
   );
 
@@ -137,7 +152,7 @@ export function bakeComposition(options: BakeOptions): string {
   // "fonts/…" for self-contained render bundles. Only undefined skips.
   if (assetPrefix !== undefined) {
     html = html.replace(
-      /(href|src)="\/(fonts|vendor|music|backgrounds|cliparts)\//g,
+      /(href|src)="\/(fonts|vendor|music|backgrounds|cliparts|doodles)\//g,
       `$1="${assetPrefix}$2/`,
     );
   }
@@ -154,4 +169,40 @@ export function bakeComposition(options: BakeOptions): string {
 
 function escapeAttr(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+/**
+ * The spec's full-frame visual, if it has one.
+ *
+ * Typed loosely because bake takes the spec as a plain record — it is shared
+ * by the web app and the render CLI, and the CLI reads a JSON file whose
+ * shape it has no compile-time knowledge of.
+ */
+function fullFrameVisual(
+  spec: Record<string, unknown>,
+): { src: string; band?: number; paper?: string } | null {
+  const visuals = spec.visuals as
+    | { items?: Array<{ kind?: string; src?: string; band?: number; paper?: string }> }
+    | undefined;
+  const item = visuals?.items?.find(
+    (i) => (i.kind === 'doodle' || i.kind === 'ai-image') && Boolean(i.src),
+  );
+  return item?.src ? { src: item.src, band: item.band, paper: item.paper } : null;
+}
+
+/**
+ * Make a value safe to sit inside `url('…')` in an inline style attribute.
+ *
+ * The path is ours (a shipped panel) or an https URL from the image API, but
+ * "ours" is not an argument — a quote or a paren here would break out of the
+ * CSS function and into the attribute, so both are escaped rather than
+ * trusted. `escapeAttr` runs afterwards and handles the HTML layer.
+ */
+function cssUrl(value: string): string {
+  return value.replace(/[\\'"()\s]/g, (c) => `\\${c}`);
+}
+
+/** A CSS colour, or the default paper when the value is not a plain hex. */
+function cssColor(value: string | undefined): string {
+  return value && /^#[0-9a-f]{3,8}$/i.test(value) ? value : '#fdf8e4';
 }

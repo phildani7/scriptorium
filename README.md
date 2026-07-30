@@ -14,10 +14,13 @@ essentially none of it, because making a good short takes a designer, a voice, a
 editor that a volunteer church does not have.
 
 Scriptorium removes all three. Type a reference or a feeling — or paste your own
-sermon, upload a PDF, or ask for a whole multi-day series — pick a lens and a
-language, and about a minute later you have a publishable 1080×1920 short: narrated,
-word-synced captions, real motion design, your colors and type — with the verse's
-provenance carried in the gallery manifest.
+sermon, drop in a YouTube link, upload a PDF, or ask for a whole multi-day series —
+pick a lens and a language, and about a minute later you have a publishable
+1080×1920 short: narrated, word-synced captions, real motion design, your colors and
+type — with the verse's provenance carried in the gallery manifest.
+
+Every short is six pages. Five sentences of teaching, one per page, shown one at a
+time so nothing ever overlaps. Then the verse itself.
 
 ## The architectural claim
 
@@ -39,7 +42,7 @@ You can see this claim in three places:
 
 ```
 input ──▶ /api/resolve   YouVersion    reference or topic ──▶ passage (verbatim)
-      ──▶ /api/extract   Gloo AI       your text/PDF ──▶ teachings (references only)
+      ──▶ /api/extract   Gloo AI       your text/PDF/link ──▶ teachings (references only)
       ──▶ /api/series    Gloo AI       theme + days ──▶ planned series (references only)
       ──▶ /api/generate  Gloo AI       passage ──▶ 3-7 teaching devices
       ──▶ review gate    human         verse locked; or Auto mode skips review
@@ -51,21 +54,38 @@ input ──▶ /api/resolve   YouVersion    reference or topic ──▶ passag
 
 Every input path converges on the same rule: models only ever return
 **references**; verse text is always fetched from YouVersion afterwards. A
-pasted sermon, an uploaded PDF, a planned series — none of them can put a
-single generated word on screen as Scripture.
+pasted sermon, an uploaded PDF, a YouTube transcript, a planned series — none
+of them can put a single generated word on screen as Scripture.
 
 ## Start from anything
 
-Four ways in, one pipeline out:
+Five ways in, one pipeline out:
 
 - **Topic or verse** — `Psalm 23`, `anxiety at work`
 - **Your own text** — paste a sermon or article, or upload a `.txt` / `.pdf`;
   its teachings are mined and each anchored to a passage (`/api/extract`, MIT
   `unpdf` for PDFs)
+- **A YouTube video or a link** — paste a video URL and its captions are read
+  (the same `timedtext` track the player uses, no key, no quota); paste an
+  article, blog post or PDF link and its prose is read. Mined exactly like a
+  pasted sermon, so the verse still comes from YouVersion, never from the page
 - **A series** — a theme and 3/5/7/14 days become a planned arc of passages
   and lenses, each day one click from a finished short (`/api/series`)
 - **The gallery** — search + filter by language/lens/style, and share any
   short to WhatsApp, Telegram, or X
+
+## Six pages
+
+The teaching arrives as **exactly five sentences**, and each sentence is one
+page: shown alone, held for as long as the narrator is speaking it, cut hard
+when the next begins. The sixth page is the verse itself, retrieved and
+verified. Page boundaries come from the script's own sentence segments rather
+than a word count, so a page turns exactly when the voice finishes a sentence
+— and the handoff uses `autoAlpha`, so "one sentence at a time" is a property
+of the timeline rather than something the eases have to avoid violating.
+
+Captions are unaffected: the word-synced rail runs continuously underneath,
+as it always has.
 
 Six teaching lenses (hook, analogy, punch-line, illustration, object lesson,
 **summary**), three audiences, three cultural tones (everyday / formal /
@@ -77,13 +97,20 @@ translation is licensed.
 Three frozen HyperFrames styles — **Warm Minimal** (editorial, zoom-through
 seam), **Kinetic Type** (poster type landing word-by-word on the measured
 voice timings), **Neon Night** (glow, seeded particles, a flare at the turn) —
-crossed with one-click **8 palettes × 4 font pairs × 3 sizes × 41
-backgrounds** (8 CSS-generated, 3 NASA photos, 10 hand-drawn doodle frames,
-18 licensed image backgrounds, and 2 licensed **animated video loops**), plus
-8 text motions and **13 music beds** (4 CC-BY Kevin MacLeod, 9 licensed via
-Audiio — no attribution required). Theme choices bake in as CSS custom
-properties, so the browser preview and the MP4 export consume byte-identical
-HTML.
+crossed with one-click **8 palettes × 4 font pairs × 3 sizes × 38
+backgrounds** (8 CSS-generated, 10 hand-drawn doodle frames, 18 licensed image
+backgrounds, and 2 licensed **animated video loops**), plus 8 text motions and
+**9 music beds**. Theme choices bake in as CSS custom properties, so the
+browser preview and the MP4 export consume byte-identical HTML.
+
+**Nothing that ships in a short requires a credit to travel with it.** That is
+stricter than "correctly licensed", and it is the point: a short is made to be
+reposted by people who will never see a CREDITS file, so an asset whose
+licence depends on attribution surviving that repost will eventually be used
+in breach by a volunteer acting in good faith. The NASA photo backgrounds and
+the four CC-BY music beds were removed on that reasoning rather than kept with
+an obligation attached. Credits still travel in the gallery manifest, as
+provenance rather than a condition.
 
 Every animation obeys the HyperFrames determinism contract: one paused GSAP
 timeline built synchronously, seeded randomness only, transform/opacity/filter
@@ -92,16 +119,34 @@ capture frames by seeking.
 
 ## Visuals (V2)
 
-Creators choose **Text only** or **Text + pictures**. Pictures come from two
-sources: **Free graphics** — a 68-piece licensed full-colour clipart library
-(placed small, in its own colours) backed by ~150 vendored icons (lucide, ISC)
-matched by keyword to the narration, plus CC0 photos from Openverse — or
-**AI images**, one 1:1 image per short via the Kie.ai GPT-Image API (enabled
-by `KIE_API_KEY`). Each teaching lens carries its own
-dramatic choreography: hooks **blast** in, analogies enter as a **split**
-pair, punch-lines **pop** with a particle burst, illustrations **waterfall**,
-object lessons get a **spotlight** hero with a glow. Every visual is anchored
-to the second its word is spoken and clears the frame before the citation.
+Creators choose **Text only** or **Text + pictures**, and pictures come from
+one of two sources.
+
+**Free graphics** — a 68-piece licensed full-colour clipart library (placed
+small, in its own colours) backed by ~150 vendored icons (lucide, ISC) matched
+by keyword to the narration, plus CC0 photos from Openverse. Each teaching
+lens carries its own dramatic choreography: hooks **blast** in, analogies
+enter as a **split** pair, punch-lines **pop** with a particle burst,
+illustrations **waterfall**, object lessons get a **spotlight** hero with a
+glow. Every visual is anchored to the second its word is spoken and clears the
+frame before the citation.
+
+**AI images** — one hand-drawn doodle fills the whole frame behind all five
+sentences, in the shape the format needs: a clean paper band up top for the
+sentence, the drawing through the middle, a caption rail across the bottom.
+**Reuse before spend**: a 61-panel library of vertical doodle panels ships
+with the app, each catalogued with a description, match tags and a *measured*
+clean-band height, and a panel that honestly fits the teaching is used as-is —
+instant, free, and a known-good frame. Only when nothing fits does
+**Grok Imagine** draw a new one in the same style, at the model's lowest tier
+(9:16, 720×1280), gated behind `XAI_API_KEY`. Because the panels ship, the
+mode is useful with no key at all.
+
+Grok is wired in for **pictures and nothing else** — there is no code path
+sending text to xAI. Verse text comes from YouVersion; teaching prose comes
+from Gloo. `src/lib/visuals/grok.ts` is one file calling one endpoint, so that
+boundary is auditable rather than asserted.
+
 The narration itself stays fully editable on the preview screen right up to
 export — only the verse is out of reach.
 

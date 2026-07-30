@@ -1,10 +1,15 @@
 /**
- * A creator's own source text -> teachings, each anchored to a passage.
+ * A creator's own source -> teachings, each anchored to a passage.
  *
- * Accepts pasted text (JSON) or an uploaded .txt / .pdf (multipart). The model
- * mines the SOURCE for teachings and returns references only; picking one runs
- * the same resolve -> generate path as any other input, so the verse text still
- * comes verbatim from YouVersion. Nothing from the upload can become Scripture.
+ * Three shapes of source arrive here and converge immediately:
+ *   - pasted text                       { text }
+ *   - a YouTube video or article link   { url }
+ *   - an uploaded .txt / .pdf           multipart
+ *
+ * The model mines the SOURCE for teachings and returns references only;
+ * picking one runs the same resolve -> generate path as any other input, so
+ * the verse text still comes verbatim from YouVersion. Nothing from an upload,
+ * a web page, or a video transcript can become Scripture on screen.
  */
 
 import { NextResponse } from 'next/server';
@@ -16,6 +21,7 @@ import {
   TEACHING_LIST_SCHEMA,
 } from '@/lib/ai/provider';
 import { getLanguage } from '@/lib/languages/registry';
+import { fetchLinkSource, LinkError } from '@/lib/source/link';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -29,6 +35,8 @@ export async function POST(request: Request) {
 
   let text = '';
   let languageCode = 'en';
+  /** Where the words came from, echoed back so the creator can see it. */
+  let sourceNote: string | undefined;
 
   const contentType = request.headers.get('content-type') ?? '';
   try {
@@ -50,11 +58,30 @@ export async function POST(request: Request) {
         text = await file.text();
       }
     } else {
-      const body = (await request.json()) as { text?: string; languageCode?: string };
-      text = body.text ?? '';
+      const body = (await request.json()) as {
+        text?: string;
+        url?: string;
+        languageCode?: string;
+      };
       languageCode = body.languageCode ?? 'en';
+
+      if (body.url?.trim()) {
+        const source = await fetchLinkSource(body.url);
+        text = source.text;
+        sourceNote =
+          source.kind === 'youtube'
+            ? `Read from the captions of ${source.title ? `“${source.title}”` : source.origin}. Scripture still comes from YouVersion, never from the video.`
+            : `Read from ${source.origin}. Scripture still comes from YouVersion, never from the page.`;
+      } else {
+        text = body.text ?? '';
+      }
     }
   } catch (error) {
+    // A link that cannot be read is a normal outcome the creator can act on
+    // (captions off, JS-rendered page), not a server fault.
+    if (error instanceof LinkError) {
+      return NextResponse.json({ error: error.message }, { status: 422 });
+    }
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { error: `Could not read the source: ${message}` },
@@ -89,11 +116,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ teachings: [], declined: true, message: result.decline });
     }
 
+    const truncationNote = truncated
+      ? `The source was long; teachings were mined from the first ${MAX_CHARS.toLocaleString()} characters.`
+      : undefined;
+
     return NextResponse.json({
       teachings: result.teachings,
-      notice: truncated
-        ? `The source was long; teachings were mined from the first ${MAX_CHARS.toLocaleString()} characters.`
-        : undefined,
+      notice: [sourceNote, truncationNote].filter(Boolean).join(' ') || undefined,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

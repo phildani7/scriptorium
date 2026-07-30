@@ -145,6 +145,102 @@
         pointer-events: none;
       }
 
+      /* ---- full-frame art: a reused doodle panel or a generated image ----
+         The picture IS the background for the whole short, so it supersedes
+         every other ground treatment. Written statically by the bake step so
+         the very first captured frame already carries it. */
+      #bg-art {
+        position: absolute;
+        inset: -46px;
+        background-image: var(--t-art);
+        background-size: cover;
+        background-position: center;
+        display: none;
+      }
+      [data-art='1'] #bg-art { display: block; }
+      [data-art='1'] #bg-fx,
+      [data-art='1'] #bg-photo,
+      [data-art='1'] #bg-video-holder,
+      [data-art='1'] #ground { display: none; }
+
+      /* The sentence band, in the artwork's own paper. `--t-art-band` is
+         measured from the panel (see lib/visuals/doodles), so where a panel
+         already reserves a clean upper quarter this scrim is invisible, and
+         where it does not the scrim manufactures the band. */
+      #art-band {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: calc(var(--t-art-band, 500px) + 240px);
+        background: linear-gradient(
+          180deg,
+          var(--t-art-paper, #fdf8e4) 0%,
+          var(--t-art-paper, #fdf8e4) calc(100% - 240px),
+          color-mix(in srgb, var(--t-art-paper, #fdf8e4) 0%, transparent) 100%
+        );
+        display: none;
+      }
+      [data-art='1'] #art-band { display: block; }
+
+      /* Paint order is DOM order. The verse scrim sits UNDER the caption
+         scrim on purpose: when the passage takes the frame it dims the
+         drawing, but the caption band has to stay dark under it or the gold
+         rail lands on cream paper. */
+      #art-verse-scrim {
+        position: absolute;
+        inset: 0;
+        background: var(--t-art-paper, #fdf8e4);
+        opacity: 0;
+        display: none;
+      }
+      [data-art='1'] #art-verse-scrim { display: block; }
+
+      /* The rail sits around y=1480-1700, so the scrim has to be at full
+         strength well before the frame edge — an even ramp to the bottom
+         leaves the caption itself in the pale half of the gradient, which is
+         exactly where a bright doodle wins. */
+      #art-caption-scrim {
+        position: absolute;
+        left: 0; right: 0; bottom: 0;
+        height: 720px;
+        background: linear-gradient(
+          180deg,
+          rgba(18, 14, 10, 0) 0%,
+          rgba(18, 14, 10, 0.55) 26%,
+          rgba(18, 14, 10, 0.82) 52%,
+          rgba(18, 14, 10, 0.88) 100%
+        );
+        display: none;
+      }
+      [data-art='1'] #art-caption-scrim { display: block; }
+
+      /* Doodle paper is always light stock, and this style is dark by
+         design — so under art the stage ink is forced dark and the neon glow
+         is dropped. A glow that reads as light on black reads as smudge on
+         cream. */
+      [data-art='1'] #stage,
+      [data-art='1'] #verse-stage { color: #17140f; }
+      [data-art='1'] #device,
+      [data-art='1'] .tchunk,
+      [data-art='1'] #verse-text { text-shadow: none; }
+      [data-art='1'] #flare,
+      /* Particles come from the theme's background choice, which art mode
+         otherwise supersedes; left alone they drift over the drawing. */
+      [data-art='1'] #particles { display: none; }
+
+      /* Same reasoning as the ink, for the accent. This style's palettes pick
+         accents chosen to GLOW on a dark ground — hot pink, cyan, gold — and
+         none survives on cream paper. Set on a DESCENDANT because the bake
+         step writes `--t-accent` inline on the root, and inline wins against
+         any rule targeting that same element. */
+      [data-art='1'] .clip { --t-accent: #b4552e; }
+      /* The verse card is a glass slab tuned for a dark ground: on paper the
+         tint and the glow read as a smudge, so it becomes a plain rule. */
+      [data-art='1'] #verse-card {
+        background: transparent;
+        border-color: color-mix(in srgb, #b4552e 40%, transparent);
+        box-shadow: none;
+      }
+
       .clip { position: absolute; inset: 0; }
 
       /* ---- V2 visuals: timed icons / images, drama per teaching type ---- */
@@ -174,13 +270,34 @@
       /* Stage text moves up when visuals ride along; the band is theirs. */
       /* Pass-through art crosses the lower third; the stage keeps its full height. */
 
-      /* ---- device ---- */
+      /* ---- stage: the opening line, then the five sentence pages ----
+         Every page shares one grid cell and exactly one is ever visible; the
+         handoff is a hard cut at the boundary, not a crossfade. */
       #stage {
         position: absolute;
         top: 190px; left: 96px; right: 96px; bottom: 620px;
         display: grid; align-content: center;
       }
-      #device, #verse-panel { grid-area: 1 / 1; align-self: center; }
+      /* Under art the stage collapses into the measured band, and the type
+         centres over the drawing's own centred composition. */
+      [data-art='1'] #stage {
+        top: 132px;
+        bottom: auto;
+        height: calc(var(--t-art-band, 500px) - 168px);
+        text-align: center;
+      }
+
+      /* The sixth page. Its own box, so a long passage is never bound by the
+         sentence band above it. */
+      #verse-stage {
+        position: absolute;
+        top: 190px; left: 96px; right: 96px; bottom: 620px;
+        display: grid; align-content: center;
+      }
+      [data-art='1'] #verse-stage { top: 270px; bottom: 430px; }
+
+      #device { grid-area: 1 / 1; align-self: center; }
+      #verse-panel { grid-area: 1 / 1; align-self: center; }
 
       #device {
         font-family: var(--t-font-display, 'Space Grotesk', sans-serif);
@@ -196,7 +313,10 @@
       /* Long openings step down instead of clipping at the frame top. */
       #device.longer { font-size: calc(62px * var(--t-scale, 1)); }
       #device.longest { font-size: calc(50px * var(--t-scale, 1)); }
-      /* The thought, staged in word-timed chunks (a few words per screen). */
+      /* One sentence of the teaching. Five of these exist, stacked in the same
+         grid cell, and the timeline guarantees exactly one is ever visible.
+         `visibility: hidden` in the rest state is what makes that a hard
+         promise rather than an opacity race. */
       .tchunk {
         grid-area: 1 / 1;
         align-self: center;
@@ -206,7 +326,19 @@
         line-height: 1.24;
         text-shadow: 0 0 28px color-mix(in srgb, var(--t-accent, #ff4d9d) 28%, transparent);
         opacity: 0;
+        visibility: hidden;
       }
+      /* A full sentence is longer than the old few-word chunk, and under art
+         it has only the band to live in. Both step down by length, decided
+         once at load from character count so preview and render agree. */
+      .tchunk.longer { font-size: calc(46px * var(--t-scale, 1)); }
+      .tchunk.longest { font-size: calc(39px * var(--t-scale, 1)); }
+      [data-art='1'] .tchunk { font-size: calc(48px * var(--t-scale, 1)); }
+      [data-art='1'] .tchunk.longer { font-size: calc(41px * var(--t-scale, 1)); }
+      [data-art='1'] .tchunk.longest { font-size: calc(35px * var(--t-scale, 1)); }
+      [data-art='1'] #device { font-size: calc(56px * var(--t-scale, 1)); }
+      [data-art='1'] #device.longer { font-size: calc(46px * var(--t-scale, 1)); }
+      [data-art='1'] #device.longest { font-size: calc(39px * var(--t-scale, 1)); }
 
       /* ---- verse: a glass slab with a glowing spine ---- */
       #verse-panel { opacity: 0; }
@@ -266,11 +398,28 @@
       #short[data-script='devanagari'] .tchunk,
       #short[data-script='bengali'] .tchunk {
         font-family: 'Noto Serif Devanagari', serif;
-        font-size: calc(50px * var(--t-scale, 1));
+        font-size: calc(46px * var(--t-scale, 1));
         line-height: 1.62;
         letter-spacing: 0;
       }
-      #short[data-dir='rtl'] #stage, #short[data-dir='rtl'] #caption-rail { direction: rtl; }
+      #short[data-script='devanagari'] .tchunk.longer,
+      #short[data-script='bengali'] .tchunk.longer { font-size: calc(40px * var(--t-scale, 1)); }
+      #short[data-script='devanagari'] .tchunk.longest,
+      #short[data-script='bengali'] .tchunk.longest { font-size: calc(35px * var(--t-scale, 1)); }
+      /* Devanagari stacks marks above and below the baseline, so the same
+         sentence needs more vertical room than Latin — inside the art band,
+         where room is scarce, it steps down again. */
+      #short[data-art='1'][data-script='devanagari'] .tchunk,
+      #short[data-art='1'][data-script='bengali'] .tchunk { font-size: calc(40px * var(--t-scale, 1)); }
+      #short[data-art='1'][data-script='devanagari'] .tchunk.longer,
+      #short[data-art='1'][data-script='bengali'] .tchunk.longer { font-size: calc(36px * var(--t-scale, 1)); }
+      #short[data-art='1'][data-script='devanagari'] .tchunk.longest,
+      #short[data-art='1'][data-script='bengali'] .tchunk.longest { font-size: calc(32px * var(--t-scale, 1)); }
+      #short[data-art='1'][data-script='devanagari'] #device,
+      #short[data-art='1'][data-script='bengali'] #device { font-size: calc(46px * var(--t-scale, 1)); }
+      #short[data-dir='rtl'] #stage,
+      #short[data-dir='rtl'] #verse-stage,
+      #short[data-dir='rtl'] #caption-rail { direction: rtl; }
 
       /* ---- reference chip ---- */
       #reference-bar {
@@ -306,6 +455,21 @@
       #short[data-script='devanagari'] .caption-line {
         font-family: 'Noto Serif Devanagari', serif; line-height: 1.7;
       }
+      /* Over a drawing the rail needs its own contrast: warm gold at rest,
+         white on the word being spoken. Redefining the two custom properties
+         rather than setting `color` is what makes this work — the timeline
+         animates each word between `var(--t-ink)` and `var(--t-soft)` as an
+         INLINE style, which beats any rule this stylesheet could write on the
+         span. Custom properties resolve at use time, so moving the values
+         moves the animation with them. */
+      [data-art='1'] #caption-rail {
+        --t-ink: #ffffff;
+        --t-soft: #ffd764;
+      }
+      [data-art='1'] .caption-line {
+        color: #ffd764;
+        text-shadow: 0 2px 16px rgba(0, 0, 0, 0.7);
+      }
     </style>
   </head>
 
@@ -315,9 +479,17 @@
       data-height="1920"
       data-start="0" data-duration="30" data-script="latin" data-dir="ltr">
       <div id="ground"></div>
+      <div id="bg-art"></div>
       <div id="bg-photo"></div>
       <div id="bg-video-holder"><video id="bg-video" data-start="0" preload="auto" muted playsinline autoplay loop src=""></video></div>
       <div id="bg-fx"></div>
+      <!-- Paint order is DOM order (no z-index anywhere in this template).
+           The verse scrim sits UNDER the caption scrim deliberately: when the
+           passage takes the frame it dims the drawing, but the caption band
+           has to stay dark under it or the gold rail lands on cream paper. -->
+      <div id="art-band"></div>
+      <div id="art-verse-scrim"></div>
+      <div id="art-caption-scrim"></div>
       <div id="particles"></div>
       <div id="flare"></div>
 
@@ -336,6 +508,9 @@
 
         <div id="stage">
           <div id="device"></div>
+        </div>
+
+        <div id="verse-stage">
           <div id="verse-panel">
             <div id="verse-card">
               <div id="verse-spine"></div>
@@ -416,35 +591,48 @@
         var deviceChars = (deviceEl.textContent || '').length;
         if (deviceChars > 300) deviceEl.classList.add('longest');
         else if (deviceChars > 190) deviceEl.classList.add('longer');
-        /* ---- the thought, staged in chunks -----------------------------
-           A few words per screen (about five screens for a typical thought),
-           each chunk timed to its own words, so the stage reads along with
-           the captions instead of holding one line for the whole teaching. */
-        var teachSegStage = null;
-        for (var tsi = 0; tsi < segments.length; tsi += 1) {
-          if (segments[tsi].kind === 'teaching') { teachSegStage = segments[tsi]; break; }
-        }
+        /* ---- the teaching, one sentence per page ------------------------
+           The script splits the teaching into five sentences upstream and
+           records each as its own segment, so a page turns exactly when the
+           narrator finishes a sentence. Deriving the pages from a word count
+           here (as an earlier version did) drifted against the voice and
+           could land a page break mid-clause.
+
+           Page text comes from `segment.text`, not from the timing words:
+           the timings are aligned against ASR output and carry its casing and
+           dropped punctuation, which is fine for highlighting a caption but
+           wrong for a line printed large on screen. */
+        var stageEl = document.getElementById('stage');
         var chunks = [];
-        if (teachSegStage) {
-          var twords = [];
-          for (var twi = teachSegStage.wordStart; twi < teachSegStage.wordEnd; twi += 1) {
-            if (timings[twi]) twords.push(timings[twi]);
-          }
-          var per = Math.max(4, Math.min(12, Math.ceil(twords.length / 5)));
-          var stageEl = document.getElementById('stage');
-          for (var ci = 0; ci < twords.length; ci += per) {
-            var cwds = twords.slice(ci, ci + per);
-            var chunkDiv = document.createElement('div');
-            chunkDiv.className = 'tchunk';
-            chunkDiv.textContent = cwds.map(function (w) { return w.word; }).join(' ');
-            stageEl.appendChild(chunkDiv);
-            chunks.push({ el: chunkDiv, start: cwds[0].start, end: cwds[cwds.length - 1].end });
-          }
-        }
+        segments.forEach(function (seg) {
+          if (seg.kind !== 'teaching') return;
+          var first = timings[seg.wordStart];
+          var last = timings[seg.wordEnd - 1];
+          if (!first || !last) return;
+          var pageDiv = document.createElement('div');
+          pageDiv.className = 'tchunk';
+          pageDiv.textContent = seg.text;
+          if (seg.text.length > 118) pageDiv.classList.add('longest');
+          else if (seg.text.length > 82) pageDiv.classList.add('longer');
+          stageEl.appendChild(pageDiv);
+          chunks.push({
+            el: pageDiv,
+            page: typeof seg.page === 'number' ? seg.page : chunks.length,
+            start: first.start,
+            end: last.end,
+          });
+        });
+        chunks.sort(function (a, b) { return a.page - b.page; });
 
         /* ---- V2 visuals: DOM (fixed slot table, deterministic) ---------- */
         var drama = root.getAttribute('data-drama') || '';
-        var visualItems = (spec.visuals && spec.visuals.items) || [];
+        // Full-frame art (a reused doodle panel, or a generated image) is the
+        // BACKGROUND, painted by CSS from the bake step so frame 0 already
+        // carries it. It never becomes a .vis element.
+        var hasArt = root.getAttribute('data-art') === '1';
+        var visualItems = ((spec.visuals && spec.visuals.items) || []).filter(
+          function (item) { return item.kind !== 'doodle' && item.kind !== 'ai-image'; }
+        );
         var vis = [];
         if (visualItems.length) {
           root.classList.add('has-visuals');
@@ -590,6 +778,16 @@
             { scale: 1.02, xPercent: -1.4, duration: duration, ease: 'none' }, 0);
         }
 
+        // Full-frame art carries the same current, gently: the drawing is the
+        // only thing on screen for whole pages at a time, so a still frame
+        // would read as a stalled video. It pushes IN so the band at the top
+        // never opens a gap at the edge.
+        if (hasArt) {
+          tl.fromTo('#bg-art',
+            { scale: 1.0, yPercent: 0.6 },
+            { scale: 1.07, yPercent: -0.6, duration: duration, ease: 'none' }, 0);
+        }
+
         tl.fromTo('#bg-fx',
           { xPercent: -1.8, yPercent: -1.4, scale: 1.07, rotation: -0.5 },
           { xPercent: 1.8, yPercent: 1.4, scale: 1, rotation: 0.5, duration: duration, ease: 'none' }, 0);
@@ -625,22 +823,54 @@
         // the verse slab condenses out of the light.
         tl.fromTo('#flare', { opacity: 0 }, { opacity: 0.85, duration: 0.28, ease: 'power2.in', immediateRender: false }, seam - 0.3);
         tl.to('#flare', { opacity: 0, duration: 0.7, ease: 'power2.out' }, seam);
-        var deviceExit = chunks.length
-          ? Math.max(0.7, chunks[0].start - 0.45)
-          : seam - 0.4;
-        tl.to('#device', { opacity: 0, scale: 1.18, filter: 'blur(12px)', duration: 0.45, ease: 'power4.in' }, deviceExit);
+        /* ---- one sentence on the page at a time -------------------------
+           The pages tile the teaching window end to end: each page's window
+           runs from its own first spoken word to the NEXT page's first spoken
+           word, and the last one runs to the seam. Because the windows abut
+           rather than overlap, "only one sentence is visible" is a property
+           of the layout, not something the eases have to be tuned to avoid.
+
+           `autoAlpha` is what makes it a promise: the set at the boundary
+           flips visibility as well as opacity, so even mid-tween there is
+           never a second page painting into the same grid cell. */
+        var pageIn = function (i) {
+          return i < chunks.length ? Math.max(0, chunks[i].start - 0.1) : seam;
+        };
+        var deviceExit = chunks.length ? pageIn(0) : seam;
+        var deviceOut = Math.min(0.45, Math.max(0.18, deviceExit * 0.25));
+
+        tl.to('#device',
+          { opacity: 0, scale: 1.18, filter: 'blur(12px)', duration: deviceOut, ease: 'power4.in' },
+          Math.max(0, deviceExit - deviceOut));
+        tl.set('#device', { autoAlpha: 0 }, deviceExit);
+
         chunks.forEach(function (c, ci2) {
-          var cIn = Math.max(0, c.start - 0.12);
-          var cOut = ci2 === chunks.length - 1
-            ? Math.min(seam - 0.55, c.end + 0.6)
-            : chunks[ci2 + 1].start - 0.12;
-          if (cOut < cIn + 0.35) cOut = cIn + 0.35;
+          var cIn = pageIn(ci2);
+          var cOut = pageIn(ci2 + 1);
+          if (cOut <= cIn) return; // a page with no room is a page not shown
+          var span = cOut - cIn;
+          var inDur = Math.min(0.4, span * 0.34);
+          var outDur = Math.min(0.26, span * 0.24);
+
+          tl.set(c.el, { autoAlpha: 1 }, cIn);
           tl.fromTo(c.el,
             { opacity: 0, y: 34, filter: 'blur(6px)' },
-            { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.4, ease: 'power3.out', immediateRender: false }, cIn);
+            { opacity: 1, y: 0, filter: 'blur(0px)', duration: inDur, ease: 'power3.out', immediateRender: false }, cIn);
           tl.to(c.el,
-            { opacity: 0, y: -26, filter: 'blur(6px)', duration: 0.28, ease: 'power2.in' }, cOut - 0.28);
+            { opacity: 0, y: -26, filter: 'blur(6px)', duration: outDur, ease: 'power2.in' }, cOut - outDur);
+          tl.set(c.el, { autoAlpha: 0 }, cOut);
         });
+
+        // The sixth page. Under art the drawing settles back toward its own
+        // paper so the passage owns the frame — a long verse cannot be asked
+        // to live inside the sentence band, and the verse is the one page
+        // where legibility is not negotiable.
+        if (hasArt) {
+          tl.fromTo('#art-verse-scrim',
+            { opacity: 0 },
+            { opacity: 0.88, duration: 0.6, ease: 'power2.out', immediateRender: false }, seam);
+        }
+
         if (recipe) {
           tl.fromTo('#verse-panel', recipe.from, enterTo({}), seam + 0.08);
         } else {

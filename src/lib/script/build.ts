@@ -30,38 +30,42 @@ export interface BuildScriptOptions {
    */
   speakReference?: boolean;
   /**
-   * Doc-sourced format: after the teaching, the verse itself is spoken and
-   * displayed (title → thought → verse → reference). The verse segment goes
-   * through the verbatim gate exactly like the legacy verse-display shape.
+   * Speak and display the verse itself after the teaching, as the sixth and
+   * final page. On by default. The verse segment goes through the verbatim
+   * gate; passing false gives the older cite-only shape, which is kept for
+   * passages the creator has chosen not to quote on screen.
    */
   includeVerse?: boolean;
 }
 
+/** Sentence pages in the teaching body. One sentence, one page, no exceptions. */
+export const TEACHING_PAGES = 5;
+
 export function buildNarrationScript(options: BuildScriptOptions): BuiltScript {
-  const { device, passage, speakReference = true, includeVerse = false } = options;
+  const { device, passage, speakReference = true, includeVerse = true } = options;
 
-  // The current format: device line → the teaching unpacked → citation. The
-  // verse is the SOURCE, verified upstream and cited at the end, but its text
-  // is never spoken or displayed — unless `includeVerse` asks for the
-  // doc-sourced shape, which quotes it after the teaching. Specs from before
-  // this change carry no explanation, so they keep the original
-  // device → verse → reference shape.
+  // The format: an opening line, then the teaching in five sentences — one
+  // per page — then the verse itself on the sixth, then the citation. Specs
+  // from before the teaching format carry no explanation at all, so they keep
+  // the original device → verse → reference shape.
   const explanation = normalizeSpoken(device.explanation ?? '');
+  const pages = explanation ? splitSentences(explanation, TEACHING_PAGES) : [];
 
-  const parts: Array<{ kind: ScriptSegment['kind']; text: string }> = explanation
-    ? [
-        { kind: 'device', text: normalizeSpoken(device.content) },
-        { kind: 'teaching', text: explanation },
-        // Verbatim. The one part of the script that is not ours to shape.
-        ...(includeVerse ? [{ kind: 'verse' as const, text: passage.text }] : []),
-      ]
-    : [
-        { kind: 'device', text: normalizeSpoken(device.content) },
-        // Verbatim. The one part of the script that is not ours to shape.
-        { kind: 'verse', text: passage.text },
-      ];
+  const parts: Array<{ kind: ScriptSegment['kind']; text: string; page?: number }> =
+    pages.length
+      ? [
+          { kind: 'device', text: normalizeSpoken(device.content) },
+          ...pages.map((text, page) => ({ kind: 'teaching' as const, text, page })),
+          // Verbatim. The one part of the script that is not ours to shape.
+          ...(includeVerse ? [{ kind: 'verse' as const, text: passage.text }] : []),
+        ]
+      : [
+          { kind: 'device', text: normalizeSpoken(device.content) },
+          // Verbatim. The one part of the script that is not ours to shape.
+          { kind: 'verse', text: passage.text },
+        ];
 
-  const verseSpoken = !explanation || includeVerse;
+  const verseSpoken = !pages.length || includeVerse;
   if (speakReference) {
     parts.push({
       kind: 'reference',
@@ -84,12 +88,109 @@ export function buildNarrationScript(options: BuildScriptOptions): BuiltScript {
       text: part.text,
       wordStart: wordCursor,
       wordEnd: wordCursor + words,
+      ...(part.page === undefined ? {} : { page: part.page }),
     });
     scriptParts.push(part.text);
     wordCursor += words;
   }
 
   return { script: scriptParts.join(' '), segments };
+}
+
+/**
+ * Cut spoken prose into exactly `target` sentence-sized pages.
+ *
+ * The prompt asks the model for five sentences and the model usually obliges,
+ * but "usually" is not a layout guarantee and a page that never renders — or
+ * a sixth page colliding with the verse — is a visible defect. So the split is
+ * reconciled here rather than trusted:
+ *
+ *   too many   the shortest neighbouring pair is joined, repeatedly, so the
+ *              merge lands on the two sentences that read most like one
+ *              thought instead of always clipping the tail
+ *   too few    the longest page is split at the clause break nearest its
+ *              middle (a comma, a semicolon, a colon), and only at a real
+ *              break — mid-clause fragments read as a stutter on screen, so
+ *              if there is no break to use the page simply stays long
+ *
+ * Both directions preserve word order and every word, which matters because
+ * the caption rail is built from the same words and the segment boundaries
+ * index into one shared timing array.
+ */
+export function splitSentences(text: string, target: number): string[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  // Sentence-final punctuation, including the Devanagari danda and its
+  // double, plus the CJK/fullwidth stops that arrive from some voices.
+  const pages = trimmed
+    .split(/(?<=[.!?।॥。！？])\s+/u)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  while (pages.length > target) {
+    let at = 0;
+    let best = Infinity;
+    for (let i = 0; i < pages.length - 1; i += 1) {
+      const pair = countWords(pages[i]) + countWords(pages[i + 1]);
+      if (pair < best) {
+        best = pair;
+        at = i;
+      }
+    }
+    pages.splice(at, 2, `${pages[at]} ${pages[at + 1]}`);
+  }
+
+  while (pages.length < target) {
+    let at = -1;
+    let longest = 0;
+    for (let i = 0; i < pages.length; i += 1) {
+      const words = countWords(pages[i]);
+      if (words > longest) {
+        longest = words;
+        at = i;
+      }
+    }
+    // Fewer than four words either side is not a sentence, it is a fragment.
+    const halves = at === -1 ? null : splitAtClause(pages[at]);
+    if (!halves) break;
+    pages.splice(at, 1, ...halves);
+  }
+
+  return pages;
+}
+
+/** Split one page at the clause break nearest its middle, or null if none. */
+function splitAtClause(page: string): [string, string] | null {
+  const words = page.split(/\s+/);
+  if (words.length < 8) return null;
+
+  const middle = words.length / 2;
+  let at = -1;
+  let closest = Infinity;
+  // A break is a word that ENDS in clause punctuation; splitting after it
+  // keeps that punctuation with the half it belongs to.
+  for (let i = 2; i < words.length - 3; i += 1) {
+    if (!/[,;:—–]$/u.test(words[i])) continue;
+    const distance = Math.abs(i + 1 - middle);
+    if (distance < closest) {
+      closest = distance;
+      at = i + 1;
+    }
+  }
+  if (at === -1) return null;
+
+  return [
+    words.slice(0, at).join(' ').replace(/[,;:—–]$/u, '.'),
+    // The tail was a clause, so it starts lowercase. On screen it is a whole
+    // page on its own, and a page that opens mid-sentence reads as a bug
+    // rather than a style. Scripts without case are unaffected.
+    sentenceCase(words.slice(at).join(' ')),
+  ];
+}
+
+function sentenceCase(text: string): string {
+  return text.charAt(0).toLocaleUpperCase() + text.slice(1);
 }
 
 /**
@@ -159,6 +260,13 @@ export function spokenCitation(reference: string, languageCode?: string): string
 /** The segment carrying Scripture, which the integrity gate checks. */
 export function verseSegment(segments: ScriptSegment[]): ScriptSegment | undefined {
   return segments.find((s) => s.kind === 'verse');
+}
+
+/** The teaching's sentence pages, in spoken order. */
+export function teachingPages(segments: ScriptSegment[]): ScriptSegment[] {
+  return segments
+    .filter((s) => s.kind === 'teaching')
+    .sort((a, b) => (a.page ?? 0) - (b.page ?? 0));
 }
 
 /**

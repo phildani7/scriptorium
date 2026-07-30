@@ -19,7 +19,8 @@ import { verifyVerbatim } from '@/lib/verify/verbatim';
 import { directionFor, getLanguage } from '@/lib/languages/registry';
 import { buildVisuals } from '@/lib/visuals/match';
 import { findCc0Photo } from '@/lib/visuals/openverse';
-import { generateKieImage, kieConfigured } from '@/lib/visuals/kie';
+import { generateGrokImage, grokConfigured } from '@/lib/visuals/grok';
+import { doodleVisual, matchDoodle } from '@/lib/visuals/doodles';
 import type {
   DeviceItem,
   Narration,
@@ -51,9 +52,9 @@ interface ComposeBody {
   visualMode?: VisualMode;
   speakReference?: boolean;
   /**
-   * Doc-sourced format: speak and display the verse after the teaching
-   * (title → thought → verse → reference). The verse segment then goes
-   * through the verbatim gate below.
+   * Speak and display the verse after the teaching, as the sixth and final
+   * page (opening → five sentences → verse → citation). On by default; the
+   * verse segment then goes through the verbatim gate below.
    */
   speakVerse?: boolean;
 }
@@ -94,14 +95,14 @@ export async function POST(request: Request) {
     device: effectiveDevice,
     passage,
     speakReference: body.speakReference ?? true,
-    includeVerse: body.speakVerse ?? false,
+    includeVerse: body.speakVerse ?? true,
   });
 
   // --- the gate ------------------------------------------------------------
-  // When the script carries a verse segment (legacy verse-display shape),
-  // assert it is still exactly the verse the API returned. Teaching-format
-  // scripts never speak or display the verse, so there is nothing verbatim to
-  // check here — provenance is enforced at render, where the cited passage is
+  // Every short now closes on the verse itself, so the verse segment is the
+  // normal case rather than the exception: assert it is still exactly the
+  // verse the API returned. A spec that opts out of displaying the verse
+  // still has its provenance enforced at render, where the cited passage is
   // re-fetched and diffed against the spec.
   const verseSeg = segments.find((s) => s.kind === 'verse');
   let verificationMessage =
@@ -184,9 +185,19 @@ export async function POST(request: Request) {
     })();
 
     const extras: VisualItem[] = [];
-    if (visualMode === 'ai' && kieConfigured() && effectiveDevice.imagePrompt) {
-      const image = await generateKieImage(effectiveDevice.imagePrompt);
-      if (image) extras.push({ ...image, timeSec: heroTime });
+    if (visualMode === 'ai') {
+      // Reuse before spend. The 61-panel doodle library is already drawn,
+      // already licensed and already the house style, so a panel that
+      // honestly fits this teaching is strictly better than a generation:
+      // it is instant, free, and a known-good frame. Grok is the fallback
+      // for teachings the library has no picture for.
+      const matched = matchDoodle(effectiveDevice);
+      if (matched) {
+        extras.push(doodleVisual(matched.panel, 0));
+      } else if (grokConfigured() && effectiveDevice.imagePrompt) {
+        const image = await generateGrokImage(effectiveDevice.imagePrompt);
+        if (image) extras.push(image);
+      }
     } else if (visualMode === 'free' && effectiveDevice.visualTerms?.length) {
       const photo = await findCc0Photo(effectiveDevice.visualTerms[0]);
       if (photo) extras.push({ ...photo, timeSec: heroTime });

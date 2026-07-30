@@ -30,8 +30,12 @@ import { ThemePanel } from './ThemePanel';
 
 type Step = 'compose' | 'passage' | 'teachings' | 'series' | 'devices' | 'preview';
 
-/** Where the short starts: a topic/reference, or the creator's own text. */
-type SourceMode = 'topic' | 'text';
+/**
+ * Where the short starts: a topic/reference, the creator's own text, or a
+ * link to a YouTube video or an article. All three converge on the same
+ * pipeline, and in all three the verse still comes from YouVersion.
+ */
+type SourceMode = 'topic' | 'text' | 'link';
 
 interface ExtractedTeaching {
   title: string;
@@ -60,7 +64,7 @@ interface StatusPayload {
   ai: { active: string; glooConfigured: boolean; degradedReason?: string };
   scripture: { configured: boolean; note?: string };
   voice: { configured: boolean; note?: string };
-  visuals?: { free: boolean; kie: boolean };
+  visuals?: { free: boolean; ai: boolean; doodles: number; grok: boolean };
   coverage: {
     total: number;
     full: number;
@@ -126,10 +130,11 @@ export function Studio() {
   const [versions, setVersions] = useState<VersionOption[]>([]);
   const [versionId, setVersionId] = useState<number | undefined>();
 
-  /** Start from the creator's own text instead of a topic or reference. */
+  /** Start from the creator's own text or a link instead of a topic. */
   const [sourceMode, setSourceMode] = useState<SourceMode>('topic');
   const [sourceText, setSourceText] = useState('');
   const [sourceFile, setSourceFile] = useState<File | null>(null);
+  const [sourceUrl, setSourceUrl] = useState('');
   const [teachings, setTeachings] = useState<ExtractedTeaching[]>([]);
 
   const [seriesLen, setSeriesLen] = useState(5);
@@ -212,8 +217,12 @@ export function Studio() {
 
   const visualMode: VisualMode = withPictures ? pictureSource : 'text';
 
-  /** Doc-sourced shorts also speak + display the verse after the thought. */
-  const [speakVerse, setSpeakVerse] = useState(false);
+  /**
+   * The sixth page: after the five teaching sentences the verse itself is
+   * spoken and shown. On for every short — the teaching earns the verse, and
+   * the verse is the point.
+   */
+  const [speakVerse, setSpeakVerse] = useState(true);
 
   /** Turn a chosen device into a rendered preview. Shared by both paths. */
   const compose = useCallback(
@@ -364,8 +373,7 @@ export function Studio() {
     setBusy(true);
     setError(null);
     setPassage(chosenPassage);
-    // Lens-generated shorts cite the verse; only doc-sourced ones quote it.
-    setSpeakVerse(false);
+    setSpeakVerse(true);
     try {
       const data = await post<{ devices: DeviceItem[] }>('/api/generate', {
         passage: chosenPassage,
@@ -406,14 +414,20 @@ export function Studio() {
     }
   };
 
-  /** Mine the creator's own text (pasted or uploaded) for teachings. */
+  /** Mine the creator's source (pasted, uploaded, or linked) for teachings. */
   const onExtract = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError(null);
     try {
       let response: Response;
-      if (sourceFile) {
+      if (sourceMode === 'link') {
+        response = await fetch('/api/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: sourceUrl.trim(), languageCode }),
+        });
+      } else if (sourceFile) {
         const form = new FormData();
         form.append('file', sourceFile);
         form.append('languageCode', languageCode);
@@ -527,7 +541,8 @@ export function Studio() {
     setDevice(null);
     setTeachings([]);
     setSeriesDays([]);
-    setSpeakVerse(false);
+    setSpeakVerse(true);
+    setSourceUrl('');
     setPreviewHtml('');
     setError(null);
   };
@@ -557,11 +572,12 @@ export function Studio() {
           onSubmit={sourceMode === 'topic' ? onResolve : onExtract}
           className="rounded-2xl border border-rule bg-panel p-8 shadow-sm"
         >
-          <div className="mb-4 flex gap-1 rounded-xl border border-rule bg-white p-1 sm:max-w-md">
+          <div className="mb-4 flex gap-1 rounded-xl border border-rule bg-white p-1 sm:max-w-xl">
             {(
               [
                 { id: 'topic', label: 'Topic or verse' },
                 { id: 'text', label: 'From your text' },
+                { id: 'link', label: 'YouTube or link' },
               ] as Array<{ id: SourceMode; label: string }>
             ).map((m) => (
               <button
@@ -597,6 +613,33 @@ export function Studio() {
                 placeholder="John 3:16"
                 className="mb-6 w-full rounded-xl border border-rule bg-white px-4 py-3 text-lg"
               />
+            </>
+          ) : sourceMode === 'link' ? (
+            <>
+              <label htmlFor="source-url" className="mb-2 block font-display text-2xl">
+                Start from a video or an article
+              </label>
+              <p className="mb-4 text-sm text-inksoft">
+                Paste a YouTube link and its captions are read; paste any
+                article, blog post or PDF link and its text is read. The
+                teachings are mined from those words, and each is anchored to a
+                passage — the verse itself still comes from YouVersion, never
+                from the page.
+              </p>
+
+              <input
+                id="source-url"
+                type="url"
+                inputMode="url"
+                value={sourceUrl}
+                onChange={(e) => setSourceUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=…"
+                className="mb-2 w-full rounded-xl border border-rule bg-white px-4 py-3 text-lg"
+              />
+              <p className="mb-6 text-xs text-inkfaint">
+                Videos need captions turned on. Sites that build their article
+                in the browser cannot be read this way — paste the text instead.
+              </p>
             </>
           ) : (
             <>
@@ -772,27 +815,34 @@ export function Studio() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => status?.visuals?.kie && setPictureSource('ai')}
-                    disabled={!status?.visuals?.kie}
+                    onClick={() => setPictureSource('ai')}
                     aria-pressed={pictureSource === 'ai'}
-                    title={
-                      status?.visuals?.kie
-                        ? 'One AI-generated 1:1 image per short'
-                        : 'Needs KIE_API_KEY — not configured on this deployment yet'
-                    }
-                    className={`flex-1 rounded-lg border px-3 py-2 text-sm transition disabled:opacity-40 ${
+                    title="One full-frame hand-drawn doodle behind all five sentences"
+                    className={`flex-1 rounded-lg border px-3 py-2 text-sm transition ${
                       pictureSource === 'ai'
                         ? 'border-accent bg-accentsoft font-semibold text-accent'
                         : 'border-rule bg-white text-inksoft'
                     }`}
                   >
-                    AI images{status?.visuals?.kie ? '' : ' (soon)'}
+                    AI images
                   </button>
                 </div>
-                <p className="mt-2 text-xs text-inkfaint">
-                  Free graphics: hand-picked icons and CC0 photos. Each
-                  teaching lens brings its own dramatic style.
-                </p>
+                {pictureSource === 'ai' ? (
+                  <p className="mt-2 text-xs text-inkfaint">
+                    One hand-drawn doodle fills the frame behind all five
+                    sentences. A matching panel from the{' '}
+                    {status?.visuals?.doodles ?? 61}-panel library is reused
+                    when one fits;{' '}
+                    {status?.visuals?.grok
+                      ? 'otherwise Grok draws a new one in the same style.'
+                      : 'set XAI_API_KEY to have Grok draw a new one when none fits.'}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs text-inkfaint">
+                    Free graphics: hand-picked icons and CC0 photos. Each
+                    teaching lens brings its own dramatic style.
+                  </p>
+                )}
               </Field>
             </div>
           )}
@@ -862,6 +912,14 @@ export function Studio() {
                 </button>
               </div>
             </>
+          ) : sourceMode === 'link' ? (
+            <button
+              type="submit"
+              disabled={busy || !/^https?:\/\/\S+\.\S/i.test(sourceUrl.trim())}
+              className="rounded-xl bg-accent px-6 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            >
+              {busy ? 'Reading the link…' : 'Read the link'}
+            </button>
           ) : (
             <button
               type="submit"
@@ -1161,6 +1219,14 @@ function NarrationEditor({
     content.trim() !== device.content.trim() ||
     explanation.trim() !== (device.explanation ?? '').trim();
 
+  // Mirrors the split in lib/script/build: the same sentence-final marks,
+  // including the Devanagari danda. Shown live so a creator editing the
+  // teaching can see whether they still have five pages.
+  const sentenceCount = explanation
+    .trim()
+    .split(/(?<=[.!?।॥。！？])\s+/u)
+    .filter((s) => s.trim().length > 0).length;
+
   return (
     <div className="mt-10 rounded-xl border border-rule bg-white p-6">
       <div className="mb-1 flex items-baseline justify-between">
@@ -1170,7 +1236,9 @@ function NarrationEditor({
         </span>
       </div>
       <p className="mb-4 text-sm text-inksoft">
-        Applying changes re-voices the narration and re-times the captions.
+        Applying changes re-voices the narration and re-times the captions. The
+        teaching is shown five sentences to five pages, one at a time, so keep
+        it to five sentences.
       </p>
 
       <label className="mb-1 block text-xs font-semibold tracking-widest text-inksoft uppercase">
@@ -1186,16 +1254,30 @@ function NarrationEditor({
 
       {(device.explanation ?? '') !== '' && (
         <>
-          <label className="mb-1 block text-xs font-semibold tracking-widest text-inksoft uppercase">
-            Teaching
+          <label className="mb-1 block flex items-baseline justify-between text-xs font-semibold tracking-widest text-inksoft uppercase">
+            <span>Teaching — five sentences, five pages</span>
+            <span
+              className={
+                sentenceCount === 5 ? 'text-inkfaint' : 'font-bold text-accent'
+              }
+            >
+              {sentenceCount} sentence{sentenceCount === 1 ? '' : 's'}
+            </span>
           </label>
           <textarea
             dir={dir}
             value={explanation}
             onChange={(e) => setExplanation(e.target.value)}
-            rows={4}
-            className="mb-4 w-full rounded-lg border border-rule bg-white px-3 py-2 text-base leading-relaxed"
+            rows={6}
+            className="mb-2 w-full rounded-lg border border-rule bg-white px-3 py-2 text-base leading-relaxed"
           />
+          {sentenceCount !== 5 && (
+            <p className="mb-4 text-xs text-inksoft">
+              {sentenceCount > 5
+                ? 'The extra sentences will be merged onto the five pages.'
+                : 'Short of five: a long sentence will be split at a comma to fill the pages.'}
+            </p>
+          )}
         </>
       )}
 
@@ -1209,7 +1291,8 @@ function NarrationEditor({
           {busy ? 'Re-voicing…' : 'Apply & re-voice'}
         </button>
         <span className="text-sm text-inkfaint">
-          Closes with: “This is based on {passage?.reference ?? 'the passage'}.”
+          Closes on {passage?.reference ?? 'the passage'} itself, retrieved and
+          verified.
         </span>
       </div>
     </div>

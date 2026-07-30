@@ -151,10 +151,28 @@ async function main() {
     let visualIndex = 0;
     for (const item of visuals.items) {
       if (!item.src) continue;
-      // Bundled art (cliparts) travels as a root-relative path; the bundle
-      // itself is served from file://, so make it plain relative instead.
+      // Bundled art (cliparts, doodle panels) travels as a root-relative
+      // path; the bundle itself is served from file://, so make it plain
+      // relative instead.
       if (item.src.startsWith('/')) {
-        item.src = item.src.slice(1);
+        const relative = item.src.slice(1);
+        // The doodle library is ~18 MB across 61 panels and a short uses
+        // exactly one, so copy the one rather than the folder — the whole
+        // library in every render bundle is bandwidth and disk for nothing.
+        if (relative.startsWith('doodles/')) {
+          const from = join(ROOT, 'public', relative);
+          if (existsSync(from)) {
+            const to = join(workdir, relative);
+            mkdirSync(dirname(to), { recursive: true });
+            cpSync(from, to);
+            console.log(`visual      ${relative} (bundled doodle panel)`);
+          } else {
+            console.warn(`visual      dropped (missing): ${relative}`);
+            item.src = '';
+            continue;
+          }
+        }
+        item.src = relative;
         continue;
       }
       if (!/^https?:\/\//i.test(item.src)) continue;

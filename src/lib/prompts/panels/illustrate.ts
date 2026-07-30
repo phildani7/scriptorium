@@ -72,22 +72,36 @@ GUARDRAILS:
 REGISTER FOR THIS READER:
 ${tierConfig.register}
 
-EXPLANATION FIELD: each item also carries "explanation" — the 2-4 sentences a
-narrator speaks right after the device to unpack the teaching (roughly 40-70
-words). It expands the device's point into plain spoken prose: what the passage
-teaches, why it matters to the listener, and it should echo the device's image
-so the short feels like one thought. Written to be HEARD — short sentences, no
-lists, no headings. It may paraphrase the passage's idea but must NEVER quote
-the verse text verbatim; the verse itself is cited by reference only.
+EXPLANATION FIELD: each item also carries "explanation" — what the narrator
+speaks right after the device to unpack the teaching. It must be EXACTLY FIVE
+SENTENCES, roughly 12-20 words each (60-100 words in total).
+
+This is a hard format requirement, not a stylistic preference: each sentence
+becomes ONE PAGE on screen, shown alone, so five sentences means five pages.
+Write them as five distinct beats that build:
+  1. name the situation the listener is actually in
+  2. say what the passage claims about it
+  3. sharpen that claim, or name what it rules out
+  4. bring it down to something concrete and this-week
+  5. land the thought — the line they keep
+Every sentence must stand alone on screen and still make sense, so avoid
+starting one with "And", "But so", or a pronoun whose subject was two
+sentences ago. No sentence may run past about 20 words or it will not fit.
+Written to be HEARD: short, plain, no lists, no headings, no semicolons.
+It should echo the device's image so the short feels like one thought. It may
+paraphrase the passage's idea but must NEVER quote the verse text verbatim.
 
 VISUAL FIELDS: each item also carries two fields for on-screen graphics.
 "visualTerms": 3-5 concrete ENGLISH nouns naming things the device or teaching
 literally mentions or evokes (e.g. "mountain", "storm", "anchor", "seed") —
 always English single words regardless of the response language, because they
-key an icon library. Prefer physical, drawable things over abstractions.
-"imagePrompt": ONE sentence describing a single square photograph-style image
-that would illustrate the device — concrete scene, warm and reverent, no text
-or lettering in the image, no depiction of God or Jesus' face.
+key a picture library. Prefer physical, drawable things over abstractions.
+"imagePrompt": ONE English sentence describing a single VERTICAL hand-drawn
+children's Bible doodle illustration for this teaching — one clear concrete
+scene, warm and reverent, drawn in bold marker outline and bright crayon
+colour on cream sketchbook paper. Describe only the scene and leave the top
+quarter of the frame free of subject matter. Never ask for text, letters,
+words, labels or speech bubbles in the image, and never depict God's face.
 
 Return a JSON array of ${count} items:
 [
@@ -95,9 +109,9 @@ Return a JSON array of ${count} items:
     "type": "${filterType || 'analogy" | "illustration" | "punch-line" | "hook" | "object-lesson" | "summary'}",
     "content": "The device itself (for object-lesson: the object/demo + how to use it)",
     "point": "The passage truth it illuminates (for analogy: also where it holds / its limit; for hook: how it pays off; for object-lesson: how it maps to the text)",
-    "explanation": "2-4 spoken sentences unpacking the device (40-70 words); never quotes the verse verbatim",
+    "explanation": "EXACTLY five spoken sentences unpacking the device, 12-20 words each; each one becomes its own page on screen; never quotes the verse verbatim",
     "visualTerms": ["3-5 concrete English nouns, e.g.", "mountain", "storm"],
-    "imagePrompt": "One sentence describing a single square illustrative image; no text in the image",
+    "imagePrompt": "One sentence describing a single vertical hand-drawn doodle scene; no text or lettering in the image",
     "reference": "The verse(s) it is anchored to, e.g. \\"John 1:3\\"",
     "emoji": "A single relevant emoji"
   }

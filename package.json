@@ -17,6 +17,10 @@
         "render": "tsx --env-file-if-exists=.env.local render/render.ts",
         "render:sandbox": "tsx --env-file-if-exists=.env.local scripts/render-sandbox.ts",
         "prove:gate": "tsx --env-file-if-exists=.env.local scripts/prove-gate.ts",
+        "doodles:doc": "tsx scripts/doodle-catalog.ts",
+        "smoke:pages": "tsx scripts/smoke-pages.ts",
+        "smoke:grok": "tsx --env-file-if-exists=.env.local scripts/smoke-grok.ts",
+        "smoke:link": "tsx scripts/smoke-link.ts",
         "gallery": "tsx --env-file-if-exists=.env.local scripts/build-gallery.ts"
     },
     "dependencies": {

@@ -127,6 +127,73 @@
       #particles { position: absolute; inset: 0; }
       .particle { position: absolute; border-radius: 50%; background: var(--t-accent, #e8b04b); opacity: 0; }
 
+      /* ---- full-frame art: a reused doodle panel or a generated image ----
+         The picture IS the background for the whole short, so it supersedes
+         every other ground treatment. Written statically by the bake step so
+         the very first captured frame already carries it. */
+      #bg-art {
+        position: absolute;
+        inset: -46px;
+        background-image: var(--t-art);
+        background-size: cover;
+        background-position: center;
+        display: none;
+      }
+      [data-art='1'] #bg-art { display: block; }
+      [data-art='1'] #bg-fx,
+      [data-art='1'] #bg-photo,
+      [data-art='1'] #bg-video-holder,
+      [data-art='1'] #ground { display: none; }
+
+      /* The sentence band, in the artwork's own paper. `--t-art-band` is
+         measured from the panel (see lib/visuals/doodles), so where a panel
+         already reserves a clean upper quarter this scrim is invisible, and
+         where it does not the scrim manufactures the band. */
+      #art-band {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: calc(var(--t-art-band, 500px) + 240px);
+        background: linear-gradient(
+          180deg,
+          var(--t-art-paper, #fdf8e4) 0%,
+          var(--t-art-paper, #fdf8e4) calc(100% - 240px),
+          color-mix(in srgb, var(--t-art-paper, #fdf8e4) 0%, transparent) 100%
+        );
+        display: none;
+      }
+      [data-art='1'] #art-band { display: block; }
+
+      /* This style has no separate caption rail — its type IS the caption —
+         so unlike the other two it needs no dark band along the bottom. The
+         verse scrim is the only overlay here. */
+      #art-verse-scrim {
+        position: absolute;
+        inset: 0;
+        background: var(--t-art-paper, #fdf8e4);
+        opacity: 0;
+        display: none;
+      }
+      [data-art='1'] #art-verse-scrim { display: block; }
+
+      /* Doodle paper is always light stock. This style's palettes are mostly
+         dark, so its ink is forced dark here or a poster line would print
+         cream on cream. */
+      [data-art='1'] #wall,
+      [data-art='1'] #teach,
+      [data-art='1'] #verse-block { color: #17140f; }
+
+      /* Same reasoning for the accent, which colours the highlighted words,
+         the reference chip and the verse kicker. This style's palettes pick
+         accents chosen to glow on a dark ground — gold, hot pink — and none
+         survives on cream paper. Set on a DESCENDANT because the bake step
+         writes `--t-accent` inline on the root, and inline wins against any
+         rule targeting that same element. */
+      [data-art='1'] .clip { --t-accent: #b4552e; }
+
+      /* Particles come from the theme's background choice, which art mode
+         otherwise supersedes; left alone they drift over the drawing. */
+      [data-art='1'] #particles { display: none; }
+
       .clip { position: absolute; inset: 0; }
 
       /* ---- V2 visuals: timed icons / images, drama per teaching type ---- */
@@ -169,6 +236,14 @@
         letter-spacing: 0.005em;
       }
       #wall.longer { font-size: calc(70px * var(--t-scale, 1)); }
+      /* Under art the wall lives inside the measured band. */
+      [data-art='1'] #wall {
+        top: 132px;
+        bottom: auto;
+        height: calc(var(--t-art-band, 500px) - 168px);
+        font-size: calc(62px * var(--t-scale, 1));
+      }
+      [data-art='1'] #wall.longer { font-size: calc(50px * var(--t-scale, 1)); }
       #wall .kw { display: inline-block; opacity: 0; will-change: transform; }
       /* Every third-ish word takes the accent — set from the seeded PRNG at
          load, so it is stable across seeks and renders. */
@@ -189,17 +264,47 @@
       #teach {
         position: absolute;
         left: 90px; right: 90px; top: 210px; bottom: 300px;
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
         align-content: center;
-        column-gap: 0.3em;
-        row-gap: 0.14em;
         font-family: var(--t-font-display, 'Archivo Black', 'Inter', sans-serif);
         font-size: calc(48px * var(--t-scale, 1));
         line-height: 1.32;
         color: var(--t-ink, #f5f0e4);
       }
-      #teach.longer { font-size: calc(40px * var(--t-scale, 1)); }
+      /* Under art the teaching collapses into the measured band, centred over
+         the drawing's own centred composition. It runs LARGER than the
+         unconstrained default, not smaller: this style's whole identity is
+         poster type, and a band-constrained line at body scale reads as a
+         subtitle stuck on someone else's picture. */
+      [data-art='1'] #teach {
+        top: 132px;
+        bottom: auto;
+        height: calc(var(--t-art-band, 500px) - 168px);
+        /* Generous, because --t-scale carries this style's poster-face
+           compensation (Archivo Black rides at 0.86) and a band-constrained
+           line would otherwise land under 46px. */
+        font-size: calc(64px * var(--t-scale, 1));
+        justify-items: center;
+      }
+      [data-art='1'] .tpage { justify-content: center; text-align: center; }
+      [data-art='1'] #wall { justify-content: center; text-align: center; }
+      /* One sentence of the teaching. The five pages stack in a single grid
+         cell and the timeline shows exactly one at a time; `visibility` in
+         the rest state is what makes that a hard promise rather than an
+         opacity race between two flex rows. */
+      .tpage {
+        grid-area: 1 / 1;
+        align-self: center;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: center;
+        column-gap: 0.3em;
+        row-gap: 0.14em;
+        opacity: 0;
+        visibility: hidden;
+      }
+      .tpage.longer { font-size: 0.84em; }
+      .tpage.longest { font-size: 0.72em; }
       #teach .tw { display: inline-block; opacity: 0; will-change: transform; }
       #teach .tw.hot { color: var(--t-accent, #e8b04b); }
       #short[data-script='devanagari'] #teach,
@@ -250,6 +355,24 @@
       #verse-text.longer { font-size: calc(44px * var(--t-scale, 1)); }
       #verse-text .vw { transition: none; }
       #verse-text .vw.on { color: var(--t-ink, #f5f0e4); }
+      /* Over the dimmed drawing the verse needs dark ink, and it clears the
+         caption band rather than running under it.
+
+         Redefining the two custom properties rather than setting `color` is
+         what makes this work. The verse reads along word by word, and the
+         timeline lifts each spoken word to `var(--t-ink)` as an INLINE style,
+         which beats any rule this stylesheet could write on the span. On a
+         dark palette `--t-ink` is cream — so on the cream verse scrim the
+         SPOKEN words went invisible while the unspoken ones stayed dark,
+         exactly inverting the read-along. Custom properties resolve at use
+         time, so moving the values moves the animation with them. */
+      [data-art='1'] #verse-block {
+        top: 280px;
+        bottom: 420px;
+        --t-ink: #17140f;
+        --t-soft: #6b6157;
+      }
+      [data-art='1'] #verse-text { color: #6b6157; }
 
       #short[data-script='devanagari'] #verse-text,
       #short[data-script='bengali'] #verse-text {
@@ -286,9 +409,12 @@
       data-height="1920"
       data-start="0" data-duration="30" data-script="latin" data-dir="ltr">
       <div id="ground"></div>
+      <div id="bg-art"></div>
       <div id="bg-photo"></div>
       <div id="bg-video-holder"><video id="bg-video" data-start="0" preload="auto" muted playsinline autoplay loop src=""></video></div>
       <div id="bg-fx"></div>
+      <div id="art-band"></div>
+      <div id="art-verse-scrim"></div>
       <div id="particles"></div>
 
       <audio id="narration" data-narration data-start="0" preload="auto" src=""></audio>
@@ -404,28 +530,58 @@
 
         document.getElementById('reference-label').textContent = spec.passage.reference;
 
-        /* ---- the teaching block: prose landing on the voice ------------- */
+        /* ---- the teaching: five sentences, one page at a time -----------
+           This style's signature is words landing on the voice, so a page
+           keeps that — the words still arrive one by one on their measured
+           timings. What changed is the container: each sentence is its own
+           page, and only one page is ever on screen.
+
+           The spans carry the TIMING words rather than the segment text,
+           because word-level entry needs a span per timed word. That is the
+           opposite of the warm-minimal choice and it is right here: the
+           alignment step already replaces ASR words with the script's own,
+           so these are the script's words with the script's punctuation. */
         var teachEl = document.getElementById('teach');
-        var teachWords = [];
-        if (teachSeg) {
-          var teachChars = 0;
-          for (var ti = teachSeg.wordStart; ti < teachSeg.wordEnd; ti += 1) {
+        var teachPages = [];
+        segments.forEach(function (seg) {
+          if (seg.kind !== 'teaching') return;
+          var pageEl = document.createElement('div');
+          pageEl.className = 'tpage';
+          var chars = 0;
+          var words = [];
+          for (var ti = seg.wordStart; ti < seg.wordEnd; ti += 1) {
             var tt = timings[ti];
             if (!tt) continue;
             var tspan = document.createElement('span');
             tspan.className = 'tw' + (rand() < 0.12 ? ' hot' : '');
             tspan.id = 'tw-' + ti;
             tspan.textContent = tt.word;
-            teachEl.appendChild(tspan);
-            teachWords.push({ el: tspan, start: tt.start });
-            teachChars += tt.word.length + 1;
+            pageEl.appendChild(tspan);
+            words.push({ el: tspan, start: tt.start });
+            chars += tt.word.length + 1;
           }
-          if (teachChars > 300) teachEl.classList.add('longer');
-        }
+          if (!words.length) return;
+          if (chars > 118) pageEl.classList.add('longest');
+          else if (chars > 82) pageEl.classList.add('longer');
+          teachEl.appendChild(pageEl);
+          teachPages.push({
+            el: pageEl,
+            words: words,
+            page: typeof seg.page === 'number' ? seg.page : teachPages.length,
+            start: words[0].start,
+          });
+        });
+        teachPages.sort(function (a, b) { return a.page - b.page; });
 
         /* ---- V2 visuals: DOM (fixed slot table, deterministic) ---------- */
         var drama = root.getAttribute('data-drama') || '';
-        var visualItems = (spec.visuals && spec.visuals.items) || [];
+        // Full-frame art (a reused doodle panel, or a generated image) is the
+        // BACKGROUND, painted by CSS from the bake step so frame 0 already
+        // carries it. It never becomes a .vis element.
+        var hasArt = root.getAttribute('data-art') === '1';
+        var visualItems = ((spec.visuals && spec.visuals.items) || []).filter(
+          function (item) { return item.kind !== 'doodle' && item.kind !== 'ai-image'; }
+        );
         var vis = [];
         if (visualItems.length) {
           root.classList.add('has-visuals');
@@ -539,6 +695,16 @@
             { scale: 1.02, xPercent: -1.4, duration: duration, ease: 'none' }, 0);
         }
 
+        // Full-frame art carries the same current, gently: the drawing holds
+        // the frame for whole pages at a time, and a still frame under moving
+        // type reads as a stalled video. It pushes IN so the band at the top
+        // never opens a gap at the edge.
+        if (hasArt) {
+          tl.fromTo('#bg-art',
+            { scale: 1.0, yPercent: 0.6 },
+            { scale: 1.07, yPercent: -0.6, duration: duration, ease: 'none' }, 0);
+        }
+
         tl.fromTo('#bg-fx',
           { xPercent: -1.6, yPercent: -1.2, scale: 1.06 },
           { xPercent: 1.6, yPercent: 1.2, scale: 1, duration: duration, ease: 'none' }, 0);
@@ -572,20 +738,52 @@
         // Opposite scale signs, mirrored eases: one camera move.
         tl.to('#wall', { opacity: 0, scale: 0.9, filter: 'blur(9px)', duration: 0.5, ease: 'power4.in' }, seam - 0.42);
 
-        // Teaching words land on the voice like the wall did, at body scale —
-        // then the whole block recedes ahead of the citation.
-        teachWords.forEach(function (w) {
-          if (recipe) {
-            tl.fromTo(w.el, recipe.from, enterTo({}), Math.max(0, w.start - 0.05));
-          } else {
-            tl.fromTo(w.el,
-              { opacity: 0, y: 26 },
-              { opacity: 1, y: 0, duration: 0.3, ease: 'power3.out', immediateRender: false },
-              Math.max(0, w.start - 0.05));
-          }
+        /* ---- one sentence on the page at a time -------------------------
+           The pages tile the teaching window end to end: a page's window runs
+           from its own first spoken word to the NEXT page's first spoken
+           word, and the last runs to the seam. Because the windows abut
+           rather than overlap, "only one sentence is visible" is a property
+           of the layout rather than something the eases must avoid breaking.
+           The `autoAlpha` sets at the boundaries flip visibility as well as
+           opacity, so not even a mid-tween frame can show two. */
+        var pageIn = function (i) {
+          return i < teachPages.length
+            ? Math.max(0, teachPages[i].start - 0.1)
+            : seam2;
+        };
+        teachPages.forEach(function (p, pi) {
+          var pIn = pageIn(pi);
+          var pOut = pageIn(pi + 1);
+          if (pOut <= pIn) return;
+          var outDur = Math.min(0.34, (pOut - pIn) * 0.24);
+
+          tl.set(p.el, { autoAlpha: 1 }, pIn);
+          // Words land on the voice, exactly as the wall's do.
+          p.words.forEach(function (w) {
+            if (recipe) {
+              tl.fromTo(w.el, recipe.from, enterTo({}), Math.max(pIn, w.start - 0.05));
+            } else {
+              tl.fromTo(w.el,
+                { opacity: 0, y: 26 },
+                { opacity: 1, y: 0, duration: 0.3, ease: 'power3.out', immediateRender: false },
+                Math.max(pIn, w.start - 0.05));
+            }
+          });
+          // The page recedes away from camera, the same move the wall makes.
+          tl.to(p.el,
+            { opacity: 0, scale: 0.94, filter: 'blur(8px)', duration: outDur, ease: 'power4.in' },
+            pOut - outDur);
+          tl.set(p.el, { autoAlpha: 0 }, pOut);
         });
-        if (teachingMode) {
-          tl.to('#teach', { opacity: 0, scale: 0.94, filter: 'blur(8px)', duration: 0.5, ease: 'power4.in' }, seam2 - 0.42);
+
+        // The sixth page. Under art the drawing settles back toward its own
+        // paper so the passage owns the frame: a long verse cannot be asked
+        // to live inside the sentence band, and the verse is the one page
+        // where legibility is not negotiable.
+        if (hasArt) {
+          tl.fromTo('#art-verse-scrim',
+            { opacity: 0 },
+            { opacity: 0.88, duration: 0.6, ease: 'power2.out', immediateRender: false }, seam2);
         }
 
         if (recipe) {

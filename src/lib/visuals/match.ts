@@ -6,6 +6,7 @@
  * render contract allows nothing less.
  */
 
+import { isFullFrameVisual } from '@/lib/types';
 import type {
   DeviceItem,
   Narration,
@@ -147,8 +148,16 @@ export function buildVisuals(
   extras: VisualItem[] = [],
 ): ShortVisuals | undefined {
   if (mode === 'text') return undefined;
+
+  // A full-frame doodle or AI image IS the picture: it holds the whole frame
+  // for the whole short. Sending icons across it as well would be two
+  // illustrations arguing, so the matcher stands down.
+  if (extras.some(isFullFrameVisual)) {
+    return { mode, items: extras.filter(isFullFrameVisual).slice(0, 1) };
+  }
+
   const icons = matchIcons(device, narration);
-  // Extras (a hero photo or AI image) claim slot 0; keep total bounded.
+  // Extras (a hero photo) claim slot 0; keep total bounded.
   const items = [...extras, ...icons].slice(0, MAX_ITEMS + 1);
   return { mode, items };
 }

@@ -61,5 +61,10 @@ scratchpad/
 /.piper-models/
 /renders/
 /samples/*.json
+/.smoke/
+# `npm run smoke:pages` stages compositions here so root-relative asset paths
+# resolve over file://; it cleans up after itself, but a killed run must not
+# leave them to be deployed.
+/public/__smoke/
 .vercel
 .env*

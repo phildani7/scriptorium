@@ -189,7 +189,14 @@ function buildServer(origin: string): McpServer {
             captions: z.enum(['on', 'off']).optional(),
           })
           .optional(),
-        visualMode: z.enum(['text', 'free']).default('text'),
+        visualMode: z
+          .enum(['text', 'free', 'ai'])
+          .default('text')
+          .describe(
+            "'ai' fills the frame with one hand-drawn doodle behind all five " +
+              'sentences: a shipped panel when one fits the teaching, ' +
+              'otherwise a Grok generation in the same style',
+          ),
         export: z.boolean().default(true),
         backend: z.enum(['actions', 'sandbox']).optional(),
       },

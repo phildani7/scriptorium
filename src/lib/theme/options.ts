@@ -83,7 +83,7 @@ export interface BackgroundOption {
   label: string;
   /**
    * Which treatment the template applies. Most are CSS-generated; `photo`
-   * layers a shipped public-domain image with a slow Ken Burns drift and a
+   * layers a shipped licensed image with a slow Ken Burns drift and a
    * palette-tinted scrim so text stays legible on any theme.
    */
   kind:
@@ -111,10 +111,6 @@ export const BACKGROUNDS: readonly BackgroundOption[] = [
   { id: 'paper', label: 'Paper texture', kind: 'paper' },
   { id: 'halftone', label: 'Halftone dots', kind: 'halftone' },
   { id: 'linen', label: 'Linen weave', kind: 'linen' },
-  // NASA imagery — public domain. Normalized to 1080x1920 at import.
-  { id: 'photo-starfield', label: 'Deep field ✶', kind: 'photo', src: '/backgrounds/starfield.jpg' },
-  { id: 'photo-pillars', label: 'Pillars ✶', kind: 'photo', src: '/backgrounds/pillars.jpg' },
-  { id: 'photo-earth', label: 'Earth ✶', kind: 'photo', src: '/backgrounds/earth.jpg' },
   // Hand-drawn doodle frames, authored in scripts/make-doodles.ts. Applied as
   // an alpha mask over a palette-ink layer, so they recolor with the theme.
   { id: 'doodle-faith', label: 'Faith margins ✎', kind: 'doodle', src: '/backgrounds/doodles/doodle-faith.svg' },
@@ -192,17 +188,16 @@ export interface MusicOption {
 /**
  * Music beds, pre-attenuated and faded at import time with ffmpeg, so the
  * mix is right no matter what a player does with volume attributes.
- * Kevin MacLeod tracks are CC-BY 4.0 — credited here, in CREDITS.md, and in
- * the gallery manifest.
+ *
+ * Every track here is licensed to the project creator through Audiio and
+ * requires NO attribution. The four CC-BY tracks this set opened with were
+ * removed deliberately: a short is made to be reposted, and a licence whose
+ * terms depend on a credit line surviving that repost is a licence the
+ * creator will breach without ever knowing. The credit still travels with the
+ * gallery entry, as a courtesy rather than an obligation.
  */
 export const MUSIC: readonly MusicOption[] = [
   { id: 'none', label: 'No music', file: '', credit: '' },
-  { id: 'meditation', label: 'Meditation', file: '/music/meditation.mp3', credit: '"Meditation Impromptu 01" Kevin MacLeod (incompetech.com), CC BY 4.0' },
-  { id: 'at-rest', label: 'At Rest', file: '/music/at-rest.mp3', credit: '"At Rest" Kevin MacLeod (incompetech.com), CC BY 4.0' },
-  { id: 'heartbreaking', label: 'Tender', file: '/music/heartbreaking.mp3', credit: '"Heartbreaking" Kevin MacLeod (incompetech.com), CC BY 4.0' },
-  { id: 'wounded', label: 'Reflective', file: '/music/wounded.mp3', credit: '"Wounded" Kevin MacLeod (incompetech.com), CC BY 4.0' },
-  // Audiio catalogue, licensed to this project's creator — no attribution
-  // required. Leveled and faded at import to match the existing beds.
   { id: 'right-here', label: 'Right Here', file: '/music/right-here.mp3', credit: '"Right Here" Su — Audiio license' },
   { id: 'deeper-still', label: 'Deeper Still', file: '/music/deeper-still.mp3', credit: '"Deeper Still" Jacob Montague — Audiio license' },
   { id: 'beyond-the-pull', label: 'Ambient Drift', file: '/music/beyond-the-pull.mp3', credit: '"Beyond the Pull of Things (Ambient)" Dmitriy Redko — Audiio license' },
@@ -254,7 +249,10 @@ export function resolveTheme(theme: ShortTheme | undefined): ResolvedTheme {
  * exactly where intended: custom properties only.
  */
 export function themeStyle(theme: ShortTheme | undefined): string {
-  const { palette, font, size, background } = resolveTheme(theme);
+  // The background is deliberately absent: it resolves to an ATTRIBUTE
+  // (`data-bg`) plus an asset URL, both written by the bake step, not to a
+  // custom property. See `themeAttributes`.
+  const { palette, font, size } = resolveTheme(theme);
   return [
     `--t-bg: ${palette.bg}`,
     `--t-ink: ${palette.ink}`,

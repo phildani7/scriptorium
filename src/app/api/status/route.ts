@@ -9,7 +9,8 @@
 import { NextResponse } from 'next/server';
 import { providerStatus } from '@/lib/ai';
 import { LANGUAGES, coverage, tierOf } from '@/lib/languages/registry';
-import { kieConfigured } from '@/lib/visuals/kie';
+import { grokConfigured } from '@/lib/visuals/grok';
+import { DOODLE_PANELS } from '@/lib/visuals/doodles';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,8 +34,16 @@ export function GET() {
     visuals: {
       /** Free graphics are always available (vendored icons + CC0 photos). */
       free: true,
-      /** AI images need KIE_API_KEY; the UI disables the option until set. */
-      kie: kieConfigured(),
+      /**
+       * AI-visual mode reuses a hand-drawn doodle panel when one fits and
+       * generates with Grok when none does. The shipped panels make the mode
+       * useful with no key at all, so it is offered whenever either half is
+       * available — which, given the panels, is always.
+       */
+      ai: true,
+      doodles: DOODLE_PANELS.length,
+      /** Generation needs XAI_API_KEY; without it the mode is reuse-only. */
+      grok: grokConfigured(),
     },
     coverage: coverage(),
     languages: LANGUAGES.map((l) => ({

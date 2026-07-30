@@ -114,8 +114,8 @@ const SAMPLES: SampleDef[] = [
     theme: {
       paletteId: 'ocean-glow',
       fontId: 'grotesk',
-      backgroundId: 'photo-starfield',
-      musicId: 'meditation',
+      backgroundId: 'img-nebula',
+      musicId: 'beyond-the-pull',
     },
   },
   {

@@ -229,8 +229,8 @@ export function ThemePanel({ style, theme, busy, section, onStyle, onTheme }: Th
           ))}
         </div>
         <p className="mt-1.5 text-[11px] text-inkfaint">
-          MacLeod tracks CC BY 4.0, credited automatically; the rest licensed
-          via Audiio — no attribution required.
+          All beds licensed via Audiio — no attribution required, so a short
+          stays correctly licensed however far it is reposted.
         </p>
       </Group>
     </div>
