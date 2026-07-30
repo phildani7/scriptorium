@@ -57,8 +57,29 @@ test('a mangled reference list is still an error', () => {
   );
 });
 
-test('a long unparseable response is still an error', () => {
-  assert.throws(() => readReferenceResponse('lorem ipsum '.repeat(80)));
+test('a wordy decline is still a decline', () => {
+  // The regression that shipped: the cap was 600 on the assumption that a
+  // refusal is a sentence or two. The same refusal came back at 262 characters
+  // once and 525 the next; production produced a longer one and tripped the
+  // fallback this was written to prevent. Refusal length is not tunable.
+  const wordy =
+    'Thank you for the question. This tool creates Scripture shorts related ' +
+    'to faith, feelings, and life situations, things like worry, doubt, work ' +
+    'stress, grief, parenting, money, illness, or a longing for guidance. ' +
+    'What you have described is a specialised technical engineering subject, ' +
+    'and I would not want to attach a passage to it just because a word ' +
+    'happens to overlap, because that is the kind of proof-texting this tool ' +
+    'is built to avoid. If you are facing something personal or spiritual, ' +
+    'even loosely connected to your work, I would be glad to help you find ' +
+    'passages that genuinely speak to it.';
+  assert.ok(wordy.length > 600, 'sample must exceed the old cap to be a regression test');
+  const result = readReferenceResponse(wordy);
+  assert.deepEqual(result.references, []);
+  assert.equal(result.decline, wordy);
+});
+
+test('a runaway response is still an error', () => {
+  assert.throws(() => readReferenceResponse('lorem ipsum '.repeat(300)));
 });
 
 test('an empty response is still an error', () => {

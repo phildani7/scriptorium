@@ -347,9 +347,17 @@ export function coerceDevices(value: unknown): DeviceItem[] {
  * fallback existed — it made a perfect Gloo decline look like a Gloo outage
  * and spend a Claude call to get the same refusal in better punctuation.
  *
- * So unparseable prose is read as what it is. The guard is length: a genuine
- * decline is a sentence or two, while a mangled reference list is either
- * long or contains something that looks like a citation.
+ * So unparseable prose is read as what it is. The discriminator is whether the
+ * text names a passage: a refusal never cites one, so anything containing
+ * chapter:verse is a reference list that failed to parse, and that IS an
+ * error worth raising. The length cap is only a backstop against a runaway
+ * response being filed as a polite sentence.
+ *
+ * The cap was 600 to begin with, on the reasoning that a decline is a
+ * sentence or two. It is not — the same refusal came back at 262 characters
+ * once and 525 the next time, and in production it ran longer still and
+ * tripped the very fallback this was written to prevent. Refusal length is
+ * not something to tune against; the citation test is the real signal.
  */
 export function readReferenceResponse(raw: string): ReferenceSuggestion {
   try {
@@ -358,9 +366,7 @@ export function readReferenceResponse(raw: string): ReferenceSuggestion {
     const prose = raw.trim();
     const looksLikeDecline =
       prose.length > 0 &&
-      prose.length <= 600 &&
-      // A refusal names no passages. If chapter:verse appears, this is a
-      // reference list that failed to parse, and that IS an error.
+      prose.length <= 2000 &&
       !/\b\d{1,3}\s*:\s*\d{1,3}\b/.test(prose);
 
     if (looksLikeDecline) return { references: [], decline: prose };
