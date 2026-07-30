@@ -30,8 +30,8 @@ import {
   type ReferenceSuggestion,
   buildReferenceSuggestionPrompt,
   coerceDevices,
-  coerceReferences,
   extractJson,
+  readReferenceResponse,
 } from './provider';
 import { getLanguage } from '@/lib/languages/registry';
 
@@ -139,7 +139,9 @@ export class GlooProvider implements AIProvider {
     );
 
     try {
-      return coerceReferences(extractJson(readContent(body)));
+      // Handles the prose decline as well as the JSON shape — see
+      // readReferenceResponse for why that is not leniency but correctness.
+      return readReferenceResponse(readContent(body));
     } catch (cause) {
       throw new ProviderError(
         'gloo',

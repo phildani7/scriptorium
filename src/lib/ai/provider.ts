@@ -333,6 +333,41 @@ export function coerceDevices(value: unknown): DeviceItem[] {
   return devices;
 }
 
+/**
+ * Read a reference suggestion out of a raw model response, JSON or not.
+ *
+ * The prompt asks for `{ references: [...] }`, or an empty list plus a
+ * `decline` when the topic has no spiritual dimension. Models comply on the
+ * first shape and improvise on the second: asked about "VLSI test pattern
+ * generation" they frequently just *write the refusal*, in prose, because
+ * that is what a refusal sounds like.
+ *
+ * Parsing that as a malformed response is wrong twice over. It turns the
+ * model's correct behaviour into an error the creator sees, and — once a live
+ * fallback existed — it made a perfect Gloo decline look like a Gloo outage
+ * and spend a Claude call to get the same refusal in better punctuation.
+ *
+ * So unparseable prose is read as what it is. The guard is length: a genuine
+ * decline is a sentence or two, while a mangled reference list is either
+ * long or contains something that looks like a citation.
+ */
+export function readReferenceResponse(raw: string): ReferenceSuggestion {
+  try {
+    return coerceReferences(extractJson(raw));
+  } catch (cause) {
+    const prose = raw.trim();
+    const looksLikeDecline =
+      prose.length > 0 &&
+      prose.length <= 600 &&
+      // A refusal names no passages. If chapter:verse appears, this is a
+      // reference list that failed to parse, and that IS an error.
+      !/\b\d{1,3}\s*:\s*\d{1,3}\b/.test(prose);
+
+    if (looksLikeDecline) return { references: [], decline: prose };
+    throw cause;
+  }
+}
+
 export function coerceReferences(value: unknown): ReferenceSuggestion {
   const list = Array.isArray(value)
     ? value

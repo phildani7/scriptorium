@@ -29,8 +29,8 @@ import {
   type Tradition,
   buildReferenceSuggestionPrompt,
   coerceDevices,
-  coerceReferences,
   extractJson,
+  readReferenceResponse,
 } from './provider';
 import { getLanguage } from '@/lib/languages/registry';
 
@@ -115,7 +115,9 @@ export class ClaudeProvider implements AIProvider {
     );
 
     try {
-      return coerceReferences(extractJson(response.text));
+      // Handles the prose decline as well as the JSON shape — see
+      // readReferenceResponse for why that is not leniency but correctness.
+      return readReferenceResponse(response.text);
     } catch (cause) {
       throw new ProviderError(
         'claude',

@@ -42,8 +42,23 @@ export interface FallbackEvent {
 
 let lastFallback: FallbackEvent | null = null;
 
-/** The most recent time Gloo was substituted, for honest status reporting. */
+/**
+ * How long a substitution stays worth mentioning.
+ *
+ * The notice is a live signal — "Gloo is struggling right now" — not a log.
+ * Held forever in module scope, one transient blip would pin a warning to the
+ * header until the serverless instance recycled, which teaches a creator to
+ * ignore the banner. Expiring it means a notice that IS showing means
+ * something is wrong now.
+ */
+const NOTICE_TTL_MS = 15 * 60 * 1000;
+
+/** The most recent substitution, if it is recent enough to still matter. */
 export function lastFallbackEvent(): FallbackEvent | null {
+  if (!lastFallback) return null;
+  if (Date.now() - Date.parse(lastFallback.at) > NOTICE_TTL_MS) {
+    lastFallback = null;
+  }
   return lastFallback;
 }
 
