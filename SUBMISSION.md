@@ -30,7 +30,7 @@ The attached notebook does not describe this. It calls the live deployment, then
 
 **Live now:** 29 rendered shorts across 8 languages. The whole studio is also 8 stateless MCP tools, so an agent can drive it.
 
-- **Video demo:** `<PASTE YOUTUBE LINK HERE>`
+- **Video demo:** https://youtu.be/VRy04QGBpC8
 - **App:** https://scriptorium-gamma-wheat.vercel.app
 - **Code (Apache-2.0):** https://github.com/phildani7/scriptorium
 - **MCP:** https://scriptorium-gamma-wheat.vercel.app/api/mcp
@@ -124,7 +124,7 @@ before the deadline. Each team gets **one** submission.
 | 1 | **Kaggle Writeup**, ≤500 words, with title + subtitle | ready | body above — 442 words, leaving room for the video URL |
 | 2 | **Media Gallery** with a **cover image** (required) | ready | `public/cover.png` (1600×900); `public/cover-1200x630.png` variant |
 | 3 | **Attached public Notebook** | ready | `notebook/scriptorium.ipynb` — upload to Kaggle, set **Public**, save with outputs |
-| 4 | **Attached public Video**, ≤3 min, on YouTube | **pending** | paste the link into the body above *and* attach it to the Media Gallery |
+| 4 | **Attached public Video**, ≤3 min, on YouTube | ready | https://youtu.be/VRy04QGBpC8 — verified **Public**, **180s exactly**. Attach it to the Media Gallery too, not just the body |
 | 5 | **Public Project Link** | ready | https://scriptorium-gamma-wheat.vercel.app (live) + https://github.com/phildani7/scriptorium (Apache-2.0) |
 
 ### Steps on Kaggle
