@@ -81,8 +81,24 @@ export async function POST(request: Request) {
     // --- 1. direct reference ---------------------------------------------
     const parsed = parseReference(input);
     if (parsed) {
-      const passage = await scripture.getPassage(versionId, parsed.usfm);
-      return NextResponse.json({ mode: 'reference', candidates: [passage] });
+      try {
+        const passage = await scripture.getPassage(versionId, parsed.usfm);
+        return NextResponse.json({ mode: 'reference', candidates: [passage] });
+      } catch {
+        // A reference that parses is not a reference that exists. This is
+        // how a model-planned series day ("Job 8:38" — Job 8 has 22 verses)
+        // used to surface a raw YouVersion 404, URL and all, to someone who
+        // never typed a reference in their life.
+        return NextResponse.json(
+          {
+            error:
+              `"${input}" could not be found in this Bible version — the ` +
+              'chapter or verse may not exist there. Check the reference, ' +
+              'or try another translation.',
+          },
+          { status: 404 },
+        );
+      }
     }
 
     // --- 2. topical --------------------------------------------------------
@@ -123,7 +139,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ mode: 'topical', candidates });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: message }, { status: 502 });
+    // Upstream errors carry their request URL and raw response body, which is
+    // the right thing for a log and the wrong thing for a person.
+    console.error(`[resolve] ${message}`);
+    const friendly = /passages|bibles|YouVersion/i.test(message)
+      ? 'The Bible service could not answer just now. Please try again in a moment.'
+      : message;
+    return NextResponse.json({ error: friendly }, { status: 502 });
   }
 }
 

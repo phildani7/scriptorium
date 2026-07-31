@@ -165,7 +165,9 @@ export function ThemePanel({ style, theme, busy, section, onStyle, onTheme }: Th
             ))}
           </div>
           <p className="mt-1.5 text-[11px] text-inkfaint">
-            The verse and reference always render.
+            The verse and reference always render. Kinetic Type draws no
+            separate rail — its poster type is the caption, landing word by
+            word on the voice.
           </p>
         </Group>
       </div>

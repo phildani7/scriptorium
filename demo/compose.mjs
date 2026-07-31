@@ -36,46 +36,68 @@ const H = 1080;
  * the product" — it asks the viewer to follow a procedure, so the film has to
  * count.
  */
-const STEPS = [
-  { n: 1, at: 'hero', from: 'start', hold: 6.17, title: "Two partners",
-    tip: "Scriptorium rests on YouVersion for the Scripture and Gloo for the teaching." },
-  { n: 2, at: 'received', from: 'received', hold: 5.98, title: "Received \u2014 YouVersion", spot: true,
-    tip: "Every word of Scripture is fetched from the YouVersion Platform API and passed through untouched." },
-  { n: 3, at: 'written', from: 'written', hold: 5.98, title: "Written \u2014 Gloo", spot: true,
-    tip: "Gloo writes the five sentences around the verse, aligned to the tradition and audience you choose." },
-  { n: 4, at: 'topic', from: 'topic', hold: 9.99, title: "Say what it is about",
-    tip: "A reference, a word, or a situation. Psalm 23, or anxiety at work." },
-  { n: 5, at: 'lens', from: 'lens', hold: 9.99, title: "Choose a lens", spot: true,
-    tip: "Hook, analogy, punch line, illustration, object lesson, summary." },
-  { n: 6, at: 'find', from: 'find', hold: 6.19, title: "Retrieve the passage", spot: true,
-    tip: "This asks YouVersion. It never asks a model to write Scripture." },
-  { n: 7, at: 'passages', from: 'passages', hold: 8.55, title: "Verbatim candidates",
-    tip: "Exactly what the API returned, in the language you chose." },
-  { n: 8, at: 'devices', from: 'devices', hold: 17.69, title: "Choose an opening",
-    tip: "Several teachings, each anchored to a specific point in the passage." },
-  { n: 9, at: 'group-style', from: 'group-style', hold: 13.50, title: "Style", spot: true,
-    tip: "Warm Minimal, Kinetic Type, Neon Night. Three frozen motion styles." },
-  { n: 10, at: 'group-colors', from: 'group-colors', hold: 4.16, title: "Colors", spot: true,
-    tip: "Eight palettes, each one checked for legibility." },
-  { n: 11, at: 'group-font', from: 'group-font', hold: 3.12, title: "Font", spot: true,
-    tip: "Four type pairs: Serif, Poster, Modern, Clean." },
-  { n: 12, at: 'group-size', from: 'group-size', hold: 3.12, title: "Text size", spot: true,
-    tip: "Compact, Regular, Large. The type is fitted by measurement." },
-  { n: 13, at: 'group-captions', from: 'group-captions', hold: 3.40, title: "Captions", spot: true,
-    tip: "On or off. The verse and reference always render." },
-  { n: 14, at: 'group-motion', from: 'group-motion', hold: 3.50, title: "Text motion", spot: true,
-    tip: "Eight ways for the text to enter." },
-  { n: 15, at: 'group-music', from: 'group-music', hold: 3.40, title: "Music", spot: true,
-    tip: "Nine licensed beds. None needs an attribution to travel with your post." },
-  { n: 16, at: 'group-background', from: 'group-background', hold: 15.91, title: "Background", spot: true,
-    tip: "Sixty-nine: 8 CSS textures, 10 hand-drawn frames, 17 photographs, 34 animated loops." },
-  { n: 17, at: 'narration', from: 'narration', hold: 8.83, title: "Edit the words", spot: true,
-    tip: "Every authored word stays editable. The verse does not." },
-  { n: 18, at: 'mcp', from: 'mcp', hold: 8.33, title: "Headless", spot: true,
-    tip: "A stateless MCP server exposes the pipeline as eight tools." },
-  { n: 19, at: 'skills', from: 'skills', hold: 8.33, title: "Agent skills", spot: true,
-    tip: "A skill pack to download, packed from the repo so it cannot drift." },
-];
+/**
+ * Titles and tooltips per step. Timing is deliberately absent: every hold
+ * comes from demo/holds.json, which sync.mjs derived from the narration —
+ * one line per step, so the voice and the screen are two renderings of the
+ * same array and cannot disagree.
+ *
+ * `beat` names the capture mark the step anchors on; option steps were
+ * marked AFTER their click so the box describes the settled screen, which is
+ * what keeps the spotlight on the thing being talked about.
+ */
+const META = {
+  hero:       { beat: 'hero',            title: 'Two partners',        spot: false,
+    tip: 'The verse is received from YouVersion. The teaching is written by Gloo.' },
+  received:   { beat: 'received',        title: 'Received — YouVersion', spot: true,
+    tip: 'Fetched from the YouVersion Platform API and passed through untouched.' },
+  written:    { beat: 'written',         title: 'Written — Gloo',      spot: true,
+    tip: 'Five sentences around the verse, aligned to tradition and audience.' },
+  topic:      { beat: 'topic',           title: 'Say what it is about', spot: false,
+    tip: 'A reference, a word, or a situation — Psalm 23, or anxiety at work.' },
+  lens:       { beat: 'lens',            title: 'Choose a lens',       spot: true,
+    tip: 'Hook · Analogy · Punch line · Illustration · Object lesson · Summary' },
+  find:       { beat: 'find',            title: 'Retrieve the passage', spot: true,
+    tip: 'Scriptorium asks YouVersion — never a model.' },
+  passages:   { beat: 'passages',        title: 'Verbatim candidates', spot: false,
+    tip: 'Exactly what the API returned, in the language you chose.' },
+  devices:    { beat: 'devices',         title: 'Choose an opening',   spot: false,
+    tip: 'Each teaching is anchored to a specific point in the passage.' },
+  style:      { beat: 'group-style',     title: 'Style',               spot: true,
+    tip: 'Warm Minimal · Kinetic Type · Neon Night' },
+  colors:     { beat: 'group-colors',    title: 'Colors',              spot: true,
+    tip: 'Eight palettes, each checked for legibility.' },
+  font:       { beat: 'group-font',      title: 'Font',                spot: true,
+    tip: 'Serif · Poster · Modern · Clean' },
+  size:       { beat: 'group-size',      title: 'Text size',           spot: true,
+    tip: 'Compact · Regular · Large' },
+  captions:   { beat: 'group-captions',  title: 'Captions',            spot: true,
+    tip: 'On or off — the verse and reference always render.' },
+  motion:     { beat: 'group-motion',    title: 'Text motion',         spot: true,
+    tip: 'Eight entrances; Signature keeps each style’s own move.' },
+  music:      { beat: 'group-music',     title: 'Music',               spot: true,
+    tip: 'Nine licensed beds — no attribution rides along with your post.' },
+  background: { beat: 'group-background', title: 'Background',         spot: true,
+    tip: '8 CSS textures · 10 hand-drawn frames · 17 photographs · 34 loops' },
+  narration:  { beat: 'narration',       title: 'Edit the words',      spot: true,
+    tip: 'Authored text is yours to change. The verse is locked.' },
+  mcp:        { beat: 'mcp',             title: 'Headless — MCP',      spot: true,
+    tip: 'Eight stateless tools over streamable HTTP.' },
+  skills:     { beat: 'skills',          title: 'Agent skills',        spot: true,
+    tip: 'A zip packed from the repo, so it cannot drift.' },
+};
+
+const HOLDS = JSON.parse(readFileSync(join(DEMO, 'holds.json'), 'utf8'));
+const STEPS = Object.keys(HOLDS).map((id, i) => ({
+  n: i + 1,
+  id,
+  at: META[id].beat,
+  from: META[id].beat,
+  hold: HOLDS[id],
+  title: META[id].title,
+  spot: META[id].spot,
+  tip: META[id].tip,
+}));
 
 /** Where the camera sits for a step: a scale plus a translate, origin 0 0. */
 function framing(box, srcW, srcH, pad = 1.5) {
@@ -201,9 +223,12 @@ function html(data) {
   #title{font-family:'Fraunces',Georgia,serif;font-size:52px;color:#fff;
     text-shadow:0 3px 18px rgba(0,0,0,.75)}
 
-  /* Tooltip card. */
-  #tip{position:absolute;left:96px;bottom:92px;max-width:1180px;opacity:0;
-    background:rgba(253,251,246,.97);border-radius:20px;padding:30px 36px;
+  /* Tooltip card: TOP-RIGHT, always. The pointer works the lower half of
+     the screen, and a card that sits where the mouse is going reads as an
+     obstruction; opposite corner from the step chip, so neither collides
+     with the other or with the action. */
+  #tip{position:absolute;right:96px;top:84px;max-width:860px;opacity:0;
+    background:rgba(253,251,246,.97);border-radius:20px;padding:26px 32px;
     box-shadow:0 26px 70px rgba(0,0,0,.42)}
   #tip .k{font-family:'Space Grotesk',monospace;font-size:16px;font-weight:700;
     letter-spacing:.18em;text-transform:uppercase;color:#b4552e;display:block;margin-bottom:10px}

@@ -269,7 +269,8 @@ async function main() {
   }
   await hold(900);
 
-  const lensRow = page.locator('div:has(> div:text-is("Teaching lens"))').last();
+  // A fieldset with a legend, unlike the other controls' Field wrapper.
+  const lensRow = page.locator('fieldset:has(legend:text-is("Teaching lens"))');
   await lensRow.scrollIntoViewIfNeeded();
   await hold(250);
   const lensBox = await lensRow.boundingBox();

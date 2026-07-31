@@ -25,7 +25,7 @@ const WORK = join(ROOT, 'demo', 'work');
 
 const W = 1920;
 const H = 1080;
-const FPS = 30;
+const FPS = 60;
 const FONT = 'C\\:/Windows/Fonts/segoeui.ttf';
 
 /** Tile size: six 9:16 tiles across a 1920 frame, with gutters. */

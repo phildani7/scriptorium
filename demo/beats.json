@@ -1,7 +1,7 @@
 {
   "width": 2560,
   "height": 1440,
-  "duration": 226.218,
+  "duration": 233.88,
   "beats": [
     {
       "t": 0,
@@ -10,7 +10,7 @@
       "note": "Scripture shorts, in your own language"
     },
     {
-      "t": 1.723,
+      "t": 1.707,
       "kind": "mark",
       "id": "hero",
       "box": {
@@ -22,49 +22,60 @@
       "note": "Scriptorium"
     },
     {
-      "t": 2.919,
+      "t": 7.498,
       "kind": "mark",
       "id": "received",
       "box": {
         "x": 304,
-        "y": 611,
+        "y": 597,
         "w": 960,
         "h": 486
       },
       "note": "The verse: retrieved from YouVersion"
     },
     {
-      "t": 9.237,
+      "t": 15.018,
       "kind": "mark",
       "id": "written",
       "box": {
         "x": 1296,
-        "y": 611,
+        "y": 597,
         "w": 960,
         "h": 486
       },
       "note": "The teaching: written by Gloo"
     },
     {
-      "t": 16.25,
+      "t": 23.716,
       "kind": "type",
       "id": "topic",
       "note": "A topic, not just a reference"
     },
     {
-      "t": 19.412,
-      "kind": "click",
+      "t": 25.901,
+      "kind": "mark",
       "id": "lens",
+      "box": {
+        "x": 370,
+        "y": 1161,
+        "w": 1820,
+        "h": 124
+      },
+      "note": "Six teaching lenses"
+    },
+    {
+      "t": 26.865,
+      "kind": "click",
+      "id": "lens-click",
       "box": {
         "x": 676,
         "y": 1209,
         "w": 290,
         "h": 76
-      },
-      "note": "Six teaching lenses"
+      }
     },
     {
-      "t": 21.603,
+      "t": 35.072,
       "kind": "click",
       "id": "find",
       "box": {
@@ -76,13 +87,13 @@
       "note": "Retrieve, never generate"
     },
     {
-      "t": 21.833,
+      "t": 35.33,
       "kind": "wait",
       "id": "resolving",
       "note": "Asking YouVersion"
     },
     {
-      "t": 25.241,
+      "t": 39.18,
       "kind": "mark",
       "id": "passages",
       "box": {
@@ -94,7 +105,7 @@
       "note": "Candidates, verbatim from the API"
     },
     {
-      "t": 28.059,
+      "t": 46.137,
       "kind": "click",
       "id": "pick-passage",
       "box": {
@@ -106,13 +117,13 @@
       "note": "Pick one"
     },
     {
-      "t": 28.336,
+      "t": 46.368,
       "kind": "wait",
       "id": "generating",
       "note": "Gloo writes the teaching"
     },
     {
-      "t": 54.63,
+      "t": 70.648,
       "kind": "mark",
       "id": "devices",
       "box": {
@@ -124,25 +135,25 @@
       "note": "Several openings, each anchored to the passage"
     },
     {
-      "t": 57.829,
+      "t": 83.994,
       "kind": "click",
       "id": "pick-device",
       "box": {
         "x": 370,
-        "y": 989,
+        "y": 1039,
         "w": 1820,
-        "h": 450.5
+        "h": 401
       },
       "note": "Choose one"
     },
     {
-      "t": 58.076,
+      "t": 84.269,
       "kind": "wait",
       "id": "composing",
       "note": "Narrating, and measuring every word"
     },
     {
-      "t": 102.349,
+      "t": 112.014,
       "kind": "mark",
       "id": "preview",
       "box": {
@@ -154,7 +165,7 @@
       "note": "The real frame, seekable"
     },
     {
-      "t": 103.953,
+      "t": 113.593,
       "kind": "click",
       "id": "play",
       "box": {
@@ -166,25 +177,36 @@
       "note": "Press play"
     },
     {
-      "t": 104.193,
+      "t": 113.838,
       "kind": "mark",
       "id": "playing",
       "note": "Narrated, word-synced, real motion"
     },
     {
-      "t": 118.57,
+      "t": 128.19,
       "kind": "mark",
       "id": "theme",
       "box": {
         "x": 304,
         "y": -960,
         "w": 1952,
-        "h": 5211.84375
+        "h": 5275.84375
       },
       "note": "Everything you can change"
     },
     {
-      "t": 119.953,
+      "t": 130.416,
+      "kind": "click",
+      "id": "pick-style",
+      "box": {
+        "x": 1550,
+        "y": 706,
+        "w": 640,
+        "h": 76
+      }
+    },
+    {
+      "t": 132.422,
       "kind": "mark",
       "id": "group-style",
       "box": {
@@ -196,18 +218,18 @@
       "note": "Three frozen motion styles"
     },
     {
-      "t": 121.905,
+      "t": 140.291,
       "kind": "click",
-      "id": "pick-style",
+      "id": "pick-colors",
       "box": {
-        "x": 1550,
-        "y": 706,
-        "w": 640,
-        "h": 76
+        "x": 1802,
+        "y": 958,
+        "w": 72,
+        "h": 72
       }
     },
     {
-      "t": 134.547,
+      "t": 142.278,
       "kind": "mark",
       "id": "group-colors",
       "box": {
@@ -219,18 +241,18 @@
       "note": "Eight palettes"
     },
     {
-      "t": 136.489,
+      "t": 147.384,
       "kind": "click",
-      "id": "pick-colors",
+      "id": "pick-font",
       "box": {
-        "x": 1802,
-        "y": 958,
-        "w": 72,
-        "h": 72
+        "x": 1713,
+        "y": 1202,
+        "w": 151,
+        "h": 116
       }
     },
     {
-      "t": 139.855,
+      "t": 149.361,
       "kind": "mark",
       "id": "group-font",
       "box": {
@@ -242,18 +264,18 @@
       "note": "Four type pairs"
     },
     {
-      "t": 142.503,
+      "t": 154.571,
       "kind": "click",
-      "id": "pick-font",
+      "id": "pick-size",
       "box": {
-        "x": 1713,
-        "y": 1202,
-        "w": 151,
-        "h": 116
+        "x": 1984.671875,
+        "y": 1380,
+        "w": 205.328125,
+        "h": 60
       }
     },
     {
-      "t": 144.773,
+      "t": 156.563,
       "kind": "mark",
       "id": "group-size",
       "box": {
@@ -265,41 +287,41 @@
       "note": "Three sizes"
     },
     {
-      "t": 146.786,
+      "t": 161.699,
       "kind": "click",
-      "id": "pick-size",
+      "id": "pick-captions",
       "box": {
-        "x": 1984.671875,
-        "y": 1380,
-        "w": 205.328125,
+        "x": 1550,
+        "y": 691,
+        "w": 314,
         "h": 60
       }
     },
     {
-      "t": 149.571,
+      "t": 163.632,
       "kind": "mark",
       "id": "group-captions",
       "box": {
         "x": 1550,
-        "y": 100,
+        "y": 643,
         "w": 640,
         "h": 153
       },
       "note": "Captions on or off"
     },
     {
-      "t": 151.479,
+      "t": 168.713,
       "kind": "click",
-      "id": "pick-captions",
+      "id": "pick-motion",
       "box": {
-        "x": 1550,
-        "y": 148,
-        "w": 314,
+        "x": 687.203125,
+        "y": 603.34375,
+        "w": 150.875,
         "h": 60
       }
     },
     {
-      "t": 154.982,
+      "t": 170.611,
       "kind": "mark",
       "id": "group-motion",
       "box": {
@@ -311,76 +333,65 @@
       "note": "Eight ways the text enters"
     },
     {
-      "t": 156.898,
+      "t": 175.634,
       "kind": "click",
-      "id": "pick-motion",
+      "id": "pick-music",
       "box": {
-        "x": 687.203125,
+        "x": 1646.09375,
         "y": 603.34375,
-        "w": 150.875,
+        "w": 177.390625,
         "h": 60
       }
     },
     {
-      "t": 161.323,
+      "t": 177.568,
       "kind": "mark",
       "id": "group-music",
       "box": {
         "x": 1304,
-        "y": 0.34375,
+        "y": 555.34375,
         "w": 886,
         "h": 330
       },
       "note": "Nine licensed beds"
     },
     {
-      "t": 163.217,
+      "t": 185.035,
       "kind": "click",
-      "id": "pick-music",
+      "id": "pick-background",
       "box": {
-        "x": 1646.09375,
-        "y": 48.34375,
-        "w": 177.390625,
-        "h": 60
+        "x": 1835.59375,
+        "y": 621.765625,
+        "w": 110.125,
+        "h": 195.765625
       }
     },
     {
-      "t": 167.55,
+      "t": 187.004,
       "kind": "mark",
       "id": "group-background",
       "box": {
         "x": 370,
-        "y": -164.234375,
+        "y": -0.234375,
         "w": 1820,
         "h": 1767.578125
       },
       "note": "Sixty-nine backgrounds"
     },
     {
-      "t": 169.422,
-      "kind": "click",
-      "id": "pick-background",
-      "box": {
-        "x": 1835.59375,
-        "y": -2.234375,
-        "w": 110.125,
-        "h": 195.765625
-      }
-    },
-    {
-      "t": 186.26,
+      "t": 197.907,
       "kind": "mark",
       "id": "preview-restyled",
       "box": {
         "x": 610,
-        "y": 0,
+        "y": 153,
         "w": 640,
         "h": 1137.77783203125
       },
       "note": "The verse and the voice never change"
     },
     {
-      "t": 189.151,
+      "t": 200.822,
       "kind": "mark",
       "id": "narration",
       "box": {
@@ -392,7 +403,7 @@
       "note": "Every authored word is yours to edit"
     },
     {
-      "t": 199.938,
+      "t": 212.075,
       "kind": "mark",
       "id": "possibilities",
       "box": {
@@ -404,7 +415,7 @@
       "note": "One pipeline, pointed at different things"
     },
     {
-      "t": 203.644,
+      "t": 215.772,
       "kind": "mark",
       "id": "developers",
       "box": {
@@ -416,7 +427,7 @@
       "note": "All of it, headless"
     },
     {
-      "t": 205.55,
+      "t": 217.676,
       "kind": "mark",
       "id": "mcp",
       "box": {
@@ -428,7 +439,7 @@
       "note": "A stateless MCP server"
     },
     {
-      "t": 214.176,
+      "t": 225.748,
       "kind": "mark",
       "id": "skills",
       "box": {
@@ -440,7 +451,7 @@
       "note": "Agent skills, packed from the repo"
     },
     {
-      "t": 222.809,
+      "t": 230.472,
       "kind": "mark",
       "id": "stack",
       "box": {
@@ -452,7 +463,7 @@
       "note": "Built on HyperFrames"
     },
     {
-      "t": 226.218,
+      "t": 233.88,
       "kind": "mark",
       "id": "end"
     }
