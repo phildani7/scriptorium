@@ -1,5 +1,20 @@
 [
   {
+    "id": "short-PSA.139.14-warm-minimal-ms98v3rc",
+    "video": "/gallery/short-PSA.139.14-warm-minimal-ms98v3rc.mp4",
+    "poster": "/gallery/short-PSA.139.14-warm-minimal-ms98v3rc.jpg",
+    "reference": "Psaumes 139:14",
+    "version": "BDS",
+    "attribution": "La Bible du Semeur 2015 (BDS) · La Bible du Semeur®\nTexte copyright © 1992, 1999, 2015 Biblica, Inc.®\nUtilisé avec la permission de Biblica, Inc.® Tous droits réservés.",
+    "musicCredit": "\"Eternal (Hanging Solo with Strings)\" Pendelton — Audiio license",
+    "language": "fr",
+    "style": "kinetic-type",
+    "lens": "summary",
+    "durationSec": 46,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-31"
+  },
+  {
     "id": "short-PSA.37.4-warm-minimal-ms98f15g",
     "video": "/gallery/short-PSA.37.4-warm-minimal-ms98f15g.mp4",
     "poster": "/gallery/short-PSA.37.4-warm-minimal-ms98f15g.jpg",
