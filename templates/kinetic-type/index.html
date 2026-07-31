@@ -648,9 +648,39 @@
             return false;
           }
 
+          // A FLOOR, and paging past it.
+          //
+          // Shrinking without a limit is how a long passage ended up set at a
+          // fifth of its designed size: legible to a fitter, useless on a
+          // phone. Poster faces hit it first because their glyphs are widest,
+          // so the same verse that fits in Serif runs out of room in Archivo
+          // Black and the block quietly collapses.
+          //
+          // So the type stops shrinking at 62% of what it was designed to be.
+          // If the words still do not fit at that size, the answer is not
+          // smaller type -- it is fewer words at a time. `paged` hands the
+          // caller the overflow so it can show them in turn.
+          var floorPx = base * 0.62;
           var px = base;
           build(px);
-          for (var pass = 0; pass < 24 && overflows(); pass += 1) {
+          for (var pass = 0; pass < 12 && overflows() && px > floorPx; pass += 1) {
+            px = Math.max(floorPx, px * 0.95);
+            build(px);
+          }
+
+          // Still overflowing at the floor: keep shrinking. It is tempting to
+          // drop the overflow instead, and that is exactly what must not
+          // happen here -- removing words from the verse node changes its
+          // textContent, and the integrity gate diffs that against a fresh
+          // YouVersion response. Dropping two words to make a line fit would
+          // fail the render as tampered Scripture, which is the gate working
+          // correctly and the layout being wrong.
+          //
+          // Showing fewer words at a time is the right answer, but it has to
+          // PAGE them -- every word still in the DOM, one group visible at a
+          // time -- not discard them. Until that exists, small and complete
+          // beats large and truncated.
+          for (var extra = 0; extra < 10 && overflows(); extra += 1) {
             px *= 0.94;
             build(px);
           }

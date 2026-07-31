@@ -38,7 +38,34 @@ import type { DeviceItem, Passage, VisualItem, VisualMode, VoiceId } from '@/lib
  * Returns null when the CLI is missing so the caller can fall back to
  * estimated timings instead of failing the render.
  */
-function synthesizeWithPiper(script: string, model: string, workdir: string): Uint8Array | null {
+function synthesizeWithPiper(
+  script: string,
+  model: string,
+  workdir: string,
+  attempts = 3,
+): Uint8Array | null {
+  // Retried, because the common failure is transient. Downloading a voice is a
+  // network fetch from a CI runner, and a refused connection or a truncated
+  // read says nothing about whether the voice exists. Failing the job on the
+  // first attempt would turn a blip into a short that never gets made.
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const audio = trySynthesize(script, model, workdir);
+    if (audio) {
+      if (attempt > 1) console.log(`piper      succeeded on attempt ${attempt}`);
+      return audio;
+    }
+    if (attempt < attempts) {
+      const waitMs = attempt * 5000;
+      console.warn(`piper      attempt ${attempt}/${attempts} failed; retrying in ${waitMs / 1000}s`);
+      // Deliberately synchronous: this script is a linear pipeline and there
+      // is nothing else for it to be doing while it waits.
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, waitMs);
+    }
+  }
+  return null;
+}
+
+function trySynthesize(script: string, model: string, workdir: string): Uint8Array | null {
   const wavPath = join(workdir, 'piper-narration.wav');
   // Matches the CI cache path so voice models persist across runs.
   const modelsDir = '.piper-models';
@@ -58,7 +85,7 @@ function synthesizeWithPiper(script: string, model: string, workdir: string): Ui
     console.warn(
       `piper voice download failed (${download.status ?? download.error}): ` +
         `${(download.stderr ?? '').toString().trim().slice(-500)}\n` +
-        'falling back to estimated timings without narration.',
+        'the voice may not have downloaded.',
     );
     return null;
   }

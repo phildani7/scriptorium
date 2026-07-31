@@ -26,6 +26,7 @@ import type {
 } from '@/lib/types';
 import { resolveMusic, type ShortTheme } from '@/lib/theme/options';
 import { isYouTubeUrl } from '@/lib/source/youtube';
+import { LikeButton } from '@/components/feedback/LikeButton';
 import { PreviewFrame } from './PreviewFrame';
 import { ThemePanel } from './ThemePanel';
 
@@ -1804,15 +1805,27 @@ function Header({ status }: { status: StatusPayload | null }) {
 
   return (
     <header className="mb-8">
-      <div className="mb-5 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2">
         <h1 className="font-display text-4xl tracking-tight">Scriptorium</h1>
         <p className="text-inksoft">Scripture shorts, in your own language.</p>
-        <a
-          href="/gallery"
-          className="ml-auto rounded-xl border border-rule px-4 py-2 text-sm font-medium text-inksoft transition hover:bg-white"
-        >
-          Gallery →
-        </a>
+        {/* The social sliver: a heart that counts, and a door to the reviews.
+            Both live on the far side so the masthead stays a masthead. The
+            heart renders nothing on deployments with no feedback store. */}
+        <div className="ml-auto flex items-center gap-3">
+          <LikeButton />
+          <a
+            href="/gallery#reviews"
+            className="text-sm text-inksoft underline decoration-rule underline-offset-4 transition hover:text-accent"
+          >
+            Leave a review
+          </a>
+          <a
+            href="/gallery"
+            className="rounded-xl border border-rule px-4 py-2 text-sm font-medium text-inksoft transition hover:bg-white"
+          >
+            Gallery →
+          </a>
+        </div>
       </div>
 
       <p className="mb-3 max-w-3xl text-lg leading-relaxed text-ink">

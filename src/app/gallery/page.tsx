@@ -16,6 +16,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { Reviews } from '@/components/feedback/Reviews';
 
 const GALLERY_REPO = process.env.NEXT_PUBLIC_GALLERY_REPO; // "owner/name"
 
@@ -69,7 +70,23 @@ export default function GalleryPage() {
     );
   }, [entries, query, language, lens, style]);
 
-  /** The share target: this gallery page anchored to the entry. */
+  /**
+   * The share target: the MP4 itself.
+   *
+   * This used to be the gallery page anchored to the entry, which meant every
+   * share — WhatsApp, Telegram, X — sent a link to a page of many shorts with
+   * an anchor, and the recipient had to find the one they were sent. Sharing a
+   * short ought to share the short.
+   *
+   * The file URL also unfurls: messaging apps render an .mp4 link as a
+   * playable video rather than a page card, so the thing arrives ready to
+   * watch. The page link stays available as "Copy page link" for anyone who
+   * wants the surrounding provenance instead.
+   */
+  const videoLinkFor = (entry: GalleryEntry) =>
+    typeof window === 'undefined' ? '' : `${window.location.origin}${entry.video}`;
+
+  /** The gallery page anchored to this entry — provenance, not the file. */
   const linkFor = (entry: GalleryEntry) =>
     typeof window === 'undefined'
       ? ''
@@ -77,7 +94,7 @@ export default function GalleryPage() {
 
   const copyLink = async (entry: GalleryEntry) => {
     try {
-      await navigator.clipboard.writeText(linkFor(entry));
+      await navigator.clipboard.writeText(videoLinkFor(entry));
       setCopied(entry.id);
       setTimeout(() => setCopied(null), 2000);
     } catch {
@@ -267,9 +284,9 @@ export default function GalleryPage() {
                   </button>
                   {(
                     [
-                      ['WhatsApp', `https://wa.me/?text=${encodeURIComponent(`${entry.reference} — ${linkFor(entry)}`)}`],
-                      ['Telegram', `https://t.me/share/url?url=${encodeURIComponent(linkFor(entry))}&text=${encodeURIComponent(entry.reference)}`],
-                      ['X', `https://twitter.com/intent/tweet?text=${encodeURIComponent(entry.reference)}&url=${encodeURIComponent(linkFor(entry))}`],
+                      ['WhatsApp', `https://wa.me/?text=${encodeURIComponent(`${entry.reference} — ${videoLinkFor(entry)}`)}`],
+                      ['Telegram', `https://t.me/share/url?url=${encodeURIComponent(videoLinkFor(entry))}&text=${encodeURIComponent(entry.reference)}`],
+                      ['X', `https://twitter.com/intent/tweet?text=${encodeURIComponent(entry.reference)}&url=${encodeURIComponent(videoLinkFor(entry))}`],
                     ] as Array<[string, string]>
                   ).map(([name, href]) => (
                     <a
@@ -288,6 +305,7 @@ export default function GalleryPage() {
           ))}
         </div>
       )}
+      <Reviews />
     </main>
   );
 }
