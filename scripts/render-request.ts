@@ -162,9 +162,35 @@ async function main() {
     }
   }
 
-  // Only reached when there is no audio at all — a language with no voice
-  // model. Everything above measured the narration it actually synthesized.
+  // Reached when no audio was produced. That is legitimate for a language with
+  // no voice model at all — the short shows its words and says so. It is NOT
+  // legitimate when the registry promised a voice and synthesis failed: that
+  // path published a SILENT MP4 into the gallery, indistinguishable from a
+  // narrated one, with only a warning buried in a CI log.
+  //
+  // A Mandarin short shipped exactly that way: `zh` carries
+  // `zh_CN-xiao_ya-medium`, Piper could not produce it, and the job carried on
+  // and committed fifteen seconds of silence to the gallery. The comment here
+  // used to claim this branch meant "a language with no voice model", which is
+  // what made the failure invisible to read.
+  //
+  // So the two cases are now told apart, and the dishonest one stops the job.
+  // A missing short is a smaller problem than a silent one presented as
+  // finished — the same reasoning the verbatim gate already applies to text.
   if (!timings) {
+    const expectedVoice = getLanguage(request.languageCode)?.piperVoice;
+    if (expectedVoice && request.voice?.engine === 'piper') {
+      console.error(
+        `\nNARRATION MISSING\n` +
+          `  ${request.languageCode} is registered with the voice ` +
+          `"${expectedVoice}", so this short is expected to be narrated, but ` +
+          `no audio was synthesized.\n` +
+          `  Refusing to publish a silent short as a finished one. Fix the ` +
+          `Piper voice download or synthesis and re-run.\n`,
+      );
+      process.exit(1);
+    }
+
     const words = script.trim().split(/\s+/).length;
     durationSec = estimateDuration(words);
     timings = alignScriptToAudio(script, [], durationSec).timings;

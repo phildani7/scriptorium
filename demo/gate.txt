@@ -1,0 +1,26 @@
+
+> scriptorium@0.1.0 prove:gate
+> tsx --env-file-if-exists=.env.local scripts/prove-gate.ts
+
+Scripture integrity gate — end-to-end proof
+
+source spec : samples/en-prodigal-hook.json
+passage     : Luke 15:20 (BSB)
+original    : …w him and was filled with compassion. He ran to his son, embraced him,…
+tampered    : …oved with pity, was filled with compassion. He ran to his son, embrace…
+
+attempting render of the tampered spec…
+
+  SPEC TAMPERING DETECTED
+  First difference at character 81.
+  expected: …while he was still in the distance, his father saw him and was filled with compa…
+  rendered: …while he was still in the distance, his and was moved with pity, was filled with…
+  The spec's passage text does not match what YouVersion serves for Luke 15:20. Refusing to render.
+
+-----------------------------------------
+  tampering detected : yes
+  render refused     : yes
+  no MP4 produced    : yes
+-----------------------------------------
+
+PASS — altered Scripture cannot reach a frame.

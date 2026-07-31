@@ -1,0 +1,460 @@
+{
+  "width": 2560,
+  "height": 1440,
+  "duration": 226.218,
+  "beats": [
+    {
+      "t": 0,
+      "kind": "mark",
+      "id": "start",
+      "note": "Scripture shorts, in your own language"
+    },
+    {
+      "t": 1.723,
+      "kind": "mark",
+      "id": "hero",
+      "box": {
+        "x": 304,
+        "y": 80,
+        "w": 413.4375,
+        "h": 80
+      },
+      "note": "Scriptorium"
+    },
+    {
+      "t": 2.919,
+      "kind": "mark",
+      "id": "received",
+      "box": {
+        "x": 304,
+        "y": 611,
+        "w": 960,
+        "h": 486
+      },
+      "note": "The verse: retrieved from YouVersion"
+    },
+    {
+      "t": 9.237,
+      "kind": "mark",
+      "id": "written",
+      "box": {
+        "x": 1296,
+        "y": 611,
+        "w": 960,
+        "h": 486
+      },
+      "note": "The teaching: written by Gloo"
+    },
+    {
+      "t": 16.25,
+      "kind": "type",
+      "id": "topic",
+      "note": "A topic, not just a reference"
+    },
+    {
+      "t": 19.412,
+      "kind": "click",
+      "id": "lens",
+      "box": {
+        "x": 676,
+        "y": 1209,
+        "w": 290,
+        "h": 76
+      },
+      "note": "Six teaching lenses"
+    },
+    {
+      "t": 21.603,
+      "kind": "click",
+      "id": "find",
+      "box": {
+        "x": 370,
+        "y": 1341,
+        "w": 359.859375,
+        "h": 96
+      },
+      "note": "Retrieve, never generate"
+    },
+    {
+      "t": 21.833,
+      "kind": "wait",
+      "id": "resolving",
+      "note": "Asking YouVersion"
+    },
+    {
+      "t": 25.241,
+      "kind": "mark",
+      "id": "passages",
+      "box": {
+        "x": 370,
+        "y": 390,
+        "w": 1820,
+        "h": 72
+      },
+      "note": "Candidates, verbatim from the API"
+    },
+    {
+      "t": 28.059,
+      "kind": "click",
+      "id": "pick-passage",
+      "box": {
+        "x": 370,
+        "y": 558,
+        "w": 1820,
+        "h": 280.5
+      },
+      "note": "Pick one"
+    },
+    {
+      "t": 28.336,
+      "kind": "wait",
+      "id": "generating",
+      "note": "Gloo writes the teaching"
+    },
+    {
+      "t": 54.63,
+      "kind": "mark",
+      "id": "devices",
+      "box": {
+        "x": 370,
+        "y": 1012,
+        "w": 1820,
+        "h": 72
+      },
+      "note": "Several openings, each anchored to the passage"
+    },
+    {
+      "t": 57.829,
+      "kind": "click",
+      "id": "pick-device",
+      "box": {
+        "x": 370,
+        "y": 989,
+        "w": 1820,
+        "h": 450.5
+      },
+      "note": "Choose one"
+    },
+    {
+      "t": 58.076,
+      "kind": "wait",
+      "id": "composing",
+      "note": "Narrating, and measuring every word"
+    },
+    {
+      "t": 102.349,
+      "kind": "mark",
+      "id": "preview",
+      "box": {
+        "x": 610,
+        "y": 306,
+        "w": 640,
+        "h": 1137.77783203125
+      },
+      "note": "The real frame, seekable"
+    },
+    {
+      "t": 103.953,
+      "kind": "click",
+      "id": "play",
+      "box": {
+        "x": 608,
+        "y": 683.765625,
+        "w": 121.484375,
+        "h": 72
+      },
+      "note": "Press play"
+    },
+    {
+      "t": 104.193,
+      "kind": "mark",
+      "id": "playing",
+      "note": "Narrated, word-synced, real motion"
+    },
+    {
+      "t": 118.57,
+      "kind": "mark",
+      "id": "theme",
+      "box": {
+        "x": 304,
+        "y": -960,
+        "w": 1952,
+        "h": 5211.84375
+      },
+      "note": "Everything you can change"
+    },
+    {
+      "t": 119.953,
+      "kind": "mark",
+      "id": "group-style",
+      "box": {
+        "x": 1550,
+        "y": 570,
+        "w": 640,
+        "h": 300
+      },
+      "note": "Three frozen motion styles"
+    },
+    {
+      "t": 121.905,
+      "kind": "click",
+      "id": "pick-style",
+      "box": {
+        "x": 1550,
+        "y": 706,
+        "w": 640,
+        "h": 76
+      }
+    },
+    {
+      "t": 134.547,
+      "kind": "mark",
+      "id": "group-colors",
+      "box": {
+        "x": 1550,
+        "y": 910,
+        "w": 640,
+        "h": 204
+      },
+      "note": "Eight palettes"
+    },
+    {
+      "t": 136.489,
+      "kind": "click",
+      "id": "pick-colors",
+      "box": {
+        "x": 1802,
+        "y": 958,
+        "w": 72,
+        "h": 72
+      }
+    },
+    {
+      "t": 139.855,
+      "kind": "mark",
+      "id": "group-font",
+      "box": {
+        "x": 1550,
+        "y": 1154,
+        "w": 640,
+        "h": 164
+      },
+      "note": "Four type pairs"
+    },
+    {
+      "t": 142.503,
+      "kind": "click",
+      "id": "pick-font",
+      "box": {
+        "x": 1713,
+        "y": 1202,
+        "w": 151,
+        "h": 116
+      }
+    },
+    {
+      "t": 144.773,
+      "kind": "mark",
+      "id": "group-size",
+      "box": {
+        "x": 1550,
+        "y": 1332,
+        "w": 640,
+        "h": 108
+      },
+      "note": "Three sizes"
+    },
+    {
+      "t": 146.786,
+      "kind": "click",
+      "id": "pick-size",
+      "box": {
+        "x": 1984.671875,
+        "y": 1380,
+        "w": 205.328125,
+        "h": 60
+      }
+    },
+    {
+      "t": 149.571,
+      "kind": "mark",
+      "id": "group-captions",
+      "box": {
+        "x": 1550,
+        "y": 100,
+        "w": 640,
+        "h": 153
+      },
+      "note": "Captions on or off"
+    },
+    {
+      "t": 151.479,
+      "kind": "click",
+      "id": "pick-captions",
+      "box": {
+        "x": 1550,
+        "y": 148,
+        "w": 314,
+        "h": 60
+      }
+    },
+    {
+      "t": 154.982,
+      "kind": "mark",
+      "id": "group-motion",
+      "box": {
+        "x": 370,
+        "y": 555.34375,
+        "w": 886,
+        "h": 330
+      },
+      "note": "Eight ways the text enters"
+    },
+    {
+      "t": 156.898,
+      "kind": "click",
+      "id": "pick-motion",
+      "box": {
+        "x": 687.203125,
+        "y": 603.34375,
+        "w": 150.875,
+        "h": 60
+      }
+    },
+    {
+      "t": 161.323,
+      "kind": "mark",
+      "id": "group-music",
+      "box": {
+        "x": 1304,
+        "y": 0.34375,
+        "w": 886,
+        "h": 330
+      },
+      "note": "Nine licensed beds"
+    },
+    {
+      "t": 163.217,
+      "kind": "click",
+      "id": "pick-music",
+      "box": {
+        "x": 1646.09375,
+        "y": 48.34375,
+        "w": 177.390625,
+        "h": 60
+      }
+    },
+    {
+      "t": 167.55,
+      "kind": "mark",
+      "id": "group-background",
+      "box": {
+        "x": 370,
+        "y": -164.234375,
+        "w": 1820,
+        "h": 1767.578125
+      },
+      "note": "Sixty-nine backgrounds"
+    },
+    {
+      "t": 169.422,
+      "kind": "click",
+      "id": "pick-background",
+      "box": {
+        "x": 1835.59375,
+        "y": -2.234375,
+        "w": 110.125,
+        "h": 195.765625
+      }
+    },
+    {
+      "t": 186.26,
+      "kind": "mark",
+      "id": "preview-restyled",
+      "box": {
+        "x": 610,
+        "y": 0,
+        "w": 640,
+        "h": 1137.77783203125
+      },
+      "note": "The verse and the voice never change"
+    },
+    {
+      "t": 189.151,
+      "kind": "mark",
+      "id": "narration",
+      "box": {
+        "x": 420,
+        "y": 692.34375,
+        "w": 1720,
+        "h": 56
+      },
+      "note": "Every authored word is yours to edit"
+    },
+    {
+      "t": 199.938,
+      "kind": "mark",
+      "id": "possibilities",
+      "box": {
+        "x": 304,
+        "y": 154,
+        "w": 1952,
+        "h": 1132
+      },
+      "note": "One pipeline, pointed at different things"
+    },
+    {
+      "t": 203.644,
+      "kind": "mark",
+      "id": "developers",
+      "box": {
+        "x": 304,
+        "y": 0,
+        "w": 1952,
+        "h": 1858.265625
+      },
+      "note": "All of it, headless"
+    },
+    {
+      "t": 205.55,
+      "kind": "mark",
+      "id": "mcp",
+      "box": {
+        "x": 380,
+        "y": 380,
+        "w": 846.703125,
+        "h": 40
+      },
+      "note": "A stateless MCP server"
+    },
+    {
+      "t": 214.176,
+      "kind": "mark",
+      "id": "skills",
+      "box": {
+        "x": 1672.953125,
+        "y": 924.5625,
+        "w": 272.046875,
+        "h": 68
+      },
+      "note": "Agent skills, packed from the repo"
+    },
+    {
+      "t": 222.809,
+      "kind": "mark",
+      "id": "stack",
+      "box": {
+        "x": 346,
+        "y": 1264.5625,
+        "w": 120.65625,
+        "h": 33
+      },
+      "note": "Built on HyperFrames"
+    },
+    {
+      "t": 226.218,
+      "kind": "mark",
+      "id": "end"
+    }
+  ]
+}

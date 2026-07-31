@@ -746,12 +746,38 @@ export function Studio() {
                 onChange={(e) => setLanguageCode(e.target.value)}
                 className="w-full rounded-lg border border-rule bg-white px-3 py-2"
               >
-                {status?.languages.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.nativeName} — {l.name}
-                    {l.tier === 'full' ? '' : l.tier === 'voiced' ? ' (voiced)' : ' — no voice yet'}
-                  </option>
-                ))}
+                {/*
+                  Grouped by what the creator actually gets, because the old
+                  list said it backwards: the BEST tier carried no marker at
+                  all while the middle one was labelled "(voiced)", so a
+                  language that narrates and measures its captions looked less
+                  capable than one that only narrates. Every option now states
+                  its own capability, and the group headings count them.
+                */}
+                {(
+                  [
+                    ['full', 'Narrated · captions measured from the audio'],
+                    ['voiced', 'Narrated · caption timing estimated'],
+                    ['text-first', 'No narration yet · text on screen only'],
+                  ] as const
+                ).map(([tier, heading]) => {
+                  const group = (status?.languages ?? []).filter((l) => l.tier === tier);
+                  if (!group.length) return null;
+                  return (
+                    <optgroup key={tier} label={`${heading}  (${group.length})`}>
+                      {group.map((l) => (
+                        <option key={l.code} value={l.code}>
+                          {l.nativeName} — {l.name}
+                          {tier === 'full'
+                            ? ' · narrated'
+                            : tier === 'voiced'
+                              ? ' · narrated, estimated captions'
+                              : ' · no narration'}
+                        </option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
               </select>
               {language && language.tier === 'text-first' && (
                 <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">

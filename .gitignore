@@ -68,3 +68,13 @@ scratchpad/
 /public/__smoke/
 .vercel
 .env*
+
+# demo build artefacts (captures, render bundles, cuts)
+/demo/raw/
+/demo/work/
+/demo/comp/
+/demo/out/
+/demo/vo/
+/demo/vo-full/
+/demo/cards/
+/public/__cards/
