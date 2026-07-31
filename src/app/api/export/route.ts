@@ -28,6 +28,7 @@
 import { NextResponse } from 'next/server';
 import { cleanEnv } from '@/lib/env';
 import { guard } from '@/lib/rate-limit';
+import { addQueued } from '@/lib/feedback/store';
 import { launchSandboxRender, sandboxConfigured } from '@/lib/render/sandbox';
 
 export const dynamic = 'force-dynamic';
@@ -121,6 +122,12 @@ export async function POST(request: Request) {
   if (backend === 'sandbox') {
     try {
       const { sandboxId } = await launchSandboxRender(renderRequest);
+      void addQueued({
+        id: String(spec.id ?? ''),
+        reference: String((spec.passage as { reference?: string })?.reference ?? ''),
+        language: String(spec.languageCode ?? ''),
+        style: String(spec.style ?? ''),
+      });
       return NextResponse.json({
         queued: true,
         message:
@@ -163,6 +170,12 @@ export async function POST(request: Request) {
     );
   }
 
+      void addQueued({
+        id: String(spec.id ?? ''),
+        reference: String((spec.passage as { reference?: string })?.reference ?? ''),
+        language: String(spec.languageCode ?? ''),
+        style: String(spec.style ?? ''),
+      });
   return NextResponse.json({
     queued: true,
     message:

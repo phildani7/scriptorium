@@ -124,3 +124,60 @@ export async function addReview(
     return { ok: false, error: 'Could not reach the review store.' };
   }
 }
+
+export interface QueuedRender {
+  id: string;
+  reference: string;
+  language: string;
+  style: string;
+  createdAt: string;
+}
+
+/**
+ * Record a dispatched render, fire-and-forget. The gallery shows the row
+ * until the id turns up in the manifest; a failure to record must never fail
+ * the export it describes.
+ */
+export async function addQueued(entry: {
+  id: string;
+  reference: string;
+  language: string;
+  style: string;
+}): Promise<void> {
+  try {
+    await rest('scriptorium_queue', {
+      method: 'POST',
+      // Re-queuing the same id (a retry) is a no-op, not an error.
+      headers: { Prefer: 'return=minimal,resolution=ignore-duplicates' },
+      body: JSON.stringify({
+        id: entry.id.slice(0, 120),
+        reference: entry.reference.slice(0, 120),
+        language: entry.language.slice(0, 12),
+        style: entry.style.slice(0, 40),
+      }),
+    });
+  } catch {
+    // The queue is a courtesy display; the render itself is already running.
+  }
+}
+
+/** Renders dispatched in the last few hours, newest first. */
+export async function listQueued(hours = 3): Promise<QueuedRender[] | null> {
+  try {
+    const since = new Date(Date.now() - hours * 3_600_000).toISOString();
+    const response = await rest(
+      `scriptorium_queue?select=id,reference,language,style,created_at` +
+        `&created_at=gte.${encodeURIComponent(since)}&order=created_at.desc&limit=20`,
+    );
+    if (!response?.ok) return null;
+    const rows = (await response.json()) as Array<{
+      id: string; reference: string; language: string; style: string; created_at: string;
+    }>;
+    return rows.map((r) => ({
+      id: r.id, reference: r.reference, language: r.language,
+      style: r.style, createdAt: r.created_at,
+    }));
+  } catch {
+    return null;
+  }
+}

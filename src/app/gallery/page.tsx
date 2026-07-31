@@ -47,6 +47,9 @@ function distinct(entries: GalleryEntry[], key: 'language' | 'lens' | 'style') {
 export default function GalleryPage() {
   const [entries, setEntries] = useState<GalleryEntry[] | null>(null);
   const [live, setLive] = useState(false);
+  const [queue, setQueue] = useState<Array<{
+    id: string; reference: string; language: string; style: string; createdAt: string;
+  }>>([]);
 
   const [query, setQuery] = useState('');
   const [language, setLanguage] = useState('');
@@ -137,6 +140,35 @@ export default function GalleryPage() {
     void load();
   }, []);
 
+  // What is rendering right now. Polled while the tab is open, because the
+  // whole point of the strip is watching your export make its way over.
+  useEffect(() => {
+    let stopped = false;
+    async function poll() {
+      try {
+        const r = await fetch('/api/queue');
+        const data = (await r.json()) as { queue: typeof queue | null };
+        if (!stopped && Array.isArray(data.queue)) setQueue(data.queue);
+      } catch {
+        // Next poll gets another chance.
+      }
+    }
+    void poll();
+    const timer = setInterval(() => void poll(), 45_000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Queued minus landed: a row disappears the moment its id is in the shelf.
+  const pending = useMemo(() => {
+    if (!queue.length) return [];
+    const landed = new Set((entries ?? []).map((e) => e.id));
+    return queue.filter((q) => !landed.has(q.id));
+  }, [queue, entries]);
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
       <header className="mb-8 flex flex-wrap items-baseline justify-between gap-4">
@@ -155,6 +187,37 @@ export default function GalleryPage() {
           Make your own
         </Link>
       </header>
+
+      {pending.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-accent/25 bg-accentsoft/40 px-5 py-4">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-accent" aria-hidden="true" />
+            <span className="font-label text-[11px] font-bold tracking-[0.16em] text-accent uppercase">
+              Rendering now
+            </span>
+            <span className="text-xs text-inksoft">
+              — each one appears below when its job finishes
+            </span>
+          </div>
+          <table className="w-full text-sm">
+            <tbody>
+              {pending.map((q) => (
+                <tr key={q.id} className="border-t border-accent/10 first:border-t-0">
+                  <td className="py-1.5 pr-4 font-semibold text-ink">{q.reference}</td>
+                  <td className="py-1.5 pr-4 text-inksoft uppercase">{q.language}</td>
+                  <td className="py-1.5 pr-4 text-inksoft">{q.style}</td>
+                  <td className="py-1.5 text-right text-xs text-inkfaint">
+                    queued{' '}
+                    {new Date(q.createdAt).toLocaleTimeString(undefined, {
+                      hour: '2-digit', minute: '2-digit',
+                    })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {entries !== null && entries.length > 0 && (
         <div className="mb-8 flex flex-wrap items-center gap-3">

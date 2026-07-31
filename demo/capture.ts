@@ -225,11 +225,18 @@ async function main() {
     return box;
   }
 
+  /** Scroll an element to the vertical CENTER of the viewport. */
+  async function center(locator: ReturnType<Page['locator']>) {
+    await locator.evaluate((el) =>
+      el.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior }),
+    );
+  }
+
   /** Frame a region for the composition to zoom or spotlight, without clicking. */
   async function mark(selector: string, id: string, note?: string) {
     const el = page.locator(selector).first();
-    await el.scrollIntoViewIfNeeded();
-    await hold(260);
+    await center(el);
+    await hold(320);
     const box = await el.boundingBox();
     beat('mark', id, box ? { x: box.x, y: box.y, w: box.width, h: box.height } : undefined, note);
     return box;
@@ -277,6 +284,36 @@ async function main() {
   beat('mark', 'lens', lensBox ? { x: lensBox.x, y: lensBox.y, w: lensBox.width, h: lensBox.height } : undefined, 'Six teaching lenses');
   await click(page.getByRole('button', { name: 'Analogy', exact: true }), 'lens-click');
   await hold(dwell('lens') - 1200);
+
+  // Audience and visuals sit side by side; the beat frames both as one
+  // region, because the narration names them in one breath.
+  const audienceField = page.locator('div:has(> div:text-is("Audience"))').last();
+  const visualsField = page.locator('div:has(> div:text-is("Visuals"))').last();
+  await center(audienceField);
+  await hold(300);
+  const ab = await audienceField.boundingBox();
+  const vb = await visualsField.boundingBox();
+  const union = ab && vb
+    ? {
+        x: Math.min(ab.x, vb.x),
+        y: Math.min(ab.y, vb.y),
+        w: Math.max(ab.x + ab.width, vb.x + vb.width) - Math.min(ab.x, vb.x),
+        h: Math.max(ab.y + ab.height, vb.y + vb.height) - Math.min(ab.y, vb.y),
+      }
+    : undefined;
+  beat('mark', 'audience', union, 'Audience and visuals');
+  await click(page.getByRole('button', { name: 'Youth', exact: true }), 'pick-audience');
+  await hold(1000);
+  await click(page.getByRole('button', { name: 'Adult', exact: true }), 'pick-adult');
+  await hold(Math.max(800, dwell('audience') - 4200));
+
+  // The series planner, in its dashed box below the main button.
+  const seriesBox = page.locator('div.border-dashed').first();
+  await center(seriesBox);
+  await hold(300);
+  const sb = await seriesBox.boundingBox();
+  beat('mark', 'series', sb ? { x: sb.x, y: sb.y, w: sb.width, h: sb.height } : undefined, 'Plan a series');
+  await hold(dwell('series'));
 
   await click(page.getByRole('button', { name: /Find the passage/ }), 'find', 'Retrieve, never generate');
   beat('wait', 'resolving', undefined, 'Asking YouVersion');
@@ -333,8 +370,8 @@ async function main() {
     // measured: the mark anchors the film step and positions the spotlight,
     // so it has to describe the settled screen, not the pre-click one.
     await hold(1400);
-    await group.scrollIntoViewIfNeeded();
-    await hold(250);
+    await center(group);
+    await hold(300);
     const box = await group.boundingBox();
     beat('mark', `group-${id}`, box ? { x: box.x, y: box.y, w: box.width, h: box.height } : undefined, note);
     // The step's full screen time, with real footage under all of it.
@@ -377,6 +414,23 @@ async function main() {
   await hold(dwell('skills'));
   await mark('h3:has-text("Built on")', 'stack', 'Built on HyperFrames');
   await hold(3400);
+
+  // The languages line plays over the gallery itself, scrolled top to
+  // bottom — the breadth argument made by looking at the actual shelf.
+  await page.goto(`${BASE}/gallery`, { waitUntil: 'networkidle' });
+  await page.evaluate(() => document.fonts.ready);
+  await hold(1500);
+  beat('mark', 'gallery-scroll', undefined, 'The gallery, top to bottom');
+  await page.evaluate(async () => {
+    const total = document.documentElement.scrollHeight - window.innerHeight;
+    const steps = 160;
+    for (let i = 1; i <= steps; i += 1) {
+      window.scrollTo(0, (total * i) / steps);
+      await new Promise((r) => setTimeout(r, 90));
+    }
+  });
+  beat('mark', 'gallery-end');
+  await hold(400);
 
   beat('mark', 'end');
   await hold(700);

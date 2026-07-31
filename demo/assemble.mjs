@@ -19,7 +19,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = process.cwd();
@@ -176,6 +176,26 @@ function withSilence(src) {
   return out;
 }
 
+/**
+ * The gallery, scrolled top to bottom, under the languages line. Cut from the
+ * CFR-normalized capture at the beat the scroll started; the six-tile wall it
+ * replaces demonstrated parallel audio, but the trio now carries that, and
+ * the author asked for the shelf itself.
+ */
+function galleryScroll() {
+  const beats = JSON.parse(readFileSync(join(DEMO, 'beats.json'), 'utf8'));
+  const at = beats.beats.find((b) => b.id === 'gallery-scroll')?.t;
+  if (at === undefined) throw new Error('no gallery-scroll beat in beats.json');
+  const cfr = join(DEMO, 'comp', 'capture-cfr.mp4');
+  const out = join(WORK, 'gallery.mp4');
+  const seconds = dur(join(VO, 'wall.wav')) + 1.2;
+  ff(['-ss', String(at + 0.3), '-t', String(seconds), '-i', cfr,
+      '-vf', `scale=${W}:${H}:flags=lanczos,fps=${FPS},format=yuv420p`,
+      '-an', '-c:v', 'libx264', '-crf', '19', '-preset', 'medium', out],
+    'gallery scroll');
+  return withSilence(out);
+}
+
 function main() {
   mkdirSync(WORK, { recursive: true });
   mkdirSync(OUT, { recursive: true });
@@ -201,7 +221,7 @@ function main() {
     narrate(withSilence(walkthrough), 'walk'),
     trio(clips, join(VO, 'result.wav')),
     narrate(card('gate', voDur('gate') + pad), 'gate'),
-    narrate(wall, 'wall'),
+    narrate(galleryScroll(), 'wall'),
     narrate(card('close', voDur('close') + pad), 'close'),
   ];
 

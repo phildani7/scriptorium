@@ -57,6 +57,10 @@ const META = {
     tip: 'A reference, a word, or a situation — Psalm 23, or anxiety at work.' },
   lens:       { beat: 'lens',            title: 'Choose a lens',       spot: true,
     tip: 'Hook · Analogy · Punch line · Illustration · Object lesson · Summary' },
+  audience:   { beat: 'audience',        title: 'Audience & visuals',  spot: true,
+    tip: 'Kids · Youth · Adult — text only, or pictures, with AI images.' },
+  series:     { beat: 'series',          title: 'Plan a series',       spot: true,
+    tip: 'A theme becomes 3–14 days, each one click from a finished short.' },
   find:       { beat: 'find',            title: 'Retrieve the passage', spot: true,
     tip: 'Scriptorium asks YouVersion — never a model.' },
   passages:   { beat: 'passages',        title: 'Verbatim candidates', spot: false,
@@ -160,12 +164,18 @@ function main() {
   }
   const duration = t;
 
+  const cfr = join(COMP, 'capture-cfr.mp4');
+  execFileSync('ffmpeg', ['-hide_banner', '-v', 'error', '-y', '-i', raw,
+    '-an', '-c:v', 'libx264', '-crf', '16', '-preset', 'fast',
+    '-g', '15', '-pix_fmt', 'yuv420p', '-vsync', 'cfr', '-r', '60', cfr]);
+  console.log('normalized to CFR 60 for frame-accurate cuts');
+
   const pieces = spans.map((s, i) => {
     const out = join(COMP, `part-${i}.mp4`);
     execFileSync('ffmpeg', ['-hide_banner', '-v', 'error', '-y',
-      '-ss', String(s.from), '-t', String(s.span), '-i', raw,
+      '-ss', String(s.from), '-t', String(s.span), '-i', cfr,
       '-an', '-c:v', 'libx264', '-crf', '16', '-preset', 'medium',
-      '-g', '15', '-pix_fmt', 'yuv420p', '-vsync', 'cfr', '-r', '30', out]);
+      '-g', '15', '-pix_fmt', 'yuv420p', '-r', '60', out]);
     return out;
   });
   const listFile = join(COMP, 'parts.txt');
