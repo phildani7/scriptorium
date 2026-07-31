@@ -39,6 +39,81 @@ The attached notebook does not describe this. It calls the live deployment, then
 
 ---
 
+## YouTube listing
+
+### Title
+
+> **Scriptorium — Scripture shorts, in your own language**
+
+Alternates, if you want the claim in the title rather than the promise:
+
+- *Scriptorium: Scripture shorts in 40 languages — retrieved, never generated*
+- *We built a studio that cannot alter a verse — Scriptorium*
+- *Scriptorium — YouVersion + Gloo AI, from a reference to a finished short in a minute*
+
+### Description
+
+```
+Scriptorium turns a reference, a topic, a sermon, an article or a PDF into a
+publishable 1080x1920 Scripture short — narrated in a real voice, captioned word
+by word, set in your own script — in about a minute.
+
+Built for "Scripture in New Frontiers", the Kaggle hackathon run by Gloo and
+YouVersion.
+
+── THE CLAIM ──
+Scripture is retrieved, never generated — and the build proves it.
+
+Verse text comes verbatim from the YouVersion Platform API. The model writes only
+the teaching around it. Before a single frame is captured, the verse on screen is
+fetched from YouVersion again and diffed against that fresh response. A mismatch
+fails the build rather than shipping. In the studio, every authored word stays
+editable up to export — the verse does not. There is deliberately no field that
+can change it.
+
+── WHY IT MATTERS ──
+YouVersion serves Scripture as text in over a thousand languages. The world now
+watches vertical video, and in most of those languages there is almost none of
+it — not from indifference, but because a good short needs a designer, a voice
+and an editor that a volunteer church does not have. Scriptorium supplies all
+three. Each short is written in its own language rather than translated into it
+afterwards.
+
+── LINKS ──
+Live studio    https://scriptorium-gamma-wheat.vercel.app
+Gallery        https://scriptorium-gamma-wheat.vercel.app/gallery
+Source         https://github.com/phildani7/scriptorium  (Apache-2.0)
+MCP endpoint   https://scriptorium-gamma-wheat.vercel.app/api/mcp
+Competition    https://www.kaggle.com/competitions/scripture-in-new-frontiers
+
+── BUILT WITH ──
+YouVersion Platform API — Scripture across 40 licensed languages, 116 versions
+Gloo AI Studio — teaching generation, tradition alignment, model auto-routing
+Speechmatics + Piper — narration and word-level caption timing
+HyperFrames — deterministic, seek-safe motion design
+Next.js on Vercel; headless Chrome + ffmpeg for the MP4
+
+33 languages have a neural voice with word timing measured from the audio. The
+whole pipeline is also exposed as 8 stateless MCP tools, so an agent can drive
+the studio without the screen.
+
+── CREDITS ──
+Scripture text is retrieved at run time and remains under its publisher's
+copyright; none is redistributed. Music beds are Audiio-licensed. Fonts are SIL
+Open Font License. Asset credits: github.com/phildani7/scriptorium/blob/master/assets/CREDITS.md
+
+By Dr. Philemon Paul Daniel.
+```
+
+**Tags:** `Scripture` `Bible` `YouVersion` `Gloo AI` `Kaggle` `hackathon` `AI video`
+`vertical video` `multilingual` `Next.js` `MCP` `generative AI` `Bible shorts`
+
+**Settings:** Public · not made for kids · add to a playlist if you have one.
+Chapters can be added once the final cut is locked — ask and I'll compute the
+timestamps from the assembled film rather than guessing them.
+
+---
+
 ## Submission checklist
 
 Kaggle requires **all five** of these attached to one Writeup, submitted (not left as a draft)
