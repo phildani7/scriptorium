@@ -75,6 +75,44 @@ const CASES: Record<string, { passage: Passage; device: DeviceItem }> = {
       emoji: '🌙',
     },
   },
+  ar: {
+    passage: {
+      reference: 'يوحنا 3:16',
+      usfm: 'JHN.3.16',
+      text: 'لأَنَّهُ هكَذَا أَحَبَّ اللهُ الْعَالَمَ حَتَّى بَذَلَ ابْنَهُ الْوَحِيدَ، لِكَيْ لاَ يَهْلِكَ كُلُّ مَنْ يُؤْمِنُ بِهِ، بَلْ تَكُونُ لَهُ الْحَيَاةُ الأَبَدِيَّةُ.',
+      versionId: 0,
+      versionAbbreviation: 'KEH',
+      versionName: 'كتاب الحياة',
+      attribution: 'كتاب الحياة (KEH)',
+      languageCode: 'ar',
+    },
+    device: {
+      type: 'hook',
+      content: 'نقرأ هذه الآية في الأعراس ونكتبها على اللافتات. لكنها قيلت لرجل خائف جاء في ظلام الليل يبحث عن أجوبة.',
+      point: 'جاء نيقوديموس ليلاً.',
+      reference: 'يوحنا 3:16',
+      emoji: '🌙',
+    },
+  },
+  zh: {
+    passage: {
+      reference: '约翰福音 3:16',
+      usfm: 'JHN.3.16',
+      text: '神爱世人，甚至将他的独生子赐给他们，叫一切信他的，不至灭亡，反得永生。',
+      versionId: 0,
+      versionAbbreviation: 'CUNPSS',
+      versionName: '和合本',
+      attribution: '和合本 (CUNPSS)',
+      languageCode: 'zh',
+    },
+    device: {
+      type: 'hook',
+      content: '我们在婚礼上诵读这节经文，把它写在标语上。但这句话原本是对一个深夜前来、心怀恐惧的人说的。',
+      point: '尼哥底母是在夜里来的。',
+      reference: '约翰福音 3:16',
+      emoji: '🌙',
+    },
+  },
   ko: {
     passage: {
       reference: '요한복음 3:16',
@@ -158,7 +196,7 @@ function parse(argv: string[]) {
 
 async function main() {
   const args = parse(process.argv);
-  const langs = args.lang ? [args.lang] : ['en', 'hi', 'te', 'ko'];
+  const langs = args.lang ? [args.lang] : ['en', 'hi', 'te', 'ko', 'ar', 'zh'];
   const styles: StyleId[] = args.style
     ? [args.style as StyleId]
     : ['kinetic-type', 'warm-minimal', 'neon-night'];
