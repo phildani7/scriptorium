@@ -1,5 +1,19 @@
 [
   {
+    "id": "short-JOB.1.21-warm-minimal-ms97iqeu",
+    "video": "/gallery/short-JOB.1.21-warm-minimal-ms97iqeu.mp4",
+    "poster": "/gallery/short-JOB.1.21-warm-minimal-ms97iqeu.jpg",
+    "reference": "Job 1:21",
+    "version": "ASV",
+    "attribution": "American Standard Version (ASV)",
+    "language": "en",
+    "style": "warm-minimal",
+    "lens": "punch-line",
+    "durationSec": 41,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-31"
+  },
+  {
     "id": "short-2TI.1.7-warm-minimal-ms977fsi",
     "video": "/gallery/short-2TI.1.7-warm-minimal-ms977fsi.mp4",
     "poster": "/gallery/short-2TI.1.7-warm-minimal-ms977fsi.jpg",
