@@ -1,5 +1,19 @@
 [
   {
+    "id": "short-JHN.13.34-35-warm-minimal-ms9824ej",
+    "video": "/gallery/short-JHN.13.34-35-warm-minimal-ms9824ej.mp4",
+    "poster": "/gallery/short-JHN.13.34-35-warm-minimal-ms9824ej.jpg",
+    "reference": "यूहन्ना 13:34-35",
+    "version": "HHBD",
+    "attribution": "Hindi Holy Bible (HHBD)",
+    "language": "hi",
+    "style": "warm-minimal",
+    "lens": "analogy",
+    "durationSec": 63,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-31"
+  },
+  {
     "id": "short-JOB.1.21-warm-minimal-ms97iqeu",
     "video": "/gallery/short-JOB.1.21-warm-minimal-ms97iqeu.mp4",
     "poster": "/gallery/short-JOB.1.21-warm-minimal-ms97iqeu.jpg",
