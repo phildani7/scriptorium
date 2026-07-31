@@ -1,0 +1,38 @@
+Scriptorium
+Copyright 2026 Philemon Paul Daniel
+
+This product includes software developed by Philemon Paul Daniel.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+--------------------------------------------------------------------------
+Third-party assets
+--------------------------------------------------------------------------
+
+Fonts, music beds, motion-graphics runtimes, illustration sets and other
+third-party assets bundled with this repository are licensed separately
+under their own terms. Each one is listed, with its source and licence, in:
+
+    assets/CREDITS.md
+
+The Apache License, Version 2.0 above applies to the source code of
+Scriptorium, not to those bundled third-party assets.
+
+--------------------------------------------------------------------------
+Scripture text
+--------------------------------------------------------------------------
+
+Scriptorium does not redistribute Scripture. Verse text is retrieved at
+run time from the YouVersion Platform API and remains subject to the
+copyright of its respective Bible publisher, as reported by that API and
+carried through to each rendered short and its gallery manifest entry.

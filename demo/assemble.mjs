@@ -186,10 +186,13 @@ function galleryScroll() {
   const beats = JSON.parse(readFileSync(join(DEMO, 'beats.json'), 'utf8'));
   const at = beats.beats.find((b) => b.id === 'gallery-scroll')?.t;
   if (at === undefined) throw new Error('no gallery-scroll beat in beats.json');
+  const { offset } = JSON.parse(
+    readFileSync(join(DEMO, 'comp', 'offset.json'), 'utf8'),
+  );
   const cfr = join(DEMO, 'comp', 'capture-cfr.mp4');
   const out = join(WORK, 'gallery.mp4');
   const seconds = dur(join(VO, 'wall.wav')) + 1.2;
-  ff(['-ss', String(at + 0.3), '-t', String(seconds), '-i', cfr,
+  ff(['-ss', String(offset + at + 0.3), '-t', String(seconds), '-i', cfr,
       '-vf', `scale=${W}:${H}:flags=lanczos,fps=${FPS},format=yuv420p`,
       '-an', '-c:v', 'libx264', '-crf', '19', '-preset', 'medium', out],
     'gallery scroll');

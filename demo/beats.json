@@ -1,16 +1,16 @@
 {
   "width": 2560,
   "height": 1440,
-  "duration": 273.876,
+  "duration": 273.929,
   "beats": [
     {
-      "t": 0,
+      "t": 0.712,
       "kind": "mark",
       "id": "start",
       "note": "Scripture shorts, in your own language"
     },
     {
-      "t": 1.757,
+      "t": 2.448,
       "kind": "mark",
       "id": "hero",
       "box": {
@@ -22,7 +22,7 @@
       "note": "Scriptorium"
     },
     {
-      "t": 7.586,
+      "t": 8.282,
       "kind": "mark",
       "id": "received",
       "box": {
@@ -34,7 +34,7 @@
       "note": "The verse: retrieved from YouVersion"
     },
     {
-      "t": 15.143,
+      "t": 15.839,
       "kind": "mark",
       "id": "written",
       "box": {
@@ -46,13 +46,13 @@
       "note": "The teaching: written by Gloo"
     },
     {
-      "t": 24.767,
+      "t": 25.443,
       "kind": "type",
       "id": "topic",
       "note": "A topic, not just a reference"
     },
     {
-      "t": 26.985,
+      "t": 27.705,
       "kind": "mark",
       "id": "lens",
       "box": {
@@ -64,7 +64,7 @@
       "note": "Six teaching lenses"
     },
     {
-      "t": 27.945,
+      "t": 28.674,
       "kind": "click",
       "id": "lens-click",
       "box": {
@@ -75,7 +75,7 @@
       }
     },
     {
-      "t": 35.502,
+      "t": 36.24,
       "kind": "mark",
       "id": "audience",
       "box": {
@@ -87,7 +87,7 @@
       "note": "Audience and visuals"
     },
     {
-      "t": 36.47,
+      "t": 37.225,
       "kind": "click",
       "id": "pick-audience",
       "box": {
@@ -98,7 +98,7 @@
       }
     },
     {
-      "t": 38.671,
+      "t": 39.437,
       "kind": "click",
       "id": "pick-adult",
       "box": {
@@ -109,7 +109,7 @@
       }
     },
     {
-      "t": 43.698,
+      "t": 44.453,
       "kind": "mark",
       "id": "series",
       "box": {
@@ -121,7 +121,7 @@
       "note": "Plan a series"
     },
     {
-      "t": 51.84,
+      "t": 52.567,
       "kind": "click",
       "id": "find",
       "box": {
@@ -133,13 +133,13 @@
       "note": "Retrieve, never generate"
     },
     {
-      "t": 52.031,
+      "t": 52.785,
       "kind": "wait",
       "id": "resolving",
       "note": "Asking YouVersion"
     },
     {
-      "t": 57.463,
+      "t": 56.715,
       "kind": "mark",
       "id": "passages",
       "box": {
@@ -151,7 +151,7 @@
       "note": "Candidates, verbatim from the API"
     },
     {
-      "t": 64.408,
+      "t": 63.653,
       "kind": "click",
       "id": "pick-passage",
       "box": {
@@ -163,13 +163,13 @@
       "note": "Pick one"
     },
     {
-      "t": 64.634,
+      "t": 63.869,
       "kind": "wait",
       "id": "generating",
       "note": "Gloo writes the teaching"
     },
     {
-      "t": 91.945,
+      "t": 87.794,
       "kind": "mark",
       "id": "devices",
       "box": {
@@ -181,7 +181,7 @@
       "note": "Several openings, each anchored to the passage"
     },
     {
-      "t": 105.685,
+      "t": 101.528,
       "kind": "click",
       "id": "pick-device",
       "box": {
@@ -193,13 +193,13 @@
       "note": "Choose one"
     },
     {
-      "t": 105.912,
+      "t": 101.74,
       "kind": "wait",
       "id": "composing",
       "note": "Narrating, and measuring every word"
     },
     {
-      "t": 134.793,
+      "t": 131.29,
       "kind": "mark",
       "id": "preview",
       "box": {
@@ -211,7 +211,7 @@
       "note": "The real frame, seekable"
     },
     {
-      "t": 136.398,
+      "t": 132.897,
       "kind": "click",
       "id": "play",
       "box": {
@@ -223,25 +223,25 @@
       "note": "Press play"
     },
     {
-      "t": 136.629,
+      "t": 133.171,
       "kind": "mark",
       "id": "playing",
       "note": "Narrated, word-synced, real motion"
     },
     {
-      "t": 150.997,
+      "t": 147.543,
       "kind": "mark",
       "id": "theme",
       "box": {
         "x": 304,
-        "y": -1886,
+        "y": -1918,
         "w": 1952,
-        "h": 5211.84375
+        "h": 5275.84375
       },
       "note": "Everything you can change"
     },
     {
-      "t": 153.236,
+      "t": 149.791,
       "kind": "click",
       "id": "pick-style",
       "box": {
@@ -252,7 +252,7 @@
       }
     },
     {
-      "t": 155.285,
+      "t": 151.801,
       "kind": "mark",
       "id": "group-style",
       "box": {
@@ -264,7 +264,7 @@
       "note": "Three frozen motion styles"
     },
     {
-      "t": 163.132,
+      "t": 159.664,
       "kind": "click",
       "id": "pick-colors",
       "box": {
@@ -275,7 +275,7 @@
       }
     },
     {
-      "t": 165.115,
+      "t": 161.62,
       "kind": "mark",
       "id": "group-colors",
       "box": {
@@ -287,7 +287,7 @@
       "note": "Eight palettes"
     },
     {
-      "t": 170.284,
+      "t": 166.729,
       "kind": "click",
       "id": "pick-font",
       "box": {
@@ -298,7 +298,7 @@
       }
     },
     {
-      "t": 172.259,
+      "t": 168.716,
       "kind": "mark",
       "id": "group-font",
       "box": {
@@ -310,7 +310,7 @@
       "note": "Four type pairs"
     },
     {
-      "t": 177.377,
+      "t": 173.889,
       "kind": "click",
       "id": "pick-size",
       "box": {
@@ -321,7 +321,7 @@
       }
     },
     {
-      "t": 179.35,
+      "t": 175.879,
       "kind": "mark",
       "id": "group-size",
       "box": {
@@ -333,7 +333,7 @@
       "note": "Three sizes"
     },
     {
-      "t": 184.479,
+      "t": 180.987,
       "kind": "click",
       "id": "pick-captions",
       "box": {
@@ -344,7 +344,7 @@
       }
     },
     {
-      "t": 186.446,
+      "t": 182.949,
       "kind": "mark",
       "id": "group-captions",
       "box": {
@@ -356,7 +356,7 @@
       "note": "Captions on or off"
     },
     {
-      "t": 191.547,
+      "t": 188.081,
       "kind": "click",
       "id": "pick-motion",
       "box": {
@@ -367,7 +367,7 @@
       }
     },
     {
-      "t": 193.518,
+      "t": 190.053,
       "kind": "mark",
       "id": "group-motion",
       "box": {
@@ -379,7 +379,7 @@
       "note": "Eight ways the text enters"
     },
     {
-      "t": 198.546,
+      "t": 195.119,
       "kind": "click",
       "id": "pick-music",
       "box": {
@@ -390,7 +390,7 @@
       }
     },
     {
-      "t": 200.486,
+      "t": 197.087,
       "kind": "mark",
       "id": "group-music",
       "box": {
@@ -402,7 +402,7 @@
       "note": "Nine licensed beds"
     },
     {
-      "t": 205.545,
+      "t": 202.139,
       "kind": "click",
       "id": "pick-background",
       "box": {
@@ -413,7 +413,7 @@
       }
     },
     {
-      "t": 207.53,
+      "t": 204.125,
       "kind": "mark",
       "id": "group-background",
       "box": {
@@ -425,7 +425,7 @@
       "note": "Sixty-nine backgrounds"
     },
     {
-      "t": 218.279,
+      "t": 214.887,
       "kind": "mark",
       "id": "preview-restyled",
       "box": {
@@ -437,7 +437,7 @@
       "note": "The verse and the voice never change"
     },
     {
-      "t": 221.238,
+      "t": 217.843,
       "kind": "mark",
       "id": "narration",
       "box": {
@@ -449,7 +449,7 @@
       "note": "Every authored word is yours to edit"
     },
     {
-      "t": 232.254,
+      "t": 228.513,
       "kind": "mark",
       "id": "possibilities",
       "box": {
@@ -461,7 +461,7 @@
       "note": "One pipeline, pointed at different things"
     },
     {
-      "t": 235.999,
+      "t": 232.259,
       "kind": "mark",
       "id": "developers",
       "box": {
@@ -473,7 +473,7 @@
       "note": "All of it, headless"
     },
     {
-      "t": 237.938,
+      "t": 234.212,
       "kind": "mark",
       "id": "mcp",
       "box": {
@@ -485,7 +485,7 @@
       "note": "A stateless MCP server"
     },
     {
-      "t": 246.071,
+      "t": 242.327,
       "kind": "mark",
       "id": "skills",
       "box": {
@@ -497,7 +497,7 @@
       "note": "Agent skills, packed from the repo"
     },
     {
-      "t": 250.821,
+      "t": 247.078,
       "kind": "mark",
       "id": "stack",
       "box": {
@@ -509,18 +509,18 @@
       "note": "Built on HyperFrames"
     },
     {
-      "t": 258.38,
+      "t": 258.657,
       "kind": "mark",
       "id": "gallery-scroll",
       "note": "The gallery, top to bottom"
     },
     {
-      "t": 273.474,
+      "t": 273.522,
       "kind": "mark",
       "id": "gallery-end"
     },
     {
-      "t": 273.876,
+      "t": 273.929,
       "kind": "mark",
       "id": "end"
     }

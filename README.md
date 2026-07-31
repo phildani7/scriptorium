@@ -359,4 +359,15 @@ it never asks a model for verse text.
 
 ## Licence
 
-Apache-2.0. Asset licences are recorded in `assets/CREDITS.md`.
+The source code is licensed under the **Apache License, Version 2.0** — the full
+text is in [`LICENSE`](LICENSE), and attribution plus scope notes are in
+[`NOTICE`](NOTICE).
+
+Bundled third-party assets (fonts, music beds, illustration sets, motion
+runtimes) carry their own licences, each recorded with its source in
+[`assets/CREDITS.md`](assets/CREDITS.md). Nothing bundled here is paid or
+licence-ambiguous.
+
+Scripture text is **not redistributed**. It is fetched at run time from the
+YouVersion Platform API and stays under its publisher's copyright, which is
+carried through to every rendered short and its gallery manifest entry.

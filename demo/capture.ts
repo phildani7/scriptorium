@@ -251,7 +251,24 @@ async function main() {
   // unzoomed the h1 sits at x=152, zoomed it should be near 228.
   const probe = await page.locator('h1').first().boundingBox();
   console.log(`  h1 at x=${Math.round(probe?.x ?? -1)} (152 = pre-zoom, ~228 = post-zoom)`);
+
+  // The clapperboard. The screencast starts recording at page creation, but
+  // the beat clock starts HERE — after navigation and fonts — so video time
+  // leads beat time by a pre-roll that varies with network luck. Every cut
+  // made without knowing it lands seconds early, which is exactly the
+  // "tooltip ahead of the footage" bug, twice diagnosed as seek drift and
+  // twice mis-fixed. A magenta flash at clock-zero lets the editor MEASURE
+  // the offset instead of assuming it away.
+  await page.evaluate(() => {
+    const flash = document.createElement('div');
+    flash.id = '__demo-clap';
+    flash.style.cssText =
+      'position:fixed;inset:0;z-index:2147483647;background:#ff00ff';
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 450);
+  });
   t0 = Date.now();
+  await hold(700);
   beat('mark', 'start', undefined, 'Scripture shorts, in your own language');
   await hold(1400);
 
