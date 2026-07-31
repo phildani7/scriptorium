@@ -249,7 +249,7 @@ async function main() {
   await hold(1400);
 
   await mark('h1', 'hero', 'Scriptorium');
-  await hold(900);
+  await hold(dwell('hero'));
   // Anchored on each panel's own heading. `section:has-text("Written")`
   // matched the RECEIVED panel, whose prose says "never written by a model" —
   // :has-text is a case-insensitive substring match over all descendants.
@@ -269,8 +269,13 @@ async function main() {
   }
   await hold(900);
 
-  await click(page.getByRole('button', { name: 'Analogy', exact: true }), 'lens', 'Six teaching lenses');
-  await hold(900);
+  const lensRow = page.locator('div:has(> div:text-is("Teaching lens"))').last();
+  await lensRow.scrollIntoViewIfNeeded();
+  await hold(250);
+  const lensBox = await lensRow.boundingBox();
+  beat('mark', 'lens', lensBox ? { x: lensBox.x, y: lensBox.y, w: lensBox.width, h: lensBox.height } : undefined, 'Six teaching lenses');
+  await click(page.getByRole('button', { name: 'Analogy', exact: true }), 'lens-click');
+  await hold(dwell('lens') - 1200);
 
   await click(page.getByRole('button', { name: /Find the passage/ }), 'find', 'Retrieve, never generate');
   beat('wait', 'resolving', undefined, 'Asking YouVersion');
@@ -279,7 +284,7 @@ async function main() {
   await page.getByRole('heading', { name: 'Which passage?' }).waitFor({ timeout: 120_000 });
   await hold(700);
   await mark('h2:has-text("Which passage?")', 'passages', 'Candidates, verbatim from the API');
-  await hold(1800);
+  await hold(dwell('passages'));
 
   const firstPassage = page.locator('section:has(h2:has-text("Which passage?")) button').first();
   await click(firstPassage, 'pick-passage', 'Pick one');
@@ -289,7 +294,7 @@ async function main() {
   await page.getByRole('heading', { name: 'Choose an opening' }).waitFor({ timeout: 180_000 });
   await hold(700);
   await mark('h2:has-text("Choose an opening")', 'devices', 'Several openings, each anchored to the passage');
-  await hold(2200);
+  await hold(dwell('devices'));
 
   const firstDevice = page.locator('section:has(h2:has-text("Choose an opening")) button').first();
   await click(firstDevice, 'pick-device', 'Choose one');
@@ -318,17 +323,21 @@ async function main() {
   async function option(label: string, nth: number, id: string, note: string) {
     const group = themeSection.locator(`div:has(> div:text-is("${label}"))`).last();
     await group.scrollIntoViewIfNeeded();
-    await hold(300);
-    const box = await group.boundingBox();
-    beat('mark', `group-${id}`, box ? { x: box.x, y: box.y, w: box.width, h: box.height } : undefined, note);
-    await hold(900);
+    await hold(250);
     const target = group.locator('button').nth(nth);
     if (await target.isVisible().catch(() => false)) {
       await click(target, `pick-${id}`);
     }
-    // Dwell for the rest of this step's screen time, so the footage lasts as
-    // long as the film will hold on it.
-    await hold(Math.max(1200, dwell(id) - 1900));
+    // Let the re-bake and any banner shuffle finish BEFORE the box is
+    // measured: the mark anchors the film step and positions the spotlight,
+    // so it has to describe the settled screen, not the pre-click one.
+    await hold(1400);
+    await group.scrollIntoViewIfNeeded();
+    await hold(250);
+    const box = await group.boundingBox();
+    beat('mark', `group-${id}`, box ? { x: box.x, y: box.y, w: box.width, h: box.height } : undefined, note);
+    // The step's full screen time, with real footage under all of it.
+    await hold(dwell(id) + 400);
   }
 
   await mark('section:has(h2:has-text("Make it yours"))', 'theme', 'Everything you can change');

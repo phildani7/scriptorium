@@ -1,0 +1,23 @@
+# What a deployment is, stated explicitly.
+#
+# `vercel --prod` uploads from this working directory, and this machine also
+# edits demo footage in it — a 113 MB walkthrough render in demo/out is a
+# legitimate local artifact and an illegitimate upload. The 100 MB per-file
+# limit turned that mistake into a hard deploy failure, which is the only
+# reason it was noticed; this file makes the boundary deliberate instead of
+# incidental.
+
+demo
+renders
+samples
+.render
+.render-tmp
+.smoke
+.piper-models
+docs
+_ref
+scratchpad
+public/preview
+public/__smoke
+public/__cards
+*.log

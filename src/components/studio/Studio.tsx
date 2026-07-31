@@ -222,10 +222,22 @@ export function Studio() {
     const seq = ++bakeSeq.current;
     setRebaking(true);
     try {
+      // The narration audio STAYS ON THE CLIENT. The bake route sets
+      // audioSrc '' regardless (PreviewFrame drives its own <audio> from
+      // state), so the base64 WAV in the spec was megabytes of payload that
+      // the server would ignore — and past ~4.5 MB Vercel refuses the request
+      // outright with FUNCTION_PAYLOAD_TOO_LARGE, which is exactly how a
+      // long English short broke the preview screen in production.
+      const narration = nextSpec.narration as
+        | Record<string, unknown>
+        | undefined;
+      const lean = narration?.audioUrl
+        ? { ...nextSpec, narration: { ...narration, audioUrl: '' } }
+        : nextSpec;
       const html = await fetch('/api/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spec: nextSpec }),
+        body: JSON.stringify({ spec: lean }),
       }).then((r) => r.text());
       // A slower earlier bake must not overwrite a newer one.
       if (seq === bakeSeq.current) setPreviewHtml(html);
@@ -318,10 +330,17 @@ export function Studio() {
     if (!spec) return;
     setExporting('Queuing export…');
     try {
+      // Same rule as the preview bake: the runner re-synthesizes narration
+      // from the script with its own secrets, so the base64 WAV is dead
+      // weight — and past ~4.5 MB it is a rejected request, not dead weight.
+      const narration = spec.narration as Record<string, unknown> | undefined;
+      const lean = narration?.audioUrl
+        ? { ...spec, narration: { ...narration, audioUrl: '' } }
+        : spec;
       const response = await fetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spec }),
+        body: JSON.stringify({ spec: lean }),
       });
       const data = (await response.json()) as {
         queued?: boolean;

@@ -1,22 +1,21 @@
 /**
- * The narration script.
+ * The narration script — one line per on-screen step.
  *
- * Written to three rules the brief set, in this order:
+ * Earlier cuts wrote paragraph-length lines and split their time across steps
+ * by percentage, and every timing complaint traced back to that: Gloo's
+ * sentence played over YouVersion's spotlight, the lens line played before
+ * the lenses were framed. A percentage is a guess about where a sentence
+ * falls inside a paragraph. So there are no paragraphs any more: each step
+ * speaks exactly one line, each line's measured duration IS the step's
+ * length, and the two cannot drift because neither exists without the other.
  *
- *   Credit BOTH partners. YouVersion supplies the Scripture; Gloo supplies the
- *   teaching and the values alignment around it. Naming only one of them
- *   misdescribes the architecture, not just the courtesy.
- *
- *   No boasting. Every sentence here is either a fact that can be checked
- *   against the running app, or a plain description of what is on screen.
- *   Nothing is "revolutionary", "seamless" or "powerful". Numbers are the
- *   audited ones.
- *
- *   Joyful, not breathless. The tone is a person glad to show you something
- *   they made, explaining it carefully, taking their time.
+ * Voice rules, unchanged: credit both partners, state facts, no boasting.
+ * `step: true` lines belong to the studio walkthrough; the rest each own a
+ * whole segment of the film.
  */
 
 export const LINES = [
+  // ---- opening card --------------------------------------------------------
   {
     id: 'open',
     text:
@@ -25,80 +24,51 @@ export const LINES = [
       'there is almost none of it. Scriptorium is a small attempt to close ' +
       'that gap.',
   },
-  {
-    id: 'partners',
-    text:
-      'It rests on two partners. YouVersion provides the Scripture, through ' +
-      'their Platform API. Gloo provides the teaching that surrounds it, and ' +
-      'the values alignment that lets a short be written for the tradition and ' +
-      'the audience it is actually for. The line between those two things is ' +
-      'the whole design.',
-  },
-  {
-    id: 'ask',
-    text:
-      'You start by saying what the short is about. A reference, or a topic, or ' +
-      'a situation. Then you choose a lens. There are six, and each approaches ' +
-      'the passage differently. A hook opens with a question; an analogy reaches ' +
-      'for a picture from ordinary life.',
-  },
-  {
-    id: 'retrieve',
-    text:
-      'When you ask for the passage, Scriptorium asks YouVersion. It never asks ' +
-      'a model to write Scripture. The candidates come back word for word, ' +
-      'exactly as the API returned them, in whichever of the forty licensed ' +
-      'languages you chose.',
-  },
-  {
-    id: 'teach',
-    text:
-      'Choose one, and Gloo writes the teaching around it. An opening line, then ' +
-      'five sentences, one to a page, so nothing overlaps on screen. ' +
-      'Speechmatics narrates it and measures every word, which is what lets the ' +
-      'captions ride the voice.',
-  },
-  {
-    id: 'style',
-    text:
-      'Then it becomes yours. There are three motion styles. Warm Minimal is ' +
-      'editorial and calm. Kinetic Type lands poster words on the measured ' +
-      'voice. Neon Night has glow, drifting particles, and a flare at the turn.',
-  },
-  {
-    id: 'colour',
-    text:
-      'Eight palettes, four type pairs, and three sizes. The type is fitted by ' +
-      'measurement, so a long sentence steps down until it genuinely fits ' +
-      'rather than spilling off the frame.',
-  },
-  {
-    id: 'more',
-    text:
-      'Captions can be on or off. There are eight ways for the text to enter, ' +
-      'and nine music beds, all licensed so that nothing you post carries an ' +
-      'attribution obligation with it.',
-  },
-  {
-    id: 'background',
-    text:
-      'And sixty-nine backgrounds. Eight generated in CSS, ten hand-drawn ' +
-      'frames, seventeen photographs, and thirty-four animated loops, each ' +
-      'cross-faded so it repeats without a visible cut.',
-  },
-  {
-    id: 'edit',
-    text:
-      'Every authored word stays editable, right up to export. The verse does ' +
-      'not. There is deliberately no field anywhere in this studio that can ' +
-      'change it.',
-  },
+
+  // ---- the walkthrough, one line per numbered step -------------------------
+  { id: 'hero', step: true, text:
+      'Scriptorium rests on two partners, and the line between them is the whole design.' },
+  { id: 'received', step: true, text:
+      'YouVersion provides the Scripture, through their Platform API. Every word arrives exactly as published.' },
+  { id: 'written', step: true, text:
+      'Gloo provides the teaching around it, with the values alignment to write for the tradition and the audience it is actually for.' },
+  { id: 'topic', step: true, text:
+      'You start by saying what the short is about. A reference, a topic, or a situation.' },
+  { id: 'lens', step: true, text:
+      'Then choose a lens. There are six. A hook opens with a question; an analogy reaches for a picture from ordinary life.' },
+  { id: 'find', step: true, text:
+      'Ask for the passage, and Scriptorium asks YouVersion. It never asks a model to write Scripture.' },
+  { id: 'passages', step: true, text:
+      'The candidates come back word for word, in whichever of the forty licensed languages you chose.' },
+  { id: 'devices', step: true, text:
+      'Choose one, and Gloo writes the teaching. An opening line, then five sentences, one to a page. Speechmatics narrates the script and measures every word, so the captions ride the voice.' },
+  { id: 'style', step: true, text:
+      'Then it becomes yours. Three motion styles: Warm Minimal, Kinetic Type, and Neon Night.' },
+  { id: 'colors', step: true, text: 'Eight palettes.' },
+  { id: 'font', step: true, text: 'Four type pairs.' },
+  { id: 'size', step: true, text: 'Three text sizes.' },
+  { id: 'captions', step: true, text: 'Captions, on or off.' },
+  { id: 'motion', step: true, text: 'Eight ways for the text to enter.' },
+  { id: 'music', step: true, text:
+      'Nine licensed music beds. Nothing you post carries an attribution obligation.' },
+  { id: 'background', step: true, text:
+      'And sixty-nine backgrounds. CSS textures, hand-drawn frames, photographs, and thirty-four animated loops, each one repeating without a visible cut.' },
+  { id: 'narration', step: true, text:
+      'Every authored word stays editable, right up to export. The verse does not. There is deliberately no field that can change it.' },
+  { id: 'mcp', step: true, text:
+      'All of this also works without the screen. One stateless M C P server exposes the pipeline as eight tools.' },
+  { id: 'skills', step: true, text:
+      'And a downloadable skill pack teaches an agent how to drive them.' },
+
+  // ---- the result: three finished shorts, heard in turn --------------------
   {
     id: 'result',
     text:
-      'And this is what comes out. Ten eighty by nineteen twenty, narrated, ' +
-      'captioned word by word, ready to post.',
+      'And this is what comes out. The same pipeline, in Hindi, in Arabic, ' +
+      'and in English. Listen.',
   },
+
+  // ---- the gate -------------------------------------------------------------
   {
     id: 'gate',
     text:
@@ -107,6 +77,8 @@ export const LINES = [
       'the render stops. Here it is refusing a spec whose verse was altered on ' +
       'purpose. Altered Scripture cannot reach a frame.',
   },
+
+  // ---- the language wall ----------------------------------------------------
   {
     id: 'wall',
     text:
@@ -114,14 +86,8 @@ export const LINES = [
       'a neural voice and word timing measured from the audio. Each short is ' +
       'written in its own language, rather than translated into it afterwards.',
   },
-  {
-    id: 'headless',
-    text:
-      'All of it works without the screen. One stateless M C P server exposes ' +
-      'the pipeline as eight tools, so an agent or a cron job can drive it. And ' +
-      'because a tool list cannot tell an agent which lens suits a passage, ' +
-      'there is a skill pack to download beside it.',
-  },
+
+  // ---- close -----------------------------------------------------------------
   {
     id: 'close',
     text:
@@ -129,3 +95,6 @@ export const LINES = [
       'and verified before every single frame. Thank you for watching.',
   },
 ];
+
+/** Walkthrough step order — the film and the capture both follow this. */
+export const STEP_ORDER = LINES.filter((l) => l.step).map((l) => l.id);
