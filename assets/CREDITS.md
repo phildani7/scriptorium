@@ -153,10 +153,14 @@ treatments are screenshotted from the real template, images downscaled from
 the shipped crop, video posters taken past the cross-fade. No third-party
 material; they are pictures of what this repo already contains.
 
-## CC0 photos (Openverse, fetched at compose time)
+## Fetched imagery
 
-"Free graphics" mode may add one CC0 photo from Openverse. CC0 waives all
-rights and requires no attribution; the source is recorded in the spec anyway.
+None. "Free graphics" mode draws only on the two curated libraries above (the
+clipart set and the vendored icons), both of which ship in this repo. An open
+CC0 stock-photo search previously supplied a hero image at compose time and was
+removed: correct licensing was never the problem, editorial control was, and a
+picture nobody on this project has ever seen does not belong in a frame beside
+Scripture.
 
 ## Other backgrounds
 

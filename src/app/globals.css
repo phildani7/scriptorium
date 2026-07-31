@@ -44,33 +44,21 @@
   --font-label: "Space Grotesk", ui-monospace, monospace;
 }
 
-@font-face {
-  font-family: "Fraunces";
-  src: url("/fonts/fraunces-latin-700.woff2") format("woff2");
-  font-weight: 400 700;
-  font-display: swap;
-}
+/*
+  The faces come from /public/fonts/fonts.css, which the layout links and the
+  templates link too — one generated stylesheet, one set of filenames.
 
-@font-face {
-  font-family: "Inter";
-  src: url("/fonts/inter-latin-600.woff2") format("woff2");
-  font-weight: 400 600;
-  font-display: swap;
-}
+  Four hand-written @font-face rules used to live here instead, naming the
+  woff2 files directly. They were correct until the day the font set was
+  regenerated under new filenames, at which point the studio's own chrome
+  silently fell back to a system serif while every short still rendered
+  perfectly: the templates read the generated stylesheet, and only this file
+  was still repeating the old names from memory. Duplication that drifts
+  quietly is worse than duplication that breaks loudly.
 
-@font-face {
-  font-family: "Noto Serif Devanagari";
-  src: url("/fonts/notoserifdevanagari-devanagari-700.woff2") format("woff2");
-  font-weight: 400 700;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Space Grotesk";
-  src: url("/fonts/spacegrotesk-latin-600.woff2") format("woff2");
-  font-weight: 400 700;
-  font-display: swap;
-}
+  Each rule there is scoped by unicode-range, so linking the whole set does
+  not download a Telugu or Japanese subset to draw an English button.
+*/
 
 html,
 body {

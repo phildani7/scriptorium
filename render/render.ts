@@ -32,6 +32,8 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  statSync,
+  readdirSync,
   writeFileSync,
 } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -207,7 +209,7 @@ async function main() {
   // producer rewrites asset paths against each composition root, and its
   // linter flags traversal as a real hazard — self-contained is also simply
   // the right shape for a render bundle.
-  cpSync(join(ROOT, 'public', 'fonts'), join(workdir, 'fonts'), { recursive: true });
+  copyFonts(workdir, String(spec.script ?? 'latin'));
   for (const dir of ['music', 'cliparts']) {
     const src = join(ROOT, 'public', dir);
     if (existsSync(src)) cpSync(src, join(workdir, dir), { recursive: true });
@@ -383,6 +385,46 @@ async function main() {
   if (code !== 0) fail(`hyperframes render exited ${code}`);
 
   console.log(`\nrendered    ${out}`);
+}
+
+/**
+ * Copy the webfonts this short can actually use into the bundle.
+ *
+ * `public/fonts` carries a face for every script in the registry, and the CJK
+ * families are 19 MB of that on their own — a Telugu short has no use for
+ * 124 Japanese subsets, and copying them costs disk and upload on every render.
+ *
+ * `fonts.css` is copied whole and unmodified: it is a stack of `@font-face`
+ * rules discriminated by `unicode-range`, and a rule whose file is absent is
+ * simply never matched. Editing the stylesheet per render would make the
+ * bundle's CSS differ from the app's, and "preview and export consume
+ * byte-identical HTML" is the one property this pipeline is built on.
+ */
+function copyFonts(workdir: string, script: string): void {
+  const from = join(ROOT, 'public', 'fonts');
+  const to = join(workdir, 'fonts');
+  mkdirSync(to, { recursive: true });
+
+  const CJK: Record<string, string> = {
+    notoserifsc: 'han',
+    notoserifjp: 'han',
+    notoserifkr: 'hangul',
+  };
+
+  let copied = 0;
+  let bytes = 0;
+  for (const file of readdirSync(from)) {
+    const slug = file.replace(/-\d+\.woff2$/, '');
+    const needs = CJK[slug];
+    if (needs && needs !== script) continue;
+    cpSync(join(from, file), join(to, file));
+    copied += 1;
+    bytes += statSync(join(from, file)).size;
+  }
+  console.log(
+    `fonts       ${copied} files, ${(bytes / 1024 / 1024).toFixed(1)} MB ` +
+      `(script: ${script})`,
+  );
 }
 
 function run(command: string, args: string[]): Promise<number> {

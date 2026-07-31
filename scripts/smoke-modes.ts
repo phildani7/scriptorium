@@ -93,24 +93,23 @@ function assertShape(spec: Spec, expectVisual: string | null): string {
   return `5 pages + verse, ${Math.round(spec.narration.durationSec)}s, ${kind}`;
 }
 
-async function makeShort(
-  input: string,
-  lens: string,
-  visualMode: 'text' | 'free' | 'ai',
-): Promise<Spec> {
-  const resolved = await post<{ candidates: Array<Record<string, unknown>>; declined?: boolean }>(
-    '/api/resolve',
-    { input, languageCode: 'en' },
-  );
+/** Resolve a reference through the real route; the passage is never faked. */
+async function resolveOne(input: string): Promise<Record<string, unknown>> {
+  const resolved = await post<{
+    candidates: Array<Record<string, unknown>>;
+    declined?: boolean;
+  }>('/api/resolve', { input, languageCode: 'en' });
   const passage = resolved.candidates?.[0];
   if (!passage) throw new Error('resolve returned no passage');
+  return passage;
+}
 
-  const generated = await post<{ devices: Array<Record<string, unknown>> }>('/api/generate', {
-    passage, lens, ageGroup: 'adult', tone: 'conversational', languageCode: 'en',
-  });
-  const device = generated.devices?.[0];
-  if (!device) throw new Error('generate returned no devices');
-
+/** Compose through the real route and assert the verse survived the gate. */
+async function composeSpec(
+  passage: Record<string, unknown>,
+  device: Record<string, unknown>,
+  visualMode: 'text' | 'free' | 'ai',
+): Promise<Spec> {
   const composed = await post<{ spec: Spec; verification: string }>('/api/compose', {
     passage, device, style: 'warm-minimal', visualMode, languageCode: 'en',
   });
@@ -118,6 +117,35 @@ async function makeShort(
     throw new Error(`verse not verified: ${composed.verification}`);
   }
   return composed.spec;
+}
+
+async function makeShort(
+  input: string,
+  lens: string,
+  visualMode: 'text' | 'free' | 'ai',
+): Promise<Spec> {
+  const passage = await resolveOne(input);
+  const generated = await post<{ devices: Array<Record<string, unknown>> }>('/api/generate', {
+    passage, lens, ageGroup: 'adult', tone: 'conversational', languageCode: 'en',
+  });
+  const device = generated.devices?.[0];
+  if (!device) throw new Error('generate returned no devices');
+  return composeSpec(passage, device, visualMode);
+}
+
+/**
+ * Compose a real passage with a device written here rather than generated.
+ *
+ * Used where the check is about the pipeline's own wiring and the model's
+ * choice of imagery would only add noise. The passage still comes from
+ * YouVersion and the verbatim gate still runs — only the teaching is fixed.
+ */
+async function composeFixedDevice(
+  input: string,
+  device: Record<string, unknown>,
+  visualMode: 'text' | 'free' | 'ai',
+): Promise<Spec> {
+  return composeSpec(await resolveOne(input), device, visualMode);
 }
 
 async function main() {
@@ -224,29 +252,51 @@ async function main() {
 
   // Both AI branches, asserted together rather than one apiece.
   //
-  // Which branch a single short takes depends on the nouns the model happened
-  // to pick for it, and that varies run to run: Luke 15:20 reuses a panel
-  // about nine times in ten, not ten. Pinning each passage to a fixed outcome
-  // would make this suite flake for a reason that is not a defect. What must
-  // hold is that BOTH paths work — a passage the library covers reuses, one it
-  // does not generates — so the pair is checked as a pair.
+  // Which branch a short takes depends on the nouns the model happened to pick
+  // for it, and those vary a great deal: asked to illustrate Luke 15:20, Gloo
+  // will sometimes reach for a father running down a road — which the library
+  // has — and sometimes for a parent waiting in a driveway beside a car, which
+  // it does not. Both are good teachings. Neither is a defect.
+  //
+  // So the reuse leg is driven by a FIXED device rather than a generated one.
+  // What has to hold is that a teaching the library genuinely covers reaches a
+  // panel through the real compose route — the wiring, not the weather. The
+  // generation leg stays live, because "Grok is reachable" is a claim about
+  // the deployment that only a real call can settle.
   await check('AI images — reuse and generation both work', async () => {
-    const covered = await makeShort('Luke 15:20', 'illustration', 'ai');
+    const covered = await composeFixedDevice(
+      'Luke 15:20',
+      {
+        type: 'illustration',
+        content:
+          'A father sees his son on the road while he is still a long way off, and runs.',
+        point: 'The father closes the distance the son could not.',
+        explanation:
+          'The son had rehearsed a speech about being unworthy. He never finished it. ' +
+          'His father saw him on the road and ran, which no dignified man of that age did. ' +
+          'The embrace happened before a word of the apology was spoken. ' +
+          'Repentance did not buy the welcome; it only walked toward one already waiting. ' +
+          'That is the shape of the whole gospel in one road and one father.',
+        reference: 'Luke 15:20',
+        visualTerms: ['father', 'son', 'road', 'run', 'embrace'],
+      },
+      'ai',
+    );
     const uncovered = await makeShort('Ephesians 2:19-20', 'analogy', 'ai');
 
     const shapes = [assertShape(covered, 'ai'), assertShape(uncovered, 'ai')];
     const kinds = [covered, uncovered].map((s) => s.visuals?.items?.[0]?.kind);
 
-    if (!kinds.includes('doodle')) {
+    if (kinds[0] !== 'doodle') {
       throw new Error(
-        `neither short reused a panel (${kinds.join(', ')}) — the library is ` +
-          'shipping but never being chosen',
+        `a teaching the library plainly covers did not reuse a panel (got ` +
+          `${kinds[0]}) — the library is shipping but never being chosen`,
       );
     }
-    if (!kinds.includes('ai-image')) {
+    if (kinds[1] !== 'ai-image') {
       throw new Error(
-        `neither short generated (${kinds.join(', ')}) — Grok is configured ` +
-          'but never being reached',
+        `a teaching the library does not cover did not generate (got ` +
+          `${kinds[1]}) — Grok is configured but never being reached`,
       );
     }
     return `${shapes[0]} | ${shapes[1]}`;

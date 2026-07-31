@@ -154,7 +154,6 @@ export const BACKGROUNDS: readonly BackgroundOption[] = [
   { id: 'img-golden-silk', label: 'Golden silk', kind: 'photo', group: 'image', src: '/backgrounds/img/golden-silk.jpg', thumb: '/backgrounds/thumbs/img-golden-silk.jpg' },
   { id: 'img-blue-marble', label: 'Blue marble', kind: 'photo', group: 'image', src: '/backgrounds/img/blue-marble.jpg', thumb: '/backgrounds/thumbs/img-blue-marble.jpg' },
   { id: 'img-wood-grain', label: 'Wood grain', kind: 'photo', group: 'image', src: '/backgrounds/img/wood-grain.jpg', thumb: '/backgrounds/thumbs/img-wood-grain.jpg' },
-  { id: 'img-paint-splash', label: 'Paint splash', kind: 'photo', group: 'image', src: '/backgrounds/img/paint-splash.jpg', thumb: '/backgrounds/thumbs/img-paint-splash.jpg' },
   { id: 'img-grunge-color', label: 'Color grunge', kind: 'photo', group: 'image', src: '/backgrounds/img/grunge-color.jpg', thumb: '/backgrounds/thumbs/img-grunge-color.jpg' },
   { id: 'img-halftone-pop', label: 'Halftone pop', kind: 'photo', group: 'image', src: '/backgrounds/img/halftone-pop.jpg', thumb: '/backgrounds/thumbs/img-halftone-pop.jpg' },
   { id: 'img-groovy-liquid', label: 'Groovy liquid', kind: 'photo', group: 'image', src: '/backgrounds/img/groovy-liquid.jpg', thumb: '/backgrounds/thumbs/img-groovy-liquid.jpg' },

@@ -12,6 +12,19 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+
+    // Generated output and vendored runtimes. These are render bundles,
+    // screenshot staging areas and a copy of minified GSAP — nothing here is
+    // authored, and linting it reports the same eight complaints about
+    // someone else's minifier once per bundle, which buries the findings that
+    // are about this repo's own code.
+    ".render/**",
+    ".render-tmp/**",
+    ".smoke/**",
+    "renders/**",
+    "public/vendor/**",
+    "public/preview/**",
+    "public/__smoke/**",
   ]),
 ]);
 

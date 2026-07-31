@@ -367,7 +367,7 @@ export function Studio() {
       if (data.declined || data.candidates.length === 0) {
         setNotice(
           data.message ??
-            'No passages found — try a reference, a feeling, or a life situation.',
+            'No passages found — try a reference, a topic, or a life situation.',
         );
         return;
       }
@@ -539,7 +539,7 @@ export function Studio() {
       if (data.declined || data.days.length === 0) {
         setNotice(
           data.message ??
-            'Could not plan a series on that theme — try a feeling or a faith topic.',
+            'Could not plan a series on that theme — try another topic or a faith theme.',
         );
         return;
       }
@@ -990,6 +990,9 @@ export function Studio() {
           )}
         </form>
       )}
+
+      {step === 'compose' && <PossibilitiesPanel />}
+      {step === 'compose' && <DeveloperPanel />}
 
       {/* ---------------- step 1b: choose a passage ---------------- */}
       {step === 'passage' && (
@@ -1443,6 +1446,311 @@ function Field({
 }
 
 /**
+ * What the same pipeline produces when you point it at different things.
+ *
+ * Grouped by who is doing the pointing, because the interesting claim is not
+ * that one short can be made — it is that a volunteer, a church office and a
+ * scheduled job all reach the same finished 1080x1920 file, and that the
+ * languages with no short-form Scripture at all are reachable by the same
+ * route as English.
+ */
+const POSSIBILITIES: Array<{ group: string; items: string[] }> = [
+  {
+    group: 'From whatever you already have',
+    items: [
+      'A verse or a topic — “Psalm 23”, or “anxiety at work”',
+      'Sunday’s sermon, pasted or uploaded as .txt / .pdf, mined into five teachings',
+      'A devotional article or blog post, read from its link',
+      'A theme and 3, 5, 7 or 14 days, planned as an arc rather than a pile',
+    ],
+  },
+  {
+    group: 'For a congregation that is not one thing',
+    items: [
+      'The same passage in 40 languages, each written in that language rather than translated into it',
+      'Scripts with no short-form Scripture at all — Telugu, Tamil, Malayalam, Bengali, Urdu, Georgian, Armenian',
+      'Kids, youth or adult; everyday, formal or liturgical',
+      'A Bible version picker where more than one translation is licensed',
+      'Word-synced captions, which is also what makes a short watchable on mute',
+    ],
+  },
+  {
+    group: 'Made to look like you',
+    items: [
+      'Three motion styles × 8 palettes × 4 type pairs × 3 sizes',
+      '69 backgrounds, including 34 animated loops and 10 hand-drawn frames',
+      '8 text motions and 9 music beds, none of which require a credit to travel with the post',
+      'Text only, curated graphics, or a full-frame hand-drawn panel behind the teaching',
+    ],
+  },
+  {
+    group: 'Running without you',
+    items: [
+      'A daily short from a cron job, through the MCP server',
+      'A back catalogue: every psalm, or a whole book, batched',
+      'An agent that drafts the week and hands you the review',
+      'Shorts pushed to a public gallery, shareable to WhatsApp, Telegram or X',
+    ],
+  },
+];
+
+const REPO_URL = 'https://github.com/phildani7/scriptorium';
+/** Committed, so the same file downloads from the site and from the tree. */
+const SKILLS_ZIP = '/downloads/scriptorium-skills.zip';
+const SKILLS_ON_GITHUB = `${REPO_URL}/raw/master/public/downloads/scriptorium-skills.zip`;
+
+/**
+ * What this is built on, named plainly.
+ *
+ * A judge, a reviewer or anyone deciding whether to reuse this needs the stack
+ * before they need the API, and reading it out of package.json is work nobody
+ * should have to do.
+ */
+const STACK: Array<[string, string]> = [
+  ['HyperFrames', 'the render framework: frozen HTML compositions captured to MP4 by seeking a paused timeline'],
+  ['GSAP', 'every animation, transform/opacity/filter only, seek-safe at any frame'],
+  ['Next.js 16 · React 19', 'App Router, TypeScript, Tailwind v4'],
+  ['YouVersion Platform API', 'every word of Scripture, retrieved and verified'],
+  ['Gloo AI Studio', 'the teaching, on gloo-anthropic-claude-haiku-4.5, with Claude live behind it'],
+  ['Speechmatics', 'narration, plus the word timings the captions ride'],
+  ['Piper', 'MIT neural voices for ~50 languages, synthesized in the export job'],
+  ['Grok Imagine', 'pictures, and nothing else — no text path reaches xAI'],
+  ['Playwright · FFmpeg', 'frame capture and encode, on GitHub Actions or a Vercel Sandbox microVM'],
+  ['MCP', 'the whole studio as eight stateless tools'],
+];
+
+/** The MCP tools, in the order `/api/mcp` registers them. */
+const MCP_TOOLS: Array<[string, string]> = [
+  ['resolve_passage', 'a reference or topic, to verbatim YouVersion passages'],
+  ['list_versions', 'the Bible versions licensed for a language'],
+  ['generate_devices', 'a passage, to 3-7 teaching devices through one lens'],
+  ['extract_teachings', 'your own sermon or article, to teachings (references only)'],
+  ['plan_series', 'a theme and a day count, to a planned arc'],
+  ['create_short', 'the whole pipeline, ending in a queued MP4 export'],
+  ['list_options', 'every palette, face, size, background, motion and music bed'],
+  ['gallery', 'the shorts that have already rendered'],
+];
+
+/**
+ * The consolidated answer to "what is this actually for".
+ *
+ * Sits between the form and the developer panel, which is where someone lands
+ * after their first short and starts wondering what else the same machine
+ * does. Listed rather than described: every line is a thing the shipped
+ * pipeline does today, not a roadmap.
+ */
+function PossibilitiesPanel() {
+  return (
+    <section className="mt-8 rounded-2xl border border-rule bg-panel p-5">
+      <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="font-label text-[11px] font-bold tracking-[0.18em] text-inksoft uppercase">
+          What you can make with it
+        </h2>
+        <span className="text-xs text-inkfaint">
+          one pipeline, pointed at different things
+        </span>
+      </div>
+
+      <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+        {POSSIBILITIES.map((section) => (
+          <div key={section.group}>
+            <h3 className="mb-2 font-display text-lg leading-snug text-ink">
+              {section.group}
+            </h3>
+            <ul className="space-y-1.5">
+              {section.items.map((item) => (
+                <li
+                  key={item}
+                  className="flex gap-2 text-sm leading-relaxed text-inksoft"
+                >
+                  <span aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-accent" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * What a developer needs, on the page a developer actually lands on.
+ *
+ * The MCP server is the most interesting thing here after the integrity gate,
+ * and until now it was documented only in the README — which is to say,
+ * somewhere nobody looking at the running app would find it. Everything the
+ * studio can do is reachable headlessly, and the rule that makes the studio
+ * trustworthy holds there too: the tools are thin wrappers over the same API
+ * routes, so an agent cannot reach a path where Scripture is generated rather
+ * than retrieved, because no such path exists to reach.
+ */
+function DeveloperPanel() {
+  const endpointRef = useRef<HTMLElement>(null);
+
+  // The absolute URL is what an MCP client needs, and it is only knowable in
+  // the browser: this app runs on a preview deployment, a production domain,
+  // and localhost, and printing the wrong one is worse than printing none.
+  //
+  // Written to the DOM rather than held in state. The server has no origin to
+  // render, so state would mean shipping one string in the HTML and swapping
+  // it on hydration — a mismatch React is right to complain about, for a
+  // value that is display-only and never read back.
+  useEffect(() => {
+    const node = endpointRef.current;
+    if (node) node.textContent = `POST ${window.location.origin}/api/mcp`;
+  }, []);
+
+  const copyEndpoint = () => {
+    navigator.clipboard?.writeText(
+      `${window.location.origin}/api/mcp`,
+    );
+  };
+
+  return (
+    <section className="mt-8 rounded-2xl border border-rule bg-ground/40 p-5">
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="font-label text-[11px] font-bold tracking-[0.18em] text-inksoft uppercase">
+          For developers
+        </h2>
+        <span className="text-xs text-inkfaint">
+          drive all of this without the screen
+        </span>
+        <a
+          href={REPO_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="ml-auto rounded-lg border border-rule bg-white px-3 py-1.5 text-sm font-medium text-inksoft transition hover:bg-ground"
+        >
+          Source on GitHub ↗
+        </a>
+      </div>
+
+      <p className="mb-4 max-w-3xl text-sm leading-relaxed text-inksoft">
+        Scriptorium ships a{' '}
+        <strong className="font-semibold text-ink">headless MCP server</strong>{' '}
+        at the address below. It speaks streamable HTTP and is completely
+        stateless: no sessions, no stored context, no SSE stream to hold open.
+        Every request builds a server, answers in plain JSON, and discards it.
+        Point any MCP client at it and you can run the whole pipeline from an
+        agent, a script, or a cron job.
+      </p>
+
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-rule bg-white px-4 py-3">
+        <code ref={endpointRef} className="font-mono text-sm break-all text-ink">
+          POST /api/mcp
+        </code>
+        <button
+          type="button"
+          onClick={copyEndpoint}
+          className="ml-auto rounded-lg border border-rule px-3 py-1 text-xs font-medium text-inksoft transition hover:bg-ground"
+        >
+          Copy
+        </button>
+      </div>
+
+      <dl className="mb-4 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+        {MCP_TOOLS.map(([name, blurb]) => (
+          <div key={name} className="flex flex-wrap items-baseline gap-x-2">
+            <dt className="font-mono text-[13px] font-semibold text-accent">
+              {name}
+            </dt>
+            <dd className="text-xs text-inksoft">{blurb}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <p className="mb-5 text-xs leading-relaxed text-inkfaint">
+        Each tool is a thin wrapper over the same API route the studio calls,
+        so the architecture&rsquo;s one rule holds for agents exactly as it
+        does for people: models return references, and verse text is always
+        fetched from YouVersion afterwards. A{' '}
+        <code className="font-mono">GET</code> on the same address returns the
+        server descriptor and the tool list, which is a quick way to check a
+        deployment is live before wiring a client to it.
+      </p>
+
+      {/* ---- the skill pack ---- */}
+      <div className="mb-5 rounded-xl border border-accent/25 bg-accentsoft/40 p-4">
+        <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-2">
+          <h3 className="font-label text-[11px] font-bold tracking-[0.16em] text-accent uppercase">
+            Agent skills
+          </h3>
+          <span className="text-xs text-inksoft">
+            teach your agent to drive all of the above
+          </span>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <a
+              href={SKILLS_ZIP}
+              download
+              className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white transition hover:opacity-90"
+            >
+              Download .zip ↓
+            </a>
+            <a
+              href={SKILLS_ON_GITHUB}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg border border-rule bg-white px-3 py-1.5 text-sm font-medium text-inksoft transition hover:bg-ground"
+            >
+              On GitHub ↗
+            </a>
+          </div>
+        </div>
+        <p className="text-sm leading-relaxed text-inksoft">
+          An MCP server tells an agent what it <em>can</em> call. It does not
+          tell it which lens suits a passage, that the five teaching sentences
+          are five pages, or why it must never ask a model for a verse. That is
+          what the skill pack carries:{' '}
+          <code className="font-mono text-[13px] text-ink">SKILL.md</code>
+          {' plus a pipeline reference and worked multi-call recipes. '}
+          Unzip it into your
+          agent&rsquo;s skills directory and point the client at the endpoint
+          above. Packed from{' '}
+          <code className="font-mono text-[13px] text-ink">skills/</code> by{' '}
+          <code className="font-mono text-[13px] text-ink">
+            npm run skills:pack
+          </code>
+          , so the download cannot drift from the repo.
+        </p>
+      </div>
+
+      {/* ---- the stack ---- */}
+      <div>
+        <div className="mb-2 flex flex-wrap items-baseline gap-x-3">
+          <h3 className="font-label text-[11px] font-bold tracking-[0.16em] text-inksoft uppercase">
+            Built on
+          </h3>
+          <span className="text-xs text-inkfaint">
+            open frameworks, licensed APIs, nothing hand-waved
+          </span>
+        </div>
+        <dl className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+          {STACK.map(([name, blurb]) => (
+            <div key={name} className="flex flex-wrap items-baseline gap-x-2">
+              <dt className="font-label text-[13px] font-semibold text-ink">
+                {name}
+              </dt>
+              <dd className="text-xs text-inksoft">{blurb}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-3 text-xs leading-relaxed text-inkfaint">
+          The compositions are{' '}
+          <strong className="font-semibold text-inksoft">HyperFrames</strong>{' '}
+          pages: one paused GSAP timeline built synchronously, seeded randomness
+          only, no network. That contract is what lets the renderer capture a
+          frame by seeking to it — and it is why the browser preview and the
+          exported MP4 consume byte-identical HTML, so the preview cannot
+          flatter the export.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/**
  * The header states what the tool is for, then shows who supplies what.
  *
  * The two panels are the design's one deliberate move, and they are not
@@ -1481,14 +1789,28 @@ function Header({ status }: { status: StatusPayload | null }) {
         </a>
       </div>
 
-      <p className="mb-6 max-w-3xl text-lg leading-relaxed text-ink">
-        Type a verse or a feeling, paste a sermon, or drop in an article link.
-        A minute later you have a finished vertical short — narrated,
-        captioned, illustrated, ready to post — in any of{' '}
+      <p className="mb-3 max-w-3xl text-lg leading-relaxed text-ink">
+        Type a verse or a topic, paste a sermon, or drop in an article link.
+        About a minute later you have a finished vertical short: narrated in a
+        real voice, captioned word by word, set in your own script, ready to
+        post. It works in{' '}
         <strong className="font-semibold">
           {audited ? `${audited.withBible} languages` : 'dozens of languages'}
         </strong>
-        . No designer, no voice actor, no editor.
+        , and the design, the narration and the edit all come with it.
+      </p>
+
+      {/* Whose work this is, and what it was made for. Stated on the page
+          rather than only in the README, because the page is what a judge
+          opens first. */}
+      <p className="mb-6 max-w-3xl border-l-2 border-rule pl-3 text-sm leading-relaxed text-inksoft">
+        A submission by{' '}
+        <strong className="font-semibold text-ink">
+          Dr. Philemon Paul Daniel
+        </strong>{' '}
+        to <em>Scripture in New Frontiers</em>, the Kaggle competition run by{' '}
+        <strong className="font-semibold text-ink">Gloo</strong> and{' '}
+        <strong className="font-semibold text-ink">YouVersion</strong>.
       </p>
 
       {/* Two sources, two materials. */}
@@ -1531,12 +1853,12 @@ function Header({ status }: { status: StatusPayload | null }) {
           </p>
           <p className="text-sm leading-relaxed text-inksoft">
             <strong className="font-semibold text-ink">Gloo</strong> writes the
-            five sentences around the verse — the opening line, the teaching,
+            five sentences around the verse: the opening line, the teaching,
             the picture it reaches for. It is built for ministry rather than
-            general chat, so it weighs a Catholic parish and a Pentecostal
-            youth group differently instead of flattening both into one voice,
-            and it reports which model answered and how sure it was. Careful
-            work, made available to people who could not have afforded it.
+            general chat, so a short can be aimed at the tradition and the
+            audience it is actually for, and it reports which model answered
+            and how confident it was. Careful work, put within reach of people
+            who could not otherwise have paid for it.
           </p>
         </section>
       </div>
@@ -1569,8 +1891,8 @@ function Header({ status }: { status: StatusPayload | null }) {
             Verified
           </strong>{' '}
           — before a single frame is captured, the verse on screen is fetched
-          again and compared character by character. A mismatch stops the
-          render.
+          from YouVersion again and compared with what the API returns. A
+          mismatch stops the render.
         </span>
       </p>
 

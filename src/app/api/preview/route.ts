@@ -16,13 +16,16 @@ import type { StyleId } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-const STYLES: readonly StyleId[] = [
-  'warm-minimal',
-  'kinetic-type',
-  'paper-cutout',
-  'neon-night',
-  'manuscript',
-];
+/**
+ * The styles that actually have a template on disk.
+ *
+ * `StyleId` still names two more, `paper-cutout` and `manuscript`, which were
+ * planned and never built. Listing them here allowed them past the guard and
+ * into `readFile`, which then answered "Template is not built yet" with a 404
+ * — an accurate message for a request that should never have been let through.
+ * The allowlist's job is to decide what is renderable, so it names what exists.
+ */
+const STYLES: readonly StyleId[] = ['warm-minimal', 'kinetic-type', 'neon-night'];
 
 export async function POST(request: Request) {
   const limited = guard(request, 'preview', 60);

@@ -217,6 +217,28 @@
       /* Wall and teaching text keep the upper zone when visuals ride along. */
       /* Pass-through art crosses the lower third; the stage keeps its full height. */
 
+      /* ---- line rows ----------------------------------------------------
+         Every stage block is a COLUMN of these, and each row holds a few
+         words. The rows are built by measurement rather than by handing the
+         text to the browser's own wrapping (see `fitLines` in the script
+         below), which is what keeps a line short enough to read at a glance
+         on a phone. A row that ends up holding one word is the vertical
+         beat: the sentence steps down the frame a word at a time, and then
+         picks up its horizontal run again. */
+      .tline {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: baseline;
+        column-gap: 0.28em;
+      }
+      /* Words size to themselves. A flex item left free to shrink would make
+         the width the grouper measured a lie, and the row would silently
+         hold more than it was built to. */
+      .tline > * { flex: 0 0 auto; }
+      /* The single-word row reads as a decision rather than an accident of
+         wrapping when it is given a little more air. */
+      .tline.solo { letter-spacing: 0.012em; }
+
       /* ---- the word wall ---- */
       #wall {
         position: absolute;
@@ -225,37 +247,27 @@
         right: 90px;
         bottom: 760px;
         display: flex;
-        flex-wrap: wrap;
-        align-content: center;
-        column-gap: 0.32em;
-        row-gap: 0.08em;
-        font-family: var(--t-font-display, 'Archivo Black', 'Inter', sans-serif);
-        font-size: calc(88px * var(--t-scale, 1));
-        line-height: 1.06;
-        text-transform: uppercase;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        row-gap: 0.04em;
+        font-family: var(--t-font-script, var(--t-font-display, 'Archivo Black', 'Inter', sans-serif));
+        font-size: calc(132px * var(--t-scale, 1));
+        line-height: calc(1.02 * var(--t-lh-mult, 1));
+        text-transform: var(--t-case, uppercase);
         letter-spacing: 0.005em;
       }
-      #wall.longer { font-size: calc(70px * var(--t-scale, 1)); }
       /* Under art the wall lives inside the measured band. */
       [data-art='1'] #wall {
         top: 132px;
         bottom: auto;
         height: calc(var(--t-art-band, 500px) - 168px);
-        font-size: calc(62px * var(--t-scale, 1));
       }
-      [data-art='1'] #wall.longer { font-size: calc(50px * var(--t-scale, 1)); }
       #wall .kw { display: inline-block; opacity: 0; will-change: transform; }
       /* Every third-ish word takes the accent — set from the seeded PRNG at
          load, so it is stable across seeks and renders. */
       #wall .kw.hot { color: var(--t-accent, #e8b04b); }
 
-      #short[data-script='devanagari'] #wall,
-      #short[data-script='bengali'] #wall {
-        font-family: 'Noto Serif Devanagari', serif;
-        text-transform: none;
-        font-size: calc(72px * var(--t-scale, 1));
-        line-height: 1.5;
-      }
       #short[data-dir='rtl'] #wall, #short[data-dir='rtl'] #verse-block { direction: rtl; }
 
       /* ---- the teaching block (teaching-format specs) ----
@@ -266,9 +278,9 @@
         left: 90px; right: 90px; top: 210px; bottom: 300px;
         display: grid;
         align-content: center;
-        font-family: var(--t-font-display, 'Archivo Black', 'Inter', sans-serif);
-        font-size: calc(48px * var(--t-scale, 1));
-        line-height: 1.32;
+        font-family: var(--t-font-script, var(--t-font-display, 'Archivo Black', 'Inter', sans-serif));
+        font-size: calc(72px * var(--t-scale, 1));
+        line-height: calc(1.24 * var(--t-lh-mult, 1));
         color: var(--t-ink, #f5f0e4);
       }
       /* Under art the teaching collapses into the measured band, centred over
@@ -280,14 +292,13 @@
         top: 132px;
         bottom: auto;
         height: calc(var(--t-art-band, 500px) - 168px);
-        /* Generous, because --t-scale carries this style's poster-face
-           compensation (Archivo Black rides at 0.86) and a band-constrained
-           line would otherwise land under 46px. */
-        font-size: calc(64px * var(--t-scale, 1));
         justify-items: center;
       }
-      [data-art='1'] .tpage { justify-content: center; text-align: center; }
-      [data-art='1'] #wall { justify-content: center; text-align: center; }
+      /* Under art everything centres over the drawing's own centred
+         composition; an editorial left rag there reads as a caption pasted
+         onto someone else's picture. */
+      [data-art='1'] .tpage,
+      [data-art='1'] #wall { align-items: center; }
       /* One sentence of the teaching. The five pages stack in a single grid
          cell and the timeline shows exactly one at a time; `visibility` in
          the rest state is what makes that a hard promise rather than an
@@ -296,23 +307,15 @@
         grid-area: 1 / 1;
         align-self: center;
         display: flex;
-        flex-wrap: wrap;
-        align-content: center;
-        column-gap: 0.3em;
-        row-gap: 0.14em;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        row-gap: 0.08em;
         opacity: 0;
         visibility: hidden;
       }
-      .tpage.longer { font-size: 0.84em; }
-      .tpage.longest { font-size: 0.72em; }
       #teach .tw { display: inline-block; opacity: 0; will-change: transform; }
       #teach .tw.hot { color: var(--t-accent, #e8b04b); }
-      #short[data-script='devanagari'] #teach,
-      #short[data-script='bengali'] #teach {
-        font-family: 'Noto Serif Devanagari', serif;
-        line-height: 1.6;
-        font-size: calc(44px * var(--t-scale, 1));
-      }
       #short[data-dir='rtl'] #teach { direction: rtl; }
 
       /* ---- the verse ---- */
@@ -346,14 +349,26 @@
       }
       #verse-kicker svg { width: calc(26px * var(--t-scale, 1)); height: calc(26px * var(--t-scale, 1)); }
 
+      /* The verse and the citation take the block's full width; only the
+         kicker chip shrink-wraps. `#verse-block` is a flex column set to
+         `align-items: flex-start`, which makes every child shrink to its own
+         content — right for a bordered chip, wrong for the text, and invisible
+         until the fitter started measuring the room it had been given. A
+         shrink-wrapped column reports almost no width, so the fitter dutifully
+         put one word on each line and shrank the type to make that fit. */
+      #verse-text, #citation-text { align-self: stretch; }
+
       #verse-text {
-        font-family: var(--t-font-display, 'Archivo Black', 'Inter', sans-serif);
-        font-size: calc(58px * var(--t-scale, 1));
-        line-height: 1.24;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        row-gap: 0.06em;
+        font-family: var(--t-font-script, var(--t-font-display, 'Archivo Black', 'Inter', sans-serif));
+        font-size: calc(87px * var(--t-scale, 1));
+        line-height: calc(1.18 * var(--t-lh-mult, 1));
         color: var(--t-soft, #97897b);
       }
-      #verse-text.longer { font-size: calc(44px * var(--t-scale, 1)); }
-      #verse-text .vw { transition: none; }
+      #verse-text .vw { display: inline-block; transition: none; }
       #verse-text .vw.on { color: var(--t-ink, #f5f0e4); }
       /* Over the dimmed drawing the verse needs dark ink, and it clears the
          caption band rather than running under it.
@@ -374,32 +389,55 @@
       }
       [data-art='1'] #verse-text { color: #6b6157; }
 
-      #short[data-script='devanagari'] #verse-text,
-      #short[data-script='bengali'] #verse-text {
-        font-family: 'Noto Serif Devanagari', serif;
-        line-height: 1.62;
-        font-size: calc(52px * var(--t-scale, 1));
-      }
-      #short[data-script='devanagari'] #verse-text.longer,
-      #short[data-script='bengali'] #verse-text.longer {
-        font-size: calc(42px * var(--t-scale, 1));
-      }
-
       /* Teaching format: the block closes on the citation in poster type —
          the verse itself is never displayed. Empty it takes no space. */
       #citation-text {
-        font-family: var(--t-font-display, 'Archivo Black', 'Inter', sans-serif);
-        font-size: calc(92px * var(--t-scale, 1));
-        line-height: 1.08;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        font-family: var(--t-font-script, var(--t-font-display, 'Archivo Black', 'Inter', sans-serif));
+        font-size: calc(138px * var(--t-scale, 1));
+        line-height: calc(1.06 * var(--t-lh-mult, 1));
         color: var(--t-ink, #f5f0e4);
       }
       #citation-text:empty { display: none; }
-      #short[data-script='devanagari'] #citation-text,
-      #short[data-script='bengali'] #citation-text {
-        font-family: 'Noto Serif Devanagari', serif;
-        line-height: 1.4;
-        font-size: calc(76px * var(--t-scale, 1));
-      }
+
+      /* ---- scripts ------------------------------------------------------
+         One rule per script in the registry, and it sets three things:
+         the face, a leading multiplier, and whether the poster wall may
+         uppercase. The blocks above opt in through the custom properties,
+         so a script is described in exactly one place instead of being
+         re-stated for the wall, the teaching, the verse and the citation.
+
+         The display faces are Latin-only by design. There is no Devanagari
+         Archivo Black and no Telugu Fraunces, and transforming a Latin face
+         into one produces broken conjuncts and misplaced matras — so each
+         script names its own companion rather than inheriting a face that
+         cannot shape it. Every family here is self-hosted by
+         `scripts/fetch-script-fonts.mjs`; the offline renderer has no
+         network, so a merely-referenced font is a font that is not there.
+
+         Leading is a MULTIPLIER, not an absolute: Devanagari and Telugu
+         stack marks above and below the baseline and need the extra room,
+         but each block keeps its own designed rhythm. Sizes are absent on
+         purpose — they are measured now, not guessed per script. */
+      #short[data-script='devanagari'] { --t-font-script: 'Noto Serif Devanagari', serif; --t-lh-mult: 1.32; --t-case: none; }
+      #short[data-script='bengali']    { --t-font-script: 'Noto Serif Bengali', serif;    --t-lh-mult: 1.32; --t-case: none; }
+      #short[data-script='telugu']     { --t-font-script: 'Noto Serif Telugu', serif;     --t-lh-mult: 1.28; --t-case: none; }
+      #short[data-script='tamil']      { --t-font-script: 'Noto Serif Tamil', serif;      --t-lh-mult: 1.28; --t-case: none; }
+      #short[data-script='malayalam']  { --t-font-script: 'Noto Serif Malayalam', serif;  --t-lh-mult: 1.28; --t-case: none; }
+      #short[data-script='thai']       { --t-font-script: 'Noto Serif Thai', serif;       --t-lh-mult: 1.28; --t-case: none; }
+      #short[data-script='arabic']     { --t-font-script: 'Noto Naskh Arabic', serif;     --t-lh-mult: 1.36; --t-case: none; }
+      #short[data-script='nastaliq']   { --t-font-script: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif; --t-lh-mult: 1.52; --t-case: none; }
+      #short[data-script='hebrew']     { --t-font-script: 'Noto Serif Hebrew', serif;     --t-lh-mult: 1.12; --t-case: none; }
+      #short[data-script='armenian']   { --t-font-script: 'Noto Serif Armenian', serif;   --t-lh-mult: 1.06; }
+      #short[data-script='georgian']   { --t-font-script: 'Noto Serif Georgian', serif;   --t-lh-mult: 1.06; --t-case: none; }
+      #short[data-script='han']        { --t-font-script: 'Noto Serif SC', 'Noto Serif JP', serif; --t-lh-mult: 1.18; --t-case: none; }
+      #short[data-script='hangul']     { --t-font-script: 'Noto Serif KR', serif;         --t-lh-mult: 1.18; --t-case: none; }
+      /* Cyrillic and Greek: the body face already covers both, but the
+         Latin DISPLAY faces do not, so they get the serif companion. */
+      #short[data-script='cyrillic'],
+      #short[data-script='greek']      { --t-font-script: 'Noto Serif', serif;            --t-lh-mult: 1.04; }
     </style>
   </head>
 
@@ -479,6 +517,163 @@
           }
           return null;
         }
+
+        /* ---- fitted lines -------------------------------------------------
+           The caller builds the word spans and owns their timings; this
+           decides only how they are ARRANGED and how big they are, and it
+           does both by measuring.
+
+           Words are grouped into short rows — a few each, and a word that
+           needs the whole row gets it alone, which is where the vertical,
+           word-by-word stacking comes from. The block then steps down in
+           size until it genuinely fits its box.
+
+           What this replaces was a set of character-count buckets ("past 118
+           characters, drop a size"). A character count is a proxy for width
+           that knows nothing about which face is set or which script it is
+           setting, so it was wrong in both directions: it shrank Devanagari
+           that had room to spare, and it left Latin overflowing at the
+           largest size. And a block centred in a box it overflows spills
+           equally at BOTH ends — which is exactly how a teaching line came
+           to start above the top of the frame.
+
+           Layout only: it groups spans and sets a font-size, both before the
+           timeline is built, and it animates nothing. Seeking is unaffected,
+           and because the measurement is of the real page, preview and
+           render reach the same answer. */
+        function fitLines(box, page, words, opts) {
+          if (!words.length) return;
+          opts = opts || {};
+          var maxPerRow = opts.max || 3;
+          var spaces = !!opts.spaces;
+          var fill = opts.fill || 0.99;
+          // Clear any size a previous pass left behind before reading the
+          // base, or a re-fit would measure against its own last answer and
+          // ratchet the type smaller every time it ran.
+          page.style.fontSize = '';
+          var base = parseFloat(getComputedStyle(page).fontSize) || 48;
+          var gapEm = 0.28;
+          // The width every row must live inside, set during each build.
+          var limitW = 0;
+
+          function build(px) {
+            page.style.fontSize = px + 'px';
+
+            // Measure first, on one nowrap row: grouping needs each word's own
+            // width at the size actually being tried, and a word sitting
+            // directly in the column would be stretched to the full width.
+            //
+            // The probe is taken OUT OF FLOW. Left in flow its min-content
+            // width is the whole sentence on one line, and an auto-sized grid
+            // column will widen to it — so the page would report room it does
+            // not have, and every measurement after that is against a fiction.
+            page.textContent = '';
+            var probe = document.createElement('div');
+            probe.className = 'tline';
+            probe.style.position = 'absolute';
+            probe.style.visibility = 'hidden';
+            probe.style.whiteSpace = 'nowrap';
+            page.appendChild(probe);
+            for (var i = 0; i < words.length; i += 1) probe.appendChild(words[i]);
+            var widths = [];
+            for (var j = 0; j < words.length; j += 1) {
+              widths.push(words[j].getBoundingClientRect().width);
+            }
+
+            // Read while the probe is still a child. The width budget comes
+            // from the PAGE rather than the outer box: the page is a
+            // block-level column, so its clientWidth is exactly the room its
+            // containing block gives it, already net of any padding in
+            // between. The outer box over-counted by that padding, and on the
+            // card-bound verse — 56 and 66 pixels of it — a Hebrew line was
+            // grouped 122 pixels too wide and ran off the right edge.
+            //
+            // The probe also keeps the node from being `:empty`, which the
+            // citation block styles as `display: none`. Measuring after the
+            // clear would measure a box that is not being laid out at all.
+            limitW = page.clientWidth;
+            var avail = limitW * fill;
+
+            page.textContent = '';
+            var gap = gapEm * px;
+            var row = null;
+            var rowWidth = 0;
+            var rowCount = 0;
+            for (var k = 0; k < words.length; k += 1) {
+              var need = widths[k] + (rowCount ? gap : 0);
+              if (!row || rowCount >= maxPerRow || rowWidth + need > avail) {
+                row = document.createElement('div');
+                row.className = 'tline';
+                page.appendChild(row);
+                rowWidth = 0;
+                rowCount = 0;
+                need = widths[k];
+              }
+              row.appendChild(words[k]);
+              // The verse keeps real spaces between its words. The integrity
+              // gate reads this node's textContent and collapses whitespace
+              // before diffing, so a row boundary with no space in it would
+              // fuse two words into one and fail a verse that is correct.
+              if (spaces) row.appendChild(document.createTextNode(' '));
+              rowWidth += need;
+              rowCount += 1;
+            }
+
+            var rows = page.children;
+            for (var r = 0; r < rows.length; r += 1) {
+              if (rows[r].children.length === 1) rows[r].className = 'tline solo';
+            }
+          }
+
+          // Height is measured from the first row's top to the last row's
+          // bottom rather than from scrollHeight, which only ever reports
+          // overflow BELOW the box — and a centred column that does not fit
+          // overflows upward just as far. Width is checked against the budget
+          // recorded during the build, not re-read: by now the rows are in
+          // flow, and a row that overflows can widen the very box it is
+          // supposed to be measured against.
+          function overflows() {
+            var rows = page.children;
+            if (!rows.length) return false;
+            // `budget` lets a caller hand back the room something else in the
+            // same box already claimed — the verse sits under a kicker, and
+            // the height it may use is the block's minus that.
+            var limit = opts.budget ? opts.budget() : box.clientHeight;
+            var top = rows[0].getBoundingClientRect().top;
+            var bottom = rows[rows.length - 1].getBoundingClientRect().bottom;
+            if (bottom - top > limit) return true;
+            for (var i = 0; i < rows.length; i += 1) {
+              if (rows[i].getBoundingClientRect().width > limitW + 1) return true;
+            }
+            return false;
+          }
+
+          var px = base;
+          build(px);
+          for (var pass = 0; pass < 24 && overflows(); pass += 1) {
+            px *= 0.94;
+            build(px);
+          }
+
+          // How much the block had to give up, recorded on the element.
+          // Shrinking is normal; shrinking a LOT means the fitter was handed
+          // a box that is not the room actually available, and the symptom is
+          // not overflow — it is a column of single words set far too small,
+          // which every overflow check in the world will call a pass.
+          page.setAttribute('data-fit', (px / base).toFixed(3));
+        }
+
+        /* Every fitted block, re-fitted once the webfonts are in. The first
+           pass runs against whatever face is available at parse time, which
+           for a self-hosted woff2 is usually the fallback — and a fallback's
+           metrics are not the real ones. `document.fonts.ready` is the only
+           honest moment to measure, and re-running is safe because the fit
+           is idempotent: it always recomputes from the CSS base size and it
+           only ever touches layout, never the timeline. */
+        var fitted = [];
+        function refit() {
+          for (var i = 0; i < fitted.length; i += 1) fitted[i]();
+        }
         var deviceSeg = segmentOf('device');
         var verseSeg = segmentOf('verse');
         var teachSeg = segmentOf('teaching');
@@ -504,8 +699,12 @@
             wallWords.push({ el: span, start: t.start });
           }
         }
-        var deviceText = (spec.device && spec.device.content) || '';
-        if (deviceText.length > 150) wall.classList.add('longer');
+        // The wall is its own box: the column of rows lives directly inside
+        // the absolutely-positioned frame it has to fit.
+        if (wallWords.length) {
+          var wallEls = wallWords.map(function (w) { return w.el; });
+          fitted.push(function () { fitLines(wall, wall, wallEls, { max: 3 }); });
+        }
 
         /* ---- the verse: split into spans; textContent is preserved for the
                integrity gate, which collapses whitespace before diffing.
@@ -513,19 +712,54 @@
                screen claims to be Scripture — and shows the citation in
                poster type instead. ----------------------------------------- */
         var verseEl = document.getElementById('verse-text');
+        var verseBlock = document.getElementById('verse-block');
+        // The kicker chip sits above the verse inside the same block and has
+        // already spent some of its height; what is left is what the verse
+        // may fill. Read at fit time rather than captured now, so a re-fit
+        // after the fonts land sees the kicker at its real size too.
+        function verseBudget() {
+          var kicker = document.getElementById('verse-kicker');
+          var spent = kicker ? kicker.getBoundingClientRect().height + 40 : 0;
+          return verseBlock.clientHeight - spent;
+        }
         if (verseSeg) {
           var verseChunks = String(spec.passage.text).split(/\s+/).filter(Boolean);
+          var verseEls = [];
           verseChunks.forEach(function (word, wi) {
             var span = document.createElement('span');
             span.className = 'vw';
             span.id = 'vw-' + wi;
             span.textContent = word;
             verseEl.appendChild(span);
-            if (wi < verseChunks.length - 1) verseEl.appendChild(document.createTextNode(' '));
+            verseEls.push(span);
           });
-          if (spec.passage.text.length > 220) verseEl.classList.add('longer');
+          // `spaces` is not decoration here. The gate reads this node's
+          // textContent and collapses whitespace before diffing it against
+          // the API response, so the space that separates two words has to
+          // survive being laid out on two different rows.
+          fitted.push(function () {
+            fitLines(verseBlock, verseEl, verseEls, {
+              max: 4,
+              spaces: true,
+              budget: verseBudget,
+            });
+          });
         } else {
-          document.getElementById('citation-text').textContent = spec.passage.reference;
+          var citationEl = document.getElementById('citation-text');
+          var citationWords = String(spec.passage.reference).split(/\s+/).filter(Boolean)
+            .map(function (word) {
+              var span = document.createElement('span');
+              span.textContent = word;
+              citationEl.appendChild(span);
+              return span;
+            });
+          fitted.push(function () {
+            fitLines(verseBlock, citationEl, citationWords, {
+              max: 2,
+              spaces: true,
+              budget: verseBudget,
+            });
+          });
         }
 
         document.getElementById('reference-label').textContent = spec.passage.reference;
@@ -547,7 +781,6 @@
           if (seg.kind !== 'teaching') return;
           var pageEl = document.createElement('div');
           pageEl.className = 'tpage';
-          var chars = 0;
           var words = [];
           for (var ti = seg.wordStart; ti < seg.wordEnd; ti += 1) {
             var tt = timings[ti];
@@ -558,12 +791,16 @@
             tspan.textContent = tt.word;
             pageEl.appendChild(tspan);
             words.push({ el: tspan, start: tt.start });
-            chars += tt.word.length + 1;
           }
           if (!words.length) return;
-          if (chars > 118) pageEl.classList.add('longest');
-          else if (chars > 82) pageEl.classList.add('longer');
           teachEl.appendChild(pageEl);
+          // Each page is fitted on its own. The five share a grid cell but
+          // not a length, and sizing them together would make the longest
+          // sentence decide how small the shortest one is set.
+          var pageEls = words.map(function (w) { return w.el; });
+          fitted.push(function () {
+            fitLines(teachEl, pageEl, pageEls, { max: 3 });
+          });
           teachPages.push({
             el: pageEl,
             words: words,
@@ -572,6 +809,15 @@
           });
         });
         teachPages.sort(function (a, b) { return a.page - b.page; });
+
+        // Fit now, so the timeline is built against the final layout, and
+        // again when the webfonts have actually loaded. Both passes run
+        // before any frame is captured: the browser preview repaints, and the
+        // renderer waits on the font set before it seeks.
+        refit();
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(refit);
+        }
 
         /* ---- V2 visuals: DOM (fixed slot table, deterministic) ---------- */
         var drama = root.getAttribute('data-drama') || '';

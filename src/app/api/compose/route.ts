@@ -18,7 +18,6 @@ import { alignScriptToAudio, estimateDuration } from '@/lib/voice/align';
 import { verifyVerbatim } from '@/lib/verify/verbatim';
 import { directionFor, getLanguage } from '@/lib/languages/registry';
 import { buildVisuals } from '@/lib/visuals/match';
-import { findCc0Photo } from '@/lib/visuals/openverse';
 import { generateGrokImage, grokConfigured } from '@/lib/visuals/grok';
 import { doodleVisual, matchDoodle } from '@/lib/visuals/doodles';
 import type {
@@ -163,9 +162,9 @@ export async function POST(request: Request) {
 
   // --- V2 visuals -----------------------------------------------------------
   // Resolved HERE, server-side, so preview and export consume one spec. Icons
-  // are deterministic; the hero photo/AI image is fetched once and embedded
-  // by URL (the render step localizes it). Every failure degrades toward
-  // icons-only — a broken image API can never block a short.
+  // are deterministic; the AI image is fetched once and embedded by URL (the
+  // render step localizes it). Every failure degrades toward icons-only — a
+  // broken image API can never block a short.
   const visualMode: VisualMode = body.visualMode ?? 'text';
   let visuals: ShortSpec['visuals'];
   if (visualMode !== 'text') {
@@ -177,12 +176,6 @@ export async function POST(request: Request) {
       timingSource,
       segments,
     };
-    const heroTime = (() => {
-      const teach =
-        segments.find((s) => s.kind === 'teaching') ?? segments[0];
-      const first = timings[teach?.wordStart ?? 0];
-      return first ? first.start + 0.4 : durationSec * 0.35;
-    })();
 
     const extras: VisualItem[] = [];
     if (visualMode === 'ai') {
@@ -198,10 +191,14 @@ export async function POST(request: Request) {
         const image = await generateGrokImage(effectiveDevice.imagePrompt);
         if (image) extras.push(image);
       }
-    } else if (visualMode === 'free' && effectiveDevice.visualTerms?.length) {
-      const photo = await findCc0Photo(effectiveDevice.visualTerms[0]);
-      if (photo) extras.push({ ...photo, timeSec: heroTime });
     }
+    // "Free graphics" draws only on the two CURATED libraries — the 68-piece
+    // clipart set and the vendored icons. An open stock-photo search used to
+    // supply a hero image here and was removed: a keyword like "silence"
+    // returned a watermarked quote card from a link-farm, which the composer
+    // then placed in the middle of the frame as though it were art. A library
+    // whose worst result is still house style beats a search whose best
+    // result is unpredictable, and no keyword is worth that risk.
     visuals = buildVisuals(visualMode, effectiveDevice, narration, extras);
   }
 

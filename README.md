@@ -2,7 +2,8 @@
 
 **Scripture shorts, in your own language.**
 
-Built for the Gloo × YouVersion *Scripture in New Frontiers* challenge.
+A submission by **Dr. Philemon Paul Daniel** to *Scripture in New Frontiers*,
+the Kaggle competition run by **Gloo** and **YouVersion**.
 
 ---
 
@@ -13,11 +14,12 @@ dominant medium is now **vertical video** — and in most of those languages the
 essentially none of it, because making a good short takes a designer, a voice, and an
 editor that a volunteer church does not have.
 
-Scriptorium removes all three. Type a reference or a feeling — or paste your own
-sermon, drop in a YouTube link, upload a PDF, or ask for a whole multi-day series —
-pick a lens and a language, and about a minute later you have a publishable
-1080×1920 short: narrated, word-synced captions, real motion design, your colors and
-type — with the verse's provenance carried in the gallery manifest.
+Scriptorium supplies all three. Type a reference or a topic, paste your own sermon,
+drop in an article link, upload a PDF, or ask for a whole multi-day series; pick a
+lens and a language; and about a minute later you have a publishable 1080×1920
+short: narrated in a real voice, captioned word by word, set in your own script,
+with real motion design and your own colours and type, and the verse's provenance
+carried in the gallery manifest.
 
 Every short is six pages. Five sentences of teaching, one per page, shown one at a
 time so nothing ever overlaps. Then the verse itself.
@@ -28,8 +30,8 @@ time so nothing ever overlaps. Then the verse itself.
 
 Verse text comes verbatim from the YouVersion Platform API and is never touched. The
 model writes only the teaching device around it. Before a frame is captured, the
-rendered verse node is NFC-normalized and compared character by character against the
-API response; a mismatch **fails the build** rather than shipping.
+rendered verse node is NFC-normalized and diffed against a fresh API response; a
+mismatch **fails the build** rather than shipping.
 
 You can see this claim in three places:
 
@@ -101,8 +103,8 @@ translation is licensed.
 Three frozen HyperFrames styles — **Warm Minimal** (editorial, zoom-through
 seam), **Kinetic Type** (poster type landing word-by-word on the measured
 voice timings), **Neon Night** (glow, seeded particles, a flare at the turn) —
-crossed with one-click **8 palettes × 4 font pairs × 3 sizes × 70
-backgrounds** (8 CSS-generated, 10 hand-drawn doodle frames, 18 licensed image
+crossed with one-click **8 palettes × 4 font pairs × 3 sizes × 69
+backgrounds** (8 CSS-generated, 10 hand-drawn doodle frames, 17 licensed image
 backgrounds, and **34 animated video loops**), plus 8 text motions and
 **9 music beds**. Theme choices bake in as CSS custom properties, so the
 browser preview and the MP4 export consume byte-identical HTML.
@@ -132,10 +134,35 @@ the four CC-BY music beds were removed on that reasoning rather than kept with
 an obligation attached. Credits still travel in the gallery manifest, as
 provenance rather than a condition.
 
+## Type that fits, measured rather than guessed
+
+Stage text is set large and broken into short rows of a few words. A row that
+ends up holding one word is the vertical beat: the sentence steps down the
+frame a word at a time, then picks up its horizontal run again. The rows are
+grouped by **measuring** the shaped glyphs, and the block then steps down in
+size until it genuinely fits its box.
+
+That replaced a set of character-count buckets ("past 118 characters, drop a
+size"). A character count is a proxy for width that knows nothing about which
+face is set or which script it is setting, so it was wrong in both directions:
+it shrank Devanagari that had room to spare, and it left Latin overflowing at
+the largest size — and a block centred in a box it overflows spills equally at
+*both* ends, which is how a teaching line came to start above the top of the
+frame at Clean + Large.
+
+`npm run check:fit` walks the whole customization grid — 4 faces × 3 sizes ×
+3 styles × 3 scripts, 108 configurations — in a real browser, and fails if a
+single row of type lands outside 1080×1920. It is slower than a unit test
+because measuring real shaped glyphs is the only thing that could have caught
+this.
+
 Every animation obeys the HyperFrames determinism contract: one paused GSAP
 timeline built synchronously, seeded randomness only, transform/opacity/filter
 tweens, seek-safe at any frame — which is exactly what lets the renderer
-capture frames by seeking.
+capture frames by seeking. The fit runs before the timeline is built and
+touches only layout, so seeking is unaffected; it runs a second time on
+`document.fonts.ready`, because a fallback face's metrics are not the real
+ones.
 
 ## Visuals (V2)
 
@@ -144,8 +171,11 @@ one of two sources.
 
 **Free graphics** — a 68-piece licensed full-colour clipart library (placed
 small, in its own colours) backed by ~150 vendored icons (lucide, ISC) matched
-by keyword to the narration, plus CC0 photos from Openverse. Each teaching
-lens carries its own dramatic choreography: hooks **blast** in, analogies
+by keyword to the narration. Both libraries ship in the repo, and nothing is
+fetched from an open image search: a CC0 stock lookup used to supply a hero
+image here and returned, for the word "silence", a watermarked quote card from
+a link-farm — correctly licensed and completely wrong. Each teaching lens
+carries its own dramatic choreography: hooks **blast** in, analogies
 enter as a **split** pair, punch-lines **pop** with a particle burst,
 illustrations **waterfall**, object lessons get a **spotlight** hero with a
 glow. Every visual is anchored to the second its word is spoken and clears the
@@ -212,10 +242,48 @@ any MCP client at the deployment and drive everything the UI can do:
 Every tool is a thin wrapper over the same API routes, so the
 retrieved-never-generated rule holds for agents exactly as it does for humans.
 
+### Agent Skills
+
+An MCP server tells an agent what it *can* call. It does not tell it which lens
+suits a passage, that the five teaching sentences are five pages, or why it
+must never ask a model for a verse. That is what the skill pack carries.
+
+**[Download `scriptorium-skills.zip`](public/downloads/scriptorium-skills.zip)**
+— `SKILL.md`, a pipeline reference, and worked multi-call recipes. Unzip into
+your agent's skills directory and point the client at `/api/mcp`.
+
+```bash
+claude mcp add --transport http scriptorium \
+  https://scriptorium-gamma-wheat.vercel.app/api/mcp
+```
+
+The zip is committed so it downloads from the repo tree and from the deployed
+site (`/downloads/scriptorium-skills.zip`) as the same file, and it is packed
+from `skills/` by `npm run skills:pack` rather than by hand — a download nobody
+can regenerate is a download that ends up describing a version of the product
+that no longer exists.
+
+## Stack
+
+| | |
+| --- | --- |
+| **HyperFrames** | the render framework: frozen HTML compositions captured to MP4 by seeking a paused timeline |
+| **GSAP** | every animation — transform/opacity/filter only, seek-safe at any frame |
+| **Next.js 16 · React 19** | App Router, TypeScript, Tailwind v4, deployed on Vercel |
+| **YouVersion Platform API** | every word of Scripture, retrieved and verified |
+| **Gloo AI Studio** | the teaching, on `gloo-anthropic-claude-haiku-4.5`, with Claude live behind it |
+| **Speechmatics** | narration, plus the word timings the captions ride |
+| **Piper** | MIT neural voices for ~50 languages, synthesized inside the export job |
+| **Grok Imagine** | pictures, and nothing else — no text path reaches xAI |
+| **Playwright · FFmpeg** | frame capture and encode, on GitHub Actions or a Vercel Sandbox microVM |
+| **MCP** | the whole studio as eight stateless tools |
+
+Fonts are 16 self-hosted OFL families, one per script in the registry.
+
 **Gloo** writes every teaching, on `gloo-anthropic-claude-haiku-4.5`, and is used
-for what only Gloo does: `tradition` values-alignment (a Catholic parish and a
-Pentecostal youth group need different emphases from the same verse) and
-`auto_routing`, whose tier and confidence are recorded per short.
+for what only Gloo does: `tradition` values-alignment, so a short can be aimed at
+the tradition and the audience it is actually for, and `auto_routing`, whose tier
+and confidence are recorded per short.
 
 Claude stands behind it as a **live** fallback, not merely a configured one.
 The distinction matters: Gloo runs on a prepaid balance, so the realistic
@@ -244,6 +312,17 @@ offline MP4 render, so the preview cannot flatter the export.
 UI shows: against this app key, **40 languages licensed, 33 complete (Bible + voice
 + measured word timing), 116 Bible versions reachable**.
 
+**Every script in the registry has a self-hosted face.** Naming a font stack is
+not shipping one: until `npm run fonts:fetch` existed, only Devanagari had files
+on disk, and Telugu, Tamil, Malayalam, Bengali, Hebrew, Arabic, Urdu, Thai, Han,
+Hangul, Georgian and Armenian all resolved to whatever the machine happened to
+have. On a developer's Windows box that is Nirmala UI and the page looks fine;
+in the headless Chrome that captures the MP4 there is no such fallback and the
+text comes out blank. A tool whose whole claim is "Scripture in your own
+language" cannot leave that to the host. Sixteen OFL families now ship, and the
+render bundler copies only the script a given short is set in — the CJK families
+alone are 19 MB, and a Telugu short has no use for 124 Japanese subsets.
+
 ## Live
 
 - **App**: https://scriptorium-gamma-wheat.vercel.app
@@ -264,6 +343,11 @@ npm run dev
 | --- | --- |
 | `npm test` | Integrity-gate, USFM, and alignment suites (36 tests) |
 | `npm run prove:gate` | End-to-end proof: tampers with a verse, asserts the render refuses |
+| `npm run check:fit` | 108 theme × style × script combinations; fails on any type that overflows |
+| `npm run shots` | Screenshots every template at every page boundary, into `.render-tmp/shots` |
+| `npm run smoke:mcp` | Speaks the MCP protocol to a running deployment and calls the tools |
+| `npm run fonts:fetch` | Re-download the self-hosted face for every script in the registry |
+| `npm run skills:pack` | Rebuild the downloadable Agent Skills zip from `skills/` |
 | `npm run smoke:voice` | Live Speechmatics TTS → ASR → alignment round trip |
 | `npm run audit:languages` | Re-audit language coverage against the live API |
 | `npm run samples` / `npm run gallery` | Generate specs through the real pipeline, render them into `/public/gallery` |

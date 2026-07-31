@@ -23,7 +23,13 @@
         "smoke:link": "tsx scripts/smoke-link.ts",
         "smoke:modes": "tsx scripts/smoke-modes.ts",
         "bg:thumbs": "tsx scripts/make-bg-thumbs.ts",
-        "gallery": "tsx --env-file-if-exists=.env.local scripts/build-gallery.ts"
+        "gallery": "tsx --env-file-if-exists=.env.local scripts/build-gallery.ts",
+        "fonts:fetch": "node scripts/fetch-script-fonts.mjs",
+        "shots": "tsx scripts/shoot-templates.ts",
+        "check:fit": "tsx scripts/check-fit.ts",
+        "smoke:mcp": "tsx scripts/smoke-mcp.ts",
+        "check:preview": "tsx scripts/shoot-preview-api.mts",
+        "skills:pack": "node scripts/pack-skills.mjs"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.115.0",
