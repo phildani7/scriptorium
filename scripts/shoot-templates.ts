@@ -113,6 +113,25 @@ const CASES: Record<string, { passage: Passage; device: DeviceItem }> = {
       emoji: '🌙',
     },
   },
+  he: {
+    passage: {
+      reference: 'יוחנן 3:16',
+      usfm: 'JHN.3.16',
+      text: 'כִּי־כֵן אָהַב הָאֱלֹהִים אֶת־הָעוֹלָם עַד־אֲשֶׁר נָתַן אֶת־בְּנוֹ אֶת־יְחִידוֹ לְמַעַן לֹא־יֹאבַד כָּל־הַמַּאֲמִין בּוֹ כִּי אִם־יִחְיֶה חַיֵּי עוֹלָם׃',
+      versionId: 0,
+      versionAbbreviation: 'HD',
+      versionName: 'הברית החדשה',
+      attribution: 'הברית החדשה (HD)',
+      languageCode: 'he',
+    },
+    device: {
+      type: 'hook',
+      content: 'אנחנו קוראים את הפסוק הזה בחתונות וכותבים אותו על שלטים. אבל הוא נאמר לאדם מפוחד שבא בחשכת הלילה לחפש תשובות.',
+      point: 'נקדימוס בא בלילה.',
+      reference: 'יוחנן 3:16',
+      emoji: '🌙',
+    },
+  },
   ko: {
     passage: {
       reference: '요한복음 3:16',
@@ -196,7 +215,7 @@ function parse(argv: string[]) {
 
 async function main() {
   const args = parse(process.argv);
-  const langs = args.lang ? [args.lang] : ['en', 'hi', 'te', 'ko', 'ar', 'zh'];
+  const langs = args.lang ? [args.lang] : ['en', 'hi', 'te', 'ko', 'ar', 'zh', 'he'];
   const styles: StyleId[] = args.style
     ? [args.style as StyleId]
     : ['kinetic-type', 'warm-minimal', 'neon-night'];
