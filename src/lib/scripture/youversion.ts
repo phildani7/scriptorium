@@ -89,14 +89,48 @@ export class YouVersionClient {
    * it were Scripture would be precisely the failure this project exists to
    * prevent.
    */
+  /**
+   * Some versions subdivide chapters and key passages accordingly: the Hebrew
+   * Habrit Hakhadasha stores John 1 as `JHN.1_1`, so the standard `JHN.1.1`
+   * 404s while the verse exists. On a miss, the version's own book list is
+   * consulted and the chapter id remapped before giving up.
+   */
+  private async remapUsfm(versionId: number, usfm: string): Promise<string | null> {
+    const m = usfm.match(/^([0-9A-Z]+)\.(\d+)(?:\.(.+))?$/);
+    if (!m) return null;
+    const [, book, chapter, rest] = m;
+    try {
+      const body = (await this.get(`/bibles/${versionId}/books`)) as
+        | { data?: Array<{ id: string; chapters?: Array<{ id: string }> }> }
+        | Array<{ id: string; chapters?: Array<{ id: string }> }>;
+      const books = Array.isArray(body) ? body : (body.data ?? []);
+      const entry = books.find((b) => b.id === book);
+      const chap = entry?.chapters?.find(
+        (c) => c.id === chapter || c.id.startsWith(`${chapter}_`),
+      );
+      if (!chap || chap.id === chapter) return null;
+      return `${book}.${chap.id}${rest ? `.${rest}` : ''}`;
+    } catch {
+      return null;
+    }
+  }
+
   async getPassage(versionId: number, usfm: string): Promise<Passage> {
-    const [raw, version] = await Promise.all([
+    const fetchRaw = (id: string) =>
       this.get<{ id: string; content: string; reference: string }>(
-        `/bibles/${versionId}/passages/${encodeURIComponent(usfm)}`,
+        `/bibles/${versionId}/passages/${encodeURIComponent(id)}`,
         { format: 'text', include_headings: 'false', include_notes: 'false' },
-      ),
-      this.getBible(versionId),
-    ]);
+      );
+    let raw;
+    try {
+      raw = await fetchRaw(usfm);
+    } catch (error) {
+      // Underscore-chaptered versions (see remapUsfm) 404 on standard ids.
+      const remapped = await this.remapUsfm(versionId, usfm);
+      if (!remapped) throw error;
+      raw = await fetchRaw(remapped);
+    }
+    const version = await this.getBible(versionId);
 
     if (typeof raw.content !== 'string' || raw.content.trim().length === 0) {
       throw new YouVersionError(
