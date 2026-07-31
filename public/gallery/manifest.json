@@ -1,5 +1,19 @@
 [
   {
+    "id": "short-1PE.4.8-warm-minimal-ms9bruec",
+    "video": "/gallery/short-1PE.4.8-warm-minimal-ms9bruec.mp4",
+    "poster": "/gallery/short-1PE.4.8-warm-minimal-ms9bruec.jpg",
+    "reference": "1 Peter 4:8",
+    "version": "NIV",
+    "attribution": "New International Version (NIV) · The Holy Bible, New International Version® NIV®\nCopyright © 1973, 1978, 1984, 2011 by Biblica, Inc.®\nUsed by Permission of Biblica, Inc.® All rights reserved worldwide.",
+    "language": "en",
+    "style": "kinetic-type",
+    "lens": "summary",
+    "durationSec": 37,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-31"
+  },
+  {
     "id": "short-HAB.3.17-19-warm-minimal-ms99lbhj",
     "video": "/gallery/short-HAB.3.17-19-warm-minimal-ms99lbhj.mp4",
     "poster": "/gallery/short-HAB.3.17-19-warm-minimal-ms99lbhj.jpg",
