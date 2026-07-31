@@ -45,7 +45,7 @@ for (const font of FONTS) {
         }
       }
     } else {
-      console.log(`ok     ${font}/${size}  (3 styles x 3 scripts)`);
+      console.log(`ok     ${font}/${size}  (3 styles x 7 scripts)`);
     }
   }
 }
