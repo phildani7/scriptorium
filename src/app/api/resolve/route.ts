@@ -81,10 +81,31 @@ export async function POST(request: Request) {
     // --- 1. direct reference ---------------------------------------------
     const parsed = parseReference(input);
     if (parsed) {
-      try {
-        const passage = await scripture.getPassage(versionId, parsed.usfm);
-        return NextResponse.json({ mode: 'reference', candidates: [passage] });
-      } catch {
+      // Not every licensed version contains every book. Hebrew's first
+      // version is the Tanakh, which genuinely has no John — so "John 1:1"
+      // failed there while being a perfectly good reference. When the chosen
+      // version lacks the passage, the language's OTHER licensed versions
+      // are tried before anyone is told anything is wrong.
+      const tryIds = [versionId];
+      if (body.versionId === undefined) {
+        try {
+          const others = await scripture.listBibles(languageCode);
+          for (const v of others.slice(0, 6)) {
+            if (!tryIds.includes(v.id)) tryIds.push(v.id);
+          }
+        } catch {
+          // The primary version alone will have to answer.
+        }
+      }
+      for (const id of tryIds) {
+        try {
+          const passage = await scripture.getPassage(id, parsed.usfm);
+          return NextResponse.json({ mode: 'reference', candidates: [passage] });
+        } catch {
+          // Try the next licensed version.
+        }
+      }
+      {
         // A reference that parses is not a reference that exists. This is
         // how a model-planned series day ("Job 8:38" — Job 8 has 22 verses)
         // used to surface a raw YouVersion 404, URL and all, to someone who
@@ -92,9 +113,10 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              `"${input}" could not be found in this Bible version — the ` +
-              'chapter or verse may not exist there. Check the reference, ' +
-              'or try another translation.',
+              `"${input}" was not found in any Bible version licensed for ` +
+              'this language. The passage may not exist, or these versions ' +
+              'may not include that book — the Hebrew Bible, for example, ' +
+              'has no New Testament.',
           },
           { status: 404 },
         );
