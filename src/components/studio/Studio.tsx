@@ -1541,6 +1541,7 @@ const POSSIBILITIES: Array<{ group: string; items: string[] }> = [
 ];
 
 const REPO_URL = 'https://github.com/phildani7/scriptorium';
+const AUTHOR_LINKEDIN = 'https://www.linkedin.com/in/phildani7';
 /** Committed, so the same file downloads from the site and from the tree. */
 const SKILLS_ZIP = '/downloads/scriptorium-skills.zip';
 const SKILLS_ON_GITHUB = `${REPO_URL}/raw/master/public/downloads/scriptorium-skills.zip`;
@@ -1866,6 +1867,20 @@ function Header({ status }: { status: StatusPayload | null }) {
         <strong className="font-semibold text-ink">
           Dr. Philemon Paul Daniel
         </strong>{' '}
+        {/* Parenthesised rather than dropped inline: the sentence is
+            "A submission by X to Y", and an unbracketed link between the
+            name and "to" reads as part of the name. */}
+        (
+        <a
+          href={AUTHOR_LINKEDIN}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Dr. Philemon Paul Daniel on LinkedIn"
+          className="underline decoration-rule underline-offset-4 transition hover:text-accent"
+        >
+          LinkedIn ↗
+        </a>
+        ){' '}
         to <em>Scripture in New Frontiers</em>, the Kaggle competition run by{' '}
         <strong className="font-semibold text-ink">Gloo</strong> and{' '}
         <strong className="font-semibold text-ink">YouVersion</strong>.
