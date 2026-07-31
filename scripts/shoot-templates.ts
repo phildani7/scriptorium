@@ -75,6 +75,25 @@ const CASES: Record<string, { passage: Passage; device: DeviceItem }> = {
       emoji: '🌙',
     },
   },
+  ko: {
+    passage: {
+      reference: '요한복음 3:16',
+      usfm: 'JHN.3.16',
+      text: '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라',
+      versionId: 0,
+      versionAbbreviation: 'KRV',
+      versionName: '개역한글',
+      attribution: '개역한글 (KRV)',
+      languageCode: 'ko',
+    },
+    device: {
+      type: 'hook',
+      content: '우리는 이 구절을 결혼식에서 읽고 경기장 현수막에 새깁니다. 그러나 이 말씀은 어둠 속에서 찾아온 두려워하는 사람에게 주어진 것입니다.',
+      point: '니고데모는 밤에 찾아왔습니다.',
+      reference: '요한복음 3:16',
+      emoji: '🌙',
+    },
+  },
   te: {
     passage: {
       reference: 'యోహాను 3:16',
@@ -139,7 +158,7 @@ function parse(argv: string[]) {
 
 async function main() {
   const args = parse(process.argv);
-  const langs = args.lang ? [args.lang] : ['en', 'hi', 'te'];
+  const langs = args.lang ? [args.lang] : ['en', 'hi', 'te', 'ko'];
   const styles: StyleId[] = args.style
     ? [args.style as StyleId]
     : ['kinetic-type', 'warm-minimal', 'neon-night'];

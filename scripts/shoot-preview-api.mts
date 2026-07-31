@@ -35,6 +35,11 @@ const PASSAGES: Record<string, { text: string; reference: string; device: string
     text: 'தேவன், தம்முடைய ஒரேபேறான குமாரனை விசுவாசிக்கிறவன் எவனோ அவன் கெட்டுப்போகாமல் நித்தியஜீவனை அடையும்படிக்கு, அவரைத் தந்தருளி, இவ்வளவாய் உலகத்தில் அன்புகூர்ந்தார்.',
     device: 'இந்த வசனத்தை நாம் திருமணங்களில் வாசிக்கிறோம். ஆனால் இது இருளில் வந்த ஒரு பயந்த மனிதனிடம் சொல்லப்பட்டது.',
   },
+  ko: {
+    reference: '요한복음 3:16',
+    text: '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라',
+    device: '우리는 이 구절을 결혼식에서 읽습니다. 그러나 이 말씀은 어둠 속에서 찾아온 두려워하는 사람에게 주어진 것입니다.',
+  },
   he: {
     reference: 'יוחנן ג:טז',
     text: 'כִּי־כֵן אָהַב הָאֱלֹהִים אֶת־הָעוֹלָם עַד־אֲשֶׁר נָתַן אֶת־בְּנוֹ אֶת־יְחִידוֹ לְמַעַן לֹא־יֹאבַד כָּל־הַמַּאֲמִין בּוֹ כִּי אִם־יִחְיֶה חַיֵּי עוֹלָם׃',
@@ -101,7 +106,7 @@ async function main() {
       verified: true,
       script: entry?.script ?? 'latin',
       dir: directionFor(LANG),
-      theme: { paletteId: 'parchment', fontId: 'inter', sizeId: 'bold' },
+      theme: { paletteId: 'parchment', fontId: process.env.SHOT_FONT ?? 'inter', sizeId: 'bold' },
     };
 
     const response = await fetch(`${BASE}/api/preview`, {

@@ -848,6 +848,17 @@
         if (document.fonts && document.fonts.ready) {
           document.fonts.ready.then(refit);
         }
+        // `ready` is not the end of font loading when faces ship as
+        // unicode-range subsets: Noto Serif KR alone is 124 of them, pulled
+        // in lazily as glyphs demand. On a cold cache `ready` resolves, the
+        // fit measures against whatever subset arrived first, and THEN the
+        // real glyphs land wider — rows grow after the last measurement and
+        // the centred column spills off the top of the frame. Korean at
+        // poster size found this. So every completed font load re-fits;
+        // the fit is idempotent and layout-only, so re-running is free.
+        if (document.fonts && document.fonts.addEventListener) {
+          document.fonts.addEventListener('loadingdone', function () { refit(); });
+        }
 
         /* ---- V2 visuals: DOM (fixed slot table, deterministic) ---------- */
         var drama = root.getAttribute('data-drama') || '';
