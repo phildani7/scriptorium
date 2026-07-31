@@ -1542,6 +1542,7 @@ const POSSIBILITIES: Array<{ group: string; items: string[] }> = [
 
 const REPO_URL = 'https://github.com/phildani7/scriptorium';
 const AUTHOR_LINKEDIN = 'https://www.linkedin.com/in/phildani7';
+const DEMO_VIDEO_URL = 'https://youtu.be/VRy04QGBpC8';
 /** Committed, so the same file downloads from the site and from the tree. */
 const SKILLS_ZIP = '/downloads/scriptorium-skills.zip';
 const SKILLS_ON_GITHUB = `${REPO_URL}/raw/master/public/downloads/scriptorium-skills.zip`;
@@ -1879,6 +1880,16 @@ function Header({ status }: { status: StatusPayload | null }) {
           className="underline decoration-rule underline-offset-4 transition hover:text-accent"
         >
           LinkedIn ↗
+        </a>
+        {' · '}
+        <a
+          href={DEMO_VIDEO_URL}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Watch the three-minute Scriptorium demo on YouTube"
+          className="underline decoration-rule underline-offset-4 transition hover:text-accent"
+        >
+          Demo video ↗
         </a>
         ){' '}
         to <em>Scripture in New Frontiers</em>, the Kaggle competition run by{' '}
