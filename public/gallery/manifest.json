@@ -1,5 +1,20 @@
 [
   {
+    "id": "short-LUK.10.38-42-warm-minimal-ms8uewcl",
+    "video": "/gallery/short-LUK.10.38-42-warm-minimal-ms8uewcl.mp4",
+    "poster": "/gallery/short-LUK.10.38-42-warm-minimal-ms8uewcl.jpg",
+    "reference": "Luke 10:38-42",
+    "version": "ASV",
+    "attribution": "American Standard Version (ASV)",
+    "musicCredit": "\"Beyond the Pull of Things (Ambient)\" Dmitriy Redko — Audiio license",
+    "language": "en",
+    "style": "neon-night",
+    "lens": "summary",
+    "durationSec": 70,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-31"
+  },
+  {
     "id": "short-RUT.1.16-warm-minimal-ms8pj40x",
     "video": "/gallery/short-RUT.1.16-warm-minimal-ms8pj40x.mp4",
     "poster": "/gallery/short-RUT.1.16-warm-minimal-ms8pj40x.jpg",
