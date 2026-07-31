@@ -239,11 +239,24 @@ export default function GalleryPage() {
                     {entry.attribution}
                   </div>
                 )}
-                {entry.musicCredit && (
-                  <div className="text-[11px] leading-snug text-inkfaint">
-                    ♪ {entry.musicCredit}
-                  </div>
-                )}
+                {/*
+                  The music credit is deliberately NOT shown.
+
+                  Every bed in the library is licensed through Audiio and needs
+                  no attribution — that was the whole reason the four CC-BY
+                  tracks were dropped rather than kept with an obligation
+                  attached. Printing a credit anyway was meant as a courtesy,
+                  but it reads as a requirement, and a creator who sees one
+                  attribution beside another cannot tell which one they are
+                  obliged to carry when they repost.
+
+                  The Bible attribution above stays, because that one IS
+                  required: Biblica's licence asks for the copyright notice by
+                  name. Showing only the obligation makes the obligation legible.
+
+                  The credit is still recorded in the gallery manifest as
+                  provenance, where it belongs.
+                */}
                 <div className="mt-2 flex flex-wrap items-center gap-3 border-t border-rule pt-2 text-xs">
                   <button
                     type="button"
