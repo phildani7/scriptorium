@@ -61,7 +61,12 @@ const META = {
     tip: 'Kids · Youth · Adult — text only, or pictures, with AI images.' },
   series:     { beat: 'series',          title: 'Plan a series',       spot: true,
     tip: 'A theme becomes 3–14 days, each one click from a finished short.' },
-  find:       { beat: 'find',            title: 'Retrieve the passage', spot: true,
+  // freezeAfter: the click lands, the button reads "Finding the passage…",
+  // and then the FOOTAGE HOLDS that frame for the rest of the step. Without
+  // it the live API answered mid-step: the page swapped to the passage list
+  // under the static spotlight, with a scroll flashing past on the way — a
+  // wait is the one screen a freeze-frame depicts honestly.
+  find:       { beat: 'find',            title: 'Retrieve the passage', spot: true, freezeAfter: 1.6,
     tip: 'Scriptorium asks YouVersion — never a model.' },
   passages:   { beat: 'passages',        title: 'Verbatim candidates', spot: false,
     tip: 'Exactly what the API returned, in the language you chose.' },
@@ -151,7 +156,7 @@ function main() {
       continue;
     }
     const span = step.hold;
-    spans.push({ from: Math.max(0, src.t - 0.2), span });
+    spans.push({ beatT: src.t, span, freezeAfter: META[step.id]?.freezeAfter });
     shots.push({
       ...step,
       t,
@@ -170,12 +175,33 @@ function main() {
     '-g', '15', '-pix_fmt', 'yuv420p', '-vsync', 'cfr', '-r', '60', cfr]);
   console.log('normalized to CFR 60 for frame-accurate cuts');
 
+  // Find the clapperboard: the first magenta frame is beat-clock zero.
+  const probe = execFileSync('ffmpeg', ['-hide_banner', '-v', 'error',
+    '-t', '25', '-i', cfr, '-vf', 'fps=20,scale=1:1', '-f', 'rawvideo',
+    '-pix_fmt', 'rgb24', '-'], { maxBuffer: 1 << 24 });
+  let offset = -1;
+  for (let i = 0; i + 2 < probe.length; i += 3) {
+    if (probe[i] > 180 && probe[i + 1] < 90 && probe[i + 2] > 180) {
+      offset = i / 3 / 20;
+      break;
+    }
+  }
+  if (offset < 0) throw new Error('clapperboard not found in the first 25s');
+  console.log(`clapperboard at ${offset.toFixed(2)}s — all cuts shifted by it`);
+  writeFileSync(join(COMP, 'offset.json'), JSON.stringify({ offset }), 'utf8');
+
   const pieces = spans.map((s, i) => {
     const out = join(COMP, `part-${i}.mp4`);
-    execFileSync('ffmpeg', ['-hide_banner', '-v', 'error', '-y',
-      '-ss', String(s.from), '-t', String(s.span), '-i', cfr,
+    const freeze = s.freezeAfter;
+    const cut = freeze ? Math.min(freeze, s.span) : s.span;
+    const args = ['-hide_banner', '-v', 'error', '-y',
+      '-ss', String(Math.max(0, offset + s.beatT - 0.15)), '-t', String(cut), '-i', cfr,
       '-an', '-c:v', 'libx264', '-crf', '16', '-preset', 'medium',
-      '-g', '15', '-pix_fmt', 'yuv420p', '-r', '60', out]);
+      '-g', '15', '-pix_fmt', 'yuv420p', '-r', '60'];
+    if (freeze) {
+      args.push('-vf', `tpad=stop_mode=clone:stop_duration=${(s.span - cut).toFixed(3)}`);
+    }
+    execFileSync('ffmpeg', [...args, out]);
     return out;
   });
   const listFile = join(COMP, 'parts.txt');
