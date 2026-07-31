@@ -1,5 +1,19 @@
 [
   {
+    "id": "short-JER.17.5-8-warm-minimal-ms8ypvio",
+    "video": "/gallery/short-JER.17.5-8-warm-minimal-ms8ypvio.mp4",
+    "poster": "/gallery/short-JER.17.5-8-warm-minimal-ms8ypvio.jpg",
+    "reference": "Jeremiah 17:5-8",
+    "version": "ASV",
+    "attribution": "American Standard Version (ASV)",
+    "language": "en",
+    "style": "neon-night",
+    "lens": "analogy",
+    "durationSec": 81,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-31"
+  },
+  {
     "id": "short-LUK.10.38-42-warm-minimal-ms8uewcl",
     "video": "/gallery/short-LUK.10.38-42-warm-minimal-ms8uewcl.mp4",
     "poster": "/gallery/short-LUK.10.38-42-warm-minimal-ms8uewcl.jpg",
