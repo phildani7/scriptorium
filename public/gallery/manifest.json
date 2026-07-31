@@ -1,5 +1,19 @@
 [
   {
+    "id": "short-HEB.6.19-20-warm-minimal-ms8z5vbx",
+    "video": "/gallery/short-HEB.6.19-20-warm-minimal-ms8z5vbx.mp4",
+    "poster": "/gallery/short-HEB.6.19-20-warm-minimal-ms8z5vbx.jpg",
+    "reference": "Hebrews 6:19-20",
+    "version": "ASV",
+    "attribution": "American Standard Version (ASV)",
+    "language": "en",
+    "style": "warm-minimal",
+    "lens": "punch-line",
+    "durationSec": 45,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-07-31"
+  },
+  {
     "id": "short-JER.17.5-8-warm-minimal-ms8ypvio",
     "video": "/gallery/short-JER.17.5-8-warm-minimal-ms8ypvio.mp4",
     "poster": "/gallery/short-JER.17.5-8-warm-minimal-ms8ypvio.jpg",
