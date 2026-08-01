@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scriptorium — Technical Writeup</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    font: 10.5pt/1.55 "Georgia", "Times New Roman", serif;
+    color: #17151f; margin: 0;
+  }
+  h1 { font-size: 22pt; line-height: 1.15; margin: 0 0 4pt; letter-spacing: -0.01em; }
+  .sub { font-size: 11.5pt; color: #5c5470; font-style: italic; margin: 0 0 10pt; }
+  .meta { font: 8.7pt/1.5 "Segoe UI", sans-serif; color: #5c5470;
+          border-top: 1.5px solid #d8d2e2; border-bottom: 1.5px solid #d8d2e2;
+          padding: 7pt 0; margin-bottom: 14pt; }
+  .meta a { color: #7a4b12; text-decoration: none; }
+  h2 { font: 600 13pt/1.3 "Segoe UI", sans-serif; margin: 17pt 0 6pt;
+       color: #2a2338; border-bottom: 1px solid #e4dff0; padding-bottom: 3pt; }
+  h3 { font: 600 10.5pt/1.35 "Segoe UI", sans-serif; margin: 12pt 0 4pt; color: #3a3050; }
+  p { margin: 0 0 7pt; text-align: justify; }
+  code { font: 9pt "Consolas", monospace; background: #f4f1f9;
+         padding: 0.5pt 3pt; border-radius: 3px; color: #4a3b6b; }
+  pre { font: 8.6pt/1.42 "Consolas", monospace; background: #f7f5fb;
+        border-left: 2.5px solid #b9a8dd; padding: 7pt 9pt; margin: 7pt 0;
+        white-space: pre-wrap; border-radius: 0 4px 4px 0; }
+  blockquote { margin: 8pt 0; padding: 6pt 11pt; border-left: 3px solid #d4a441;
+               background: #fdf9ef; font-style: italic; }
+  blockquote p { margin: 0; }
+  ul, ol { margin: 5pt 0 8pt; padding-left: 17pt; }
+  li { margin-bottom: 3pt; }
+  table { border-collapse: collapse; width: 100%; margin: 7pt 0;
+          font: 8.8pt/1.4 "Segoe UI", sans-serif; }
+  th, td { border: 1px solid #ddd6e8; padding: 4pt 6pt; text-align: left;
+           vertical-align: top; }
+  th { background: #f4f1f9; font-weight: 600; }
+  .lede { font-size: 11pt; color: #322a44; }
+  .avoid { break-inside: avoid; page-break-inside: avoid; }
+  footer { margin-top: 16pt; padding-top: 7pt; border-top: 1px solid #ddd6e8;
+           font: 8.3pt/1.45 "Segoe UI", sans-serif; color: #6b6280; }
+</style>
+</head>
+<body>
+
+<h1>Scriptorium</h1>
+<p class="sub">Scripture shorts, in your own language — and a build that fails rather than ship an altered verse.</p>
+
+<div class="meta">
+<strong>Technical writeup</strong> &nbsp;·&nbsp; Dr. Philemon Paul Daniel &nbsp;·&nbsp; <em>Scripture in New Frontiers</em> (Gloo × YouVersion), August 2026<br>
+Live studio <a href="https://scriptorium-gamma-wheat.vercel.app">scriptorium-gamma-wheat.vercel.app</a> &nbsp;·&nbsp;
+Source <a href="https://github.com/phildani7/scriptorium">github.com/phildani7/scriptorium</a> (Apache-2.0) &nbsp;·&nbsp;
+Video <a href="https://youtu.be/VRy04QGBpC8">youtu.be/VRy04QGBpC8</a> &nbsp;·&nbsp;
+MCP <code>/api/mcp</code>
+</div>
+
+<h2>1. The problem, stated precisely</h2>
+
+<p class="lede">YouVersion serves Scripture as <strong>text</strong> in over a thousand languages. The medium the world actually spends its attention on is <strong>vertical video</strong>. In most of those languages there is essentially none of it.</p>
+
+<p>This is not a content-appetite problem. It is a production problem. A short that anyone would watch needs three scarce people — a designer, a voice, and an editor — and a volunteer church in Dhaka or Chennai has none of them. English has thousands of Scripture shorts. Bengali has almost none. The gap is not theological; it is a shortage of production capacity, and production capacity is the kind of thing software is good at manufacturing.</p>
+
+<p>Scriptorium is a creator tool that supplies all three roles. Type a reference or a feeling ("anxiety at work"), paste a sermon, drop an article link, upload a PDF, or ask for a seven-day series. Pick a lens and a language. About a minute later there is a publishable 1080×1920 short — narrated in a real voice, captioned word by word, set in the correct script, with real motion design.</p>
+
+<h2>2. The architectural claim</h2>
+
+<blockquote><p>Scripture is retrieved, never generated — and the build proves it.</p></blockquote>
+
+<p>Every design decision below follows from one constraint. A generative system that puts words on a screen next to a verse is one hallucination away from publishing altered Scripture to a person who trusts it. Disclaimers do not fix this. Prompt engineering does not fix this. The only thing that fixes it is making the failure <em>mechanically impossible to ship</em>.</p>
+
+<p>So the system is split down the middle. <strong>YouVersion supplies the verse.</strong> <strong>Gloo writes the teaching around it.</strong> The model never sees a request that would let it produce Scripture, and the build refuses to emit a file if the verse on screen differs by one character from what the API serves.</p>
+
+<h3>The pipeline</h3>
+
+<pre>input ──▶ /api/resolve    YouVersion     reference or topic ──▶ passage (verbatim)
+      ──▶ /api/extract    Gloo AI        text/PDF/article ──▶ teachings (references only)
+      ──▶ /api/series     Gloo AI        theme + days ──▶ planned series (references only)
+      ──▶ /api/generate   Gloo AI        passage ──▶ 3–7 teaching devices
+      ──▶ review          human          every field editable EXCEPT the verse
+      ──▶ /api/compose    Speechmatics   narration + word timings ──▶ ShortSpec
+      ──▶ /api/preview    HyperFrames    ShortSpec + theme ──▶ composition HTML
+      ──▶ /api/export     Actions ─or─ Sandbox ──▶ MP4 ──▶ /gallery
+      ──▶ /api/mcp        MCP            the whole pipeline as 8 stateless tools</pre>
+
+<p>Every input path converges on the same rule: <strong>models return references only</strong>; verse text is fetched from YouVersion afterwards. A pasted sermon, an uploaded PDF, a linked article, a planned series — none of them can put a single generated word on screen as Scripture, because none of them carry verse text forward. They carry a citation, and the citation is resolved against the API.</p>
+
+<h2>3. The integrity gate</h2>
+
+<p>The gate is <code>src/lib/verify/verbatim.ts</code>. It is <strong>dependency-free on purpose</strong>, so a judge can audit it in one sitting. It normalises both sides and diffs them:</p>
+
+<ul>
+<li><strong>NFC normalisation.</strong> Devanagari matras and Tamil vowel signs have multiple valid encodings; a browser text node may hand back a different one than the API did. Without NFC the gate would fire constantly on exactly the languages this project exists to serve.</li>
+<li><strong>Render artefacts stripped</strong> — BOM, soft hyphen, bidi marks. Things a <em>layout engine</em> legitimately inserts.</li>
+<li><strong>ZWJ and ZWNJ deliberately preserved.</strong> In Devanagari, Bengali and Tamil these control conjunct formation and are part of the meaning. Stripping them would make the diff pass more often — which is precisely why it would be the wrong thing to do.</li>
+</ul>
+
+<p>It runs twice. Client-side it lights the "verse verified" badge in the preview. In <code>render/render.ts</code> it runs after the DOM is populated and <strong>before a single frame is captured</strong>, where a mismatch throws <code>ScriptureIntegrityError</code> and kills the build. A short that ships altered Scripture is worse than no short, so the failure mode is a dead build, not a warning in a log.</p>
+
+<h3>The gate fails closed, which is the part that matters</h3>
+
+<p>A gate that silently skips when its dependency is unavailable is theatre. This one refuses in every degraded case:</p>
+
+<table class="avoid">
+<tr><th>Condition</th><th>Behaviour</th></tr>
+<tr><td>No <code>YVP_APP_KEY</code>, or no network</td><td>Build fails. There is nothing authoritative to compare against, so it will not guess.</td></tr>
+<tr><td>Spec text ≠ live API response</td><td>Build fails — "SPEC TAMPERING DETECTED".</td></tr>
+<tr><td>Rendered DOM ≠ live API response</td><td>Build fails — "Refusing to render altered Scripture".</td></tr>
+<tr><td>Gate-marked node missing entirely</td><td>Build fails. An absent check is not a passed check.</td></tr>
+<tr><td>Teaching format (verse cited, not shown)</td><td>Check <em>inverts</em>: the marked node must be <strong>empty</strong>, so nothing can masquerade as Scripture.</td></tr>
+</table>
+
+<p>Critically, the comparison is never spec-against-spec. <code>render.ts</code> re-fetches the passage from YouVersion <em>independently</em> and diffs the DOM against that fresh response. Tampering with the spec file does not help, because the spec is not the authority.</p>
+
+<p><code>npm run prove:gate</code> performs the whole tamper-and-refuse cycle end to end. The test suite (<code>verbatim.test.ts</code>, 13 tests) includes a single dropped Devanagari matra (<code>मुझे</code> → <code>मुझ</code>, visually near-invisible at 1080×1920 and meaning-changing) and a danda swapped for a full stop.</p>
+
+<h2>4. How the YouVersion Platform API is used</h2>
+
+<p>Base <code>https://api.youversion.com/v1</code>, authenticated with an app key. It is used for four distinct jobs, not just verse lookup:</p>
+
+<ul>
+<li><strong>Retrieval</strong> — reference or topic to passage, verbatim, with USFM identity. Book-name parsing is local (<code>usfm.ts</code>) across the language registry, so "यूहन्ना 3:16" resolves without a round trip.</li>
+<li><strong>Version licensing</strong> — which translations this key may actually serve per language. The audit publishes real numbers rather than platform totals: <strong>40 languages, 116 versions</strong>. When a reference is missing from the preferred version, the resolver tries every <em>licensed</em> version before reporting it missing.</li>
+<li><strong>Provenance</strong> — `attribution` travels with the text through compose, render and into the gallery manifest. Every short can say which publisher's translation it quotes.</li>
+<li><strong>Verification</strong> — the second, independent fetch at render time that the gate compares against.</li>
+</ul>
+
+<p>Without a key the app serves clearly-labelled offline sample passages. It never asks a model for verse text as a fallback — that would be the one shortcut that destroys the premise.</p>
+
+<h2>5. How the Gloo AI Studio API is used</h2>
+
+<p>OAuth2 client credentials against <code>platform.ai.gloo.com</code>, tokens cached in module scope and refreshed early rather than paying a round trip per request. Two Gloo-specific capabilities are used deliberately rather than incidentally — this is the difference between "we called an LLM" and "we used this platform because of what it is":</p>
+
+<ul>
+<li><strong><code>tradition</code> — values alignment.</strong> A short for a Catholic parish and one for a Pentecostal youth group want different emphases from the same verse. Most tooling flattens everyone into one homogenised voice. The user's tradition is passed through, so the teaching is aimed at the community it is actually for. This is the capability that made Gloo the right choice rather than a generic chat endpoint: it is inference built for ministry context, and ministry context is not one context.</li>
+<li><strong><code>auto_routing</code> — model selection with reported confidence.</strong> Gloo picks the model per request and reports its tier and confidence. Both are recorded in the run manifest, so every short in the gallery can say which model wrote its device and how confident the router was. Provenance for the generated half, mirroring the provenance carried for the retrieved half.</li>
+</ul>
+
+<p>Gloo drives four endpoints — <code>/api/generate</code> (passage → 3–7 teaching devices through one of six lenses), <code>/api/extract</code> (sermon, PDF or article → teachings, references only), <code>/api/series</code> (theme + days → a planned arc), and the decline path, which politely refuses non-Christian source documents rather than producing something inappropriate from them.</p>
+
+<p>The output schema is strict and validated: a device missing a non-empty <code>explanation</code> is rejected rather than passed downstream. Structure is enforced at the boundary, not hoped for.</p>
+
+<h2>6. Challenges, and how they were worked through</h2>
+
+<h3 class="avoid">6.1 Headless Chrome has no system font fallback</h3>
+<p>In a browser, a missing font degrades to something readable. In the headless Chrome that captures the MP4 there is no such fallback — the text renders <strong>blank</strong>. A tool whose entire claim is "Scripture in your own language" cannot delegate that to the host machine. Sixteen SIL OFL families are now self-hosted, and the render bundler copies <em>only</em> the script a given short is set in: the CJK families alone are 19 MB, and a Telugu short has no use for 124 Japanese subsets. A CDN reference would have been simpler and would have silently shipped empty frames.</p>
+
+<h3 class="avoid">6.2 Type that fits, measured rather than guessed</h3>
+<p>A verse that overflows its panel is invisible at the bottom of the frame and nobody notices until it ships. <code>npm run check:fit</code> sweeps <strong>252 theme × style × script configurations</strong> across seven scripts — including Hebrew, Arabic and Han — and fails the build on any type that overflows. Text is re-fitted every time the font set finishes loading rather than once, because measuring before <code>document.fonts.ready</code> measures the fallback face and produces confidently wrong metrics.</p>
+
+<h3 class="avoid">6.3 Six pages, exactly one sentence at a time</h3>
+<p>The format is five teaching sentences, one per page, then the verse. "One at a time" is easy to assert and easy to break during a transition. <code>npm run smoke:pages</code> bakes every template and asserts that <strong>exactly one</strong> sentence is visible at each page boundary, capturing frames to disk for inspection. It is run after any change to a template timeline.</p>
+
+<h3 class="avoid">6.4 YouTube captions cannot be scraped from the watch page</h3>
+<p>The link reader accepts YouTube URLs as a teaching source. The obvious implementation <em>appears</em> to work: <code>ytInitialPlayerResponse</code> still contains <code>captionTracks</code> with plausible <code>baseUrl</code>s. Fetch one server-side and it returns <strong>HTTP 200 with a zero-byte body</strong> — the URLs are bound to the browser session, and the failure looks like success at every layer that usually tells you otherwise. The fix was InnerTube (<code>POST /youtubei/v1/player</code>) with the <strong>iOS</strong> client, which serves json3, falling back to Android, which serves timedtext XML. The WEB client returns <code>playabilityStatus: UNPLAYABLE</code> and zero tracks. This cost the most debugging time of anything in the project, because nothing errored.</p>
+
+<h3 class="avoid">6.5 A streaming WAV lies about its own length</h3>
+<p>Speechmatics' TTS writes its WAV before it knows its own length, so the <code>data</code> chunk carries the "unknown length" placeholder <code>0xFFFFFFFF</code>. Taken at face value that is ~268,435 seconds — three days of composition for four seconds of speech. The parser now bounds the declared size by the bytes that actually follow. (A related trap: reading the byte rate at offset +12 yields the <em>sample rate</em>, which for 16-bit mono is exactly half — every duration comes out twice as long, quietly, and plausibly.)</p>
+
+<h3 class="avoid">6.6 A silent MP4 is worse than a missing one</h3>
+<p>A Mandarin short shipped fifteen seconds of silence to the gallery: <code>zh</code> is registered with a Piper voice, synthesis failed, the job carried on, and the only trace was a warning in a CI log. The finished file was indistinguishable from a narrated one. The runner now distinguishes "this language has no voice model" (legitimate — the short shows its words and says so) from "the registry promised a voice and synthesis failed" (dishonest), and <strong>fails the job</strong> in the second case. Same reasoning as the verbatim gate, applied to audio.</p>
+
+<h3 class="avoid">6.7 Captions must never show what ASR heard</h3>
+<p>Speechmatics returns both <em>when</em> each word was spoken and <em>what</em> it thought the word was. The second is thrown away. Captions sit directly under a verse; if ASR mishears and we render what it heard, a viewer sees altered Scripture, and no gate elsewhere would catch it because the verse element itself was never touched. So caption text is always the script we already hold, and ASR contributes nothing but a clock. That turns captioning into a forced-alignment problem — walk script and ASR together, anchor what matches, interpolate the rest weighted by word length. A failed match costs timing precision on one word. It can never cost accuracy.</p>
+
+<h3 class="avoid">6.8 Two render backends, kept alive side by side</h3>
+<p>Rendering runs on GitHub Actions by default, with a Vercel Sandbox microVM as an alternate, selectable per request. This looks like redundancy for its own sake until you consider that a contest demo depending on one CI queue being healthy is a demo that fails at the wrong moment. Both paths produce byte-identical compositions because both consume the same <code>bakeComposition</code> output — the preview cannot flatter the export.</p>
+
+<h2>7. Why these choices were right</h2>
+
+<p><strong>Retrieval over generation, enforced in the build.</strong> The alternative — instructing the model to quote accurately and checking samples — fails open. It works until the one time it does not, and that time ships. Making the check a build gate converts a probabilistic risk into a deterministic one.</p>
+
+<p><strong>A dependency-free gate.</strong> The most important 180 lines in the repo import nothing. That is a deliberate trade of convenience for auditability: a reviewer can read it top to bottom and satisfy themselves it does what is claimed, without trusting a supply chain.</p>
+
+<p><strong>Server-side spec resolution.</strong> Visuals, timings and theme are resolved once, server-side, so preview and export consume one artefact. The common failure in this class of tool is a preview that lies; the architecture removes the opportunity rather than testing for it.</p>
+
+<p><strong>Self-hosted everything the render touches.</strong> Fonts, music, motion runtime, backgrounds. The render runs offline from <code>file://</code>; anything fetched at capture time is a frame that might be blank.</p>
+
+<p><strong>MCP as a first-class surface.</strong> The whole pipeline is eight stateless tools. For the "creator tools" frontier this matters: the studio can live inside the editor or agent a creator already uses, rather than demanding they come to a website. The notebook accompanying this submission drives the live production deployment entirely through that endpoint, with no credentials.</p>
+
+<h2>8. What is verified, and what is not</h2>
+
+<p>Claims are cheap; the repository ships the checks that back them.</p>
+
+<table class="avoid">
+<tr><th>Command</th><th>What it proves</th></tr>
+<tr><td><code>npm test</code></td><td>Integrity-gate, USFM and alignment suites (36 tests)</td></tr>
+<tr><td><code>npm run prove:gate</code></td><td>Tampers with a verse end to end; asserts the render refuses</td></tr>
+<tr><td><code>npm run check:fit</code></td><td>252 theme × style × script combinations; fails on overflow</td></tr>
+<tr><td><code>npm run smoke:pages</code></td><td>Exactly one sentence visible at every page boundary</td></tr>
+<tr><td><code>npm run smoke:mcp</code></td><td>Speaks the real MCP protocol to a deployment and calls the tools</td></tr>
+<tr><td><code>npm run smoke:link</code></td><td>URL reader against live YouTube / article / failure cases</td></tr>
+<tr><td><code>npm run audit:languages</code></td><td>Re-audits language coverage against the live API</td></tr>
+</table>
+
+<p>Honest limitations, stated rather than hidden. Of 40 languages, <strong>33 are complete</strong> (licensed text, a free neural voice, and word timing <em>measured</em> from the audio); <strong>4 are voiced</strong> with timing estimated from word length; <strong>3 are captions-only</strong> because no free voice model exists yet. The studio preview is silent for every non-English language by design — Piper runs inside the export job, not in a serverless function — and the UI says so rather than letting a creator discover it in the finished file. Rate limiting is in-memory and therefore per-instance: a speed bump in front of paid APIs, not a wall, and documented as such.</p>
+
+<p>A self-audit of the pipeline (<code>PIPELINE-AUDIT.md</code> in the repository) records the defects found by reading the code adversarially, including two preview/export parity risks, ranked and unfixed rather than quietly patched over. Publishing that alongside the submission seemed more in keeping with the project's argument than not publishing it.</p>
+
+<h2>9. Where this goes</h2>
+
+<p>The gallery holds <strong>29 rendered shorts across 8 languages</strong>, each of which passed the gate before its first frame was captured. The interesting number is not 29; it is that the marginal cost of the thirtieth, in a language with no Scripture video at all, is about a minute and no specialist labour.</p>
+
+<p>That is the whole argument. Scripture has always travelled in whatever medium the culture was actually using — scroll, codex, print, radio. It is now late to vertical video in most of the world's languages, and the reason is production capacity rather than desire. This is a machine for manufacturing that capacity, built so it cannot lie about what it is quoting.</p>
+
+<footer>
+Scripture text is retrieved from the YouVersion Platform API at run time and remains under its publisher's copyright; none is redistributed. Source code is licensed Apache-2.0; bundled third-party assets carry their own licences, recorded in <code>assets/CREDITS.md</code>. Music beds are Audiio-licensed; fonts are SIL Open Font License.
+</footer>
+
+</body>
+</html>
