@@ -1,5 +1,19 @@
 [
   {
+    "id": "short-MRK.12.28-31-warm-minimal-ms9y7oya",
+    "video": "/gallery/short-MRK.12.28-31-warm-minimal-ms9y7oya.mp4",
+    "poster": "/gallery/short-MRK.12.28-31-warm-minimal-ms9y7oya.jpg",
+    "reference": "Mark 12:28-31",
+    "version": "NIV",
+    "attribution": "New International Version (NIV) · The Holy Bible, New International Version® NIV®\nCopyright © 1973, 1978, 1984, 2011 by Biblica, Inc.®\nUsed by Permission of Biblica, Inc.® All rights reserved worldwide.",
+    "language": "en",
+    "style": "neon-night",
+    "lens": "analogy",
+    "durationSec": 72,
+    "timingSource": "speechmatics",
+    "createdAt": "2026-08-01"
+  },
+  {
     "id": "short-JHN.1_1.1-warm-minimal-ms9dv6ua",
     "video": "/gallery/short-JHN.1_1.1-warm-minimal-ms9dv6ua.mp4",
     "poster": "/gallery/short-JHN.1_1.1-warm-minimal-ms9dv6ua.jpg",
