@@ -10,12 +10,29 @@
     font: 10.5pt/1.55 "Georgia", "Times New Roman", serif;
     color: #17151f; margin: 0;
   }
-  h1 { font-size: 22pt; line-height: 1.15; margin: 0 0 4pt; letter-spacing: -0.01em; }
-  .sub { font-size: 11.5pt; color: #5c5470; font-style: italic; margin: 0 0 10pt; }
-  .meta { font: 8.7pt/1.5 "Segoe UI", sans-serif; color: #5c5470;
-          border-top: 1.5px solid #d8d2e2; border-bottom: 1.5px solid #d8d2e2;
-          padding: 7pt 0; margin-bottom: 14pt; }
-  .meta a { color: #7a4b12; text-decoration: none; }
+  /* The generic `p` rule sets text-align: justify and, being a direct match,
+     beats the centring inherited from .title-block. So the header's own
+     paragraphs have to say it themselves. */
+  .title-block { text-align: center; margin: 4pt 0 12pt; }
+  .title-block p { text-align: center; }
+  .kicker { font: 600 8.5pt/1 "Segoe UI", sans-serif; letter-spacing: 0.22em;
+            text-transform: uppercase; color: #9a8fb5; margin: 0 0 7pt; }
+  h1 { font-size: 30pt; line-height: 1.1; margin: 0 0 6pt;
+       letter-spacing: -0.015em; }
+  .sub { font-size: 11.5pt; color: #5c5470; font-style: italic;
+         margin: 0 auto 12pt; max-width: 132mm; }
+  .byline { font: 10.5pt/1.5 "Segoe UI", sans-serif; color: #2a2338;
+            margin: 0 0 8pt; }
+  .byline strong { font-size: 12pt; }
+  .byline a { color: #7a4b12; text-decoration: none; font-size: 9.3pt; }
+  .venue { font: 9.3pt/1.5 "Segoe UI", sans-serif; color: #5c5470; margin: 0; }
+  .linkbar { border-top: 1.5px solid #d8d2e2; border-bottom: 1.5px solid #d8d2e2;
+             padding: 6pt 0; margin-bottom: 15pt; }
+  table.links { border-collapse: collapse; width: 100%;
+                font: 8.4pt/1.5 "Segoe UI", sans-serif; margin: 0; }
+  table.links td { border: none; padding: 1.5pt 8pt 1.5pt 0; vertical-align: top; }
+  table.links td strong { color: #3a3050; white-space: nowrap; }
+  table.links a { color: #7a4b12; text-decoration: none; }
   h2 { font: 600 13pt/1.3 "Segoe UI", sans-serif; margin: 17pt 0 6pt;
        color: #2a2338; border-bottom: 1px solid #e4dff0; padding-bottom: 3pt; }
   h3 { font: 600 10.5pt/1.35 "Segoe UI", sans-serif; margin: 12pt 0 4pt; color: #3a3050; }
@@ -43,24 +60,52 @@
 </head>
 <body>
 
-<h1>Scriptorium</h1>
-<p class="sub">Scripture shorts, in your own language — and a build that fails rather than ship an altered verse.</p>
+<header class="title-block">
+  <p class="kicker">Technical Writeup</p>
+  <h1>Scriptorium</h1>
+  <p class="sub">Scripture shorts, in your own language.</p>
 
-<div class="meta">
-<strong>Technical writeup</strong> &nbsp;·&nbsp; Dr. Philemon Paul Daniel &nbsp;·&nbsp; <em>Scripture in New Frontiers</em> (Gloo × YouVersion), August 2026<br>
-Live studio <a href="https://scriptorium-gamma-wheat.vercel.app">scriptorium-gamma-wheat.vercel.app</a> &nbsp;·&nbsp;
-Source <a href="https://github.com/phildani7/scriptorium">github.com/phildani7/scriptorium</a> (Apache-2.0) &nbsp;·&nbsp;
-Video <a href="https://youtu.be/VRy04QGBpC8">youtu.be/VRy04QGBpC8</a> &nbsp;·&nbsp;
-MCP <code>/api/mcp</code>
+  <p class="byline">
+    <strong>Dr. Philemon Paul Daniel</strong><br>
+    <a href="https://www.linkedin.com/in/phildani7">linkedin.com/in/phildani7</a>
+  </p>
+
+  <p class="venue">
+    A submission to <em>Scripture in New Frontiers</em><br>
+    the Kaggle hackathon run by <strong>Gloo</strong> and <strong>YouVersion</strong> &nbsp;·&nbsp; August 2026
+  </p>
+</header>
+
+<div class="linkbar">
+  <table class="links">
+    <tr>
+      <td><strong>Live studio</strong></td>
+      <td><a href="https://scriptorium-gamma-wheat.vercel.app">scriptorium-gamma-wheat.vercel.app</a></td>
+      <td><strong>Source</strong></td>
+      <td><a href="https://github.com/phildani7/scriptorium">github.com/phildani7/scriptorium</a> — Apache-2.0</td>
+    </tr>
+    <tr>
+      <td><strong>Video demo</strong></td>
+      <td><a href="https://youtu.be/VRy04QGBpC8">youtu.be/VRy04QGBpC8</a></td>
+      <td><strong>Gallery</strong></td>
+      <td><a href="https://scriptorium-gamma-wheat.vercel.app/gallery">scriptorium-gamma-wheat.vercel.app/gallery</a></td>
+    </tr>
+    <tr>
+      <td><strong>MCP endpoint</strong></td>
+      <td><a href="https://scriptorium-gamma-wheat.vercel.app/api/mcp">scriptorium-gamma-wheat.vercel.app/api/mcp</a></td>
+      <td><strong>Competition</strong></td>
+      <td><a href="https://www.kaggle.com/competitions/scripture-in-new-frontiers">kaggle.com/competitions/scripture-in-new-frontiers</a></td>
+    </tr>
+  </table>
 </div>
 
 <h2>1. The problem, stated precisely</h2>
 
-<p class="lede">YouVersion serves Scripture as <strong>text</strong> in over a thousand languages. The medium the world actually spends its attention on is <strong>vertical video</strong>. In most of those languages there is essentially none of it.</p>
+<p class="lede"><strong>YouVersion</strong> serves Scripture as <strong>text</strong> in over a thousand languages, and <strong>Gloo AI Studio</strong> can write faith-aligned teaching around it at scale. The medium the world actually spends its attention on is <strong>vertical video</strong> — and in most of those languages there is essentially none of it. Scriptorium is the bridge between those two APIs and that medium.</p>
 
 <p>This is not a content-appetite problem. It is a production problem. A short that anyone would watch needs three scarce people — a designer, a voice, and an editor — and a volunteer church in Dhaka or Chennai has none of them. English has thousands of Scripture shorts. Bengali has almost none. The gap is not theological; it is a shortage of production capacity, and production capacity is the kind of thing software is good at manufacturing.</p>
 
-<p>Scriptorium is a creator tool that supplies all three roles. Type a reference or a feeling ("anxiety at work"), paste a sermon, drop an article link, upload a PDF, or ask for a seven-day series. Pick a lens and a language. About a minute later there is a publishable 1080×1920 short — narrated in a real voice, captioned word by word, set in the correct script, with real motion design.</p>
+<p>Scriptorium is a creator tool that supplies all three roles, and it does so by dividing the work between the two APIs along a line that is the whole design: <strong>YouVersion provides the Scripture, and Gloo provides the teaching around it.</strong> Type a reference or a feeling ("anxiety at work"), paste a sermon, drop an article link, upload a PDF, or ask for a seven-day series. Pick a lens and a language. About a minute later there is a publishable 1080×1920 short — narrated in a real voice, captioned word by word, set in the correct script, with real motion design.</p>
 
 <h2>2. The architectural claim</h2>
 
